@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.16",
+		changes = {
+			"Hardened the FBL channel handler further: DB() now guarantees .sync is a table on every resolved store (pcall'd merge + a secret-safe table check), and the FBLver handler self-heals a missing sync field instead of indexing nil.",
+		},
+		changesDE = {
+			"Den FBL-Kanal-Handler weiter gehaertet: DB() garantiert jetzt dass .sync auf jedem aufgeloesten Store eine Tabelle ist (gepcallter Merge + secret-sicherer Typ-Check), und der FBLver-Handler heilt ein fehlendes sync-Feld selbst statt nil zu indexieren.",
+		},
+	},
+
+	{
 		version = "0.5.15",
 		changes = {
 			"Fixed 'attempt to index field sync (a nil value)' on incoming FBL channel messages: a saved-variables file of another FBLDB declarer can hand us a global that never saw the defaults merge - DB() now guarantees merged defaults on every table it resolves, so .sync and friends always exist.",

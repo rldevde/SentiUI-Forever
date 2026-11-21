@@ -1,5 +1,10 @@
 # SentiUI Panel
 
+## 0.5.16
+
+- Hardened the FBL channel handler further: DB() now guarantees .sync is a table on every resolved store (pcall'd merge + a secret-safe table check), and the FBLver handler self-heals a missing sync field instead of indexing nil.
+
+
 ## 0.5.15
 
 - Fixed 'attempt to index field sync (a nil value)' on incoming FBL channel messages: a saved-variables file of another FBLDB declarer can hand us a global that never saw the defaults merge - DB() now guarantees merged defaults on every table it resolves, so .sync and friends always exist.

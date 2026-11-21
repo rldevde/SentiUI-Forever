@@ -61,7 +61,14 @@ local merged = setmetatable({}, { __mode = "k" })
 local function DB()
 	local db = _G.FBLDB
 	if type(db) ~= "table" then db = {} _G.FBLDB = db end
-	if not merged[db] then Merge(db, DEFAULTS) merged[db] = true end
+	-- pcall: a saved table can carry values this client marks secret,
+	-- and a mid-merge throw would leave the table half-filled
+	if not merged[db] then pcall(Merge, db, DEFAULTS) merged[db] = true end
+	-- callers index db.sync all over; the merged defaults normally
+	-- provide it, but keep the guarantee whatever a declarer's file
+	-- leaves in the slot (read + type check inside pcall: secret-safe)
+	local ok, isTab = pcall(function() return type(db.sync) == "table" end)
+	if not (ok and isTab) then db.sync = {} end
 	return db
 end
 F.DB = DB
@@ -1354,8 +1361,12 @@ reqf:SetScript("OnEvent", function(_, ev, a1, a2, a3, a4)
 	if ver then
 		rev = tonumber(rev)
 		if rev then
-			DB().sync.seenRev = math.max(DB().sync.seenRev or 0, rev)
-			if rev > (DB().rev or 0) then MaybePull() end
+			local db = DB()
+			-- defensive: a declarer's file can hand us a global that never
+			-- saw the defaults merge - or holds a non-table in the slot
+			if type(db.sync) ~= "table" then db.sync = {} end
+			db.sync.seenRev = math.max(db.sync.seenRev or 0, rev)
+			if rev > (db.rev or 0) then MaybePull() end
 		end
 		return
 	end
