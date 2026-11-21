@@ -99,7 +99,7 @@ F.SyncLog = Log
 -- persisted) so the sync page can list who is around, their addon
 -- version and list revision, and when we last heard them
 local PEER_MAX_AGE = 14 * 86400
-local function PeerSeen(name, ver, rev)
+local function PeerSeen(name, ver, rev, cnt)
 	local db = DB()
 	local p = db.sync.peers
 	if type(p) ~= "table" then p = {} db.sync.peers = p end
@@ -109,6 +109,7 @@ local function PeerSeen(name, ver, rev)
 	e.at = time()
 	if ver then e.ver = ver end
 	if rev then e.rev = rev end
+	if cnt then e.cnt = cnt end
 end
 
 local function KnownPeers()
@@ -117,7 +118,7 @@ local function KnownPeers()
 	local now, out = time(), {}
 	for k, e in pairs(p) do
 		if type(e) == "table" and now - (e.at or 0) < PEER_MAX_AGE then
-			out[#out + 1] = { name = k, ver = e.ver, rev = e.rev, at = e.at }
+			out[#out + 1] = { name = k, ver = e.ver, rev = e.rev, at = e.at, cnt = e.cnt }
 		else
 			p[k] = nil -- stale or malformed: prune in place
 		end
@@ -1190,10 +1191,22 @@ local function Trusted(name)
 	return false
 end
 
+-- after our list changes (merge, manual import), rebroadcast version
+-- and stats soon-ish so peer panels see the fresh rev/count quickly
+local statTimer
+local function AnnounceStats()
+	if statTimer then return end
+	statTimer = C_Timer.NewTimer(10, function()
+		statTimer = nil
+		SendVersionPing()
+	end)
+end
+
 local function MergeReceived(json, from, quiet)
 	local wasClean = DataHash() == (DB().sync.lastHash or -1)
 	local added, updated = F.ImportJSON(json, from, true)
 	if added then
+		if added > 0 or updated > 0 then AnnounceStats() end
 		if wasClean then DB().sync.lastHash = DataHash() end
 		DB().sync.lastFrom, DB().sync.lastAt = from, time()
 		if not quiet and (added > 0 or updated > 0) then
@@ -1315,11 +1328,17 @@ SendVersionPing = function()
 	if InCombatLockdown and InCombatLockdown() then return end
 	local msg = "FBLver;SentiUI_Panel-" .. OurVersion()
 		.. ";" .. tostring(DB().rev or 0)
+	-- FBLstat rides alongside, not inside FBLver: extending the version
+	-- message could break the standalone's parser, while an unknown
+	-- message type is simply ignored by older clients
+	local stat = format("FBLstat;%d;%d", DB().rev or 0, F.EntryCount())
 	local f = C_ChatInfo and C_ChatInfo.SendAddonMessage or SendAddonMessage
 	if f then
 		ns.HardAPI("SendAddonMessage", f, PREFIX, msg, "CHANNEL", chanNum)
+		ns.HardAPI("SendAddonMessage", f, PREFIX, stat, "CHANNEL", chanNum)
 		if IsInGuild and IsInGuild() then
 			ns.HardAPI("SendAddonMessageGUILD", f, PREFIX, msg, "GUILD")
+			ns.HardAPI("SendAddonMessageGUILD", f, PREFIX, stat, "GUILD")
 		end
 		Log("out", format(L["Version ping sent (rev %d)"], DB().rev or 0))
 	end
@@ -1485,6 +1504,13 @@ reqf:SetScript("OnEvent", function(_, ev, a1, a2, a3, a4)
 				MaybePull()
 			end
 		end
+		return
+	end
+	-- peer stats: "FBLstat;rev;entryCount" - our own extension, lets
+	-- the peers strip show whether someone's list is complete
+	local srev, scnt = text:match("^FBLstat;(%d+);(%d+)")
+	if srev then
+		PeerSeen(sender, nil, tonumber(srev), tonumber(scnt))
 		return
 	end
 	local seqS, totalS, chunk = text:match("^FBLv1;(%d+);(%d+);(.*)$")
@@ -1724,6 +1750,7 @@ local function Window()
 		ns.TextPopup(L["Import"], "", function(t)
 			local added, updated = F.ImportJSON(t, nil)
 			if added then
+				if added > 0 or updated > 0 then AnnounceStats() end
 				Log("in", format(L["Import: %d added, %d updated"], added, updated))
 				S.Print(format(L["Import: %d added, %d updated"], added, updated))
 			else
@@ -1998,6 +2025,7 @@ function F.RefreshWindow()
 		lp.scroll:UpdateScrollChildRect()
 
 		local peers = KnownPeers()
+		local ourCnt = F.EntryCount()
 		lp.pHead:SetText(format("%s (%d)", L["Peers"], #peers))
 		local ph = lp.pHolder
 		local pShown = 0
@@ -2006,7 +2034,7 @@ function F.RefreshWindow()
 			local r = ph.rows[pShown]
 			if not r then
 				r = CreateFrame("Frame", nil, ph)
-				r:SetHeight(26)
+				r:SetHeight(38)
 				r.name = ns.Font(r, 9)
 				r.name:SetPoint("TOPLEFT", 4, -2)
 				r.name:SetPoint("RIGHT", -4, 0)
@@ -2017,20 +2045,36 @@ function F.RefreshWindow()
 				r.sub:SetPoint("RIGHT", -4, 0)
 				r.sub:SetJustifyH("LEFT")
 				r.sub:SetWordWrap(false)
+				r.sub2 = ns.Font(r, 8)
+				r.sub2:SetPoint("TOPLEFT", r.sub, "BOTTOMLEFT", 0, 0)
+				r.sub2:SetPoint("RIGHT", -4, 0)
+				r.sub2:SetJustifyH("LEFT")
+				r.sub2:SetWordWrap(false)
 				ph.rows[pShown] = r
 			end
 			r:ClearAllPoints()
-			r:SetPoint("TOPLEFT", 0, -((pShown - 1) * 26))
+			r:SetPoint("TOPLEFT", 0, -((pShown - 1) * 38))
 			r:SetPoint("RIGHT", -2, 0)
 			r.name:SetText(pe.name or "?")
-			r.sub:SetText(format("%s  rev %s  |cff6a6f7d%s|r",
-				tostring(pe.ver or "-"), tostring(pe.rev or "-"),
+			-- their entry count next to ours, so "did they get the full
+			-- list?" reads as a number instead of a guess
+			local cntTxt
+			if pe.cnt then
+				cntTxt = format(pe.cnt >= ourCnt
+					and "|cff4dd278%d/%d|r" or "|cffff5555%d/%d|r",
+					pe.cnt, ourCnt)
+			else
+				cntTxt = "|cff6a6f7d-/" .. ourCnt .. "|r"
+			end
+			r.sub:SetText(format("%s  |cff6a6f7d%s|r",
+				tostring(pe.ver or "-"),
 				pe.at and date("%d.%m %H:%M", pe.at) or "-"))
+			r.sub2:SetText(format("rev %s  %s", tostring(pe.rev or "-"), cntTxt))
 			r:Show()
 		end
 		for i = pShown + 1, #ph.rows do ph.rows[i]:Hide() end
 		lp.pEmpty:SetShown(pShown == 0)
-		ph:SetHeight(math.max(1, pShown * 26))
+		ph:SetHeight(math.max(1, pShown * 38))
 		ph:SetWidth(math.max(1, lp.pScroll:GetWidth()))
 		lp.pScroll:UpdateScrollChildRect()
 		return

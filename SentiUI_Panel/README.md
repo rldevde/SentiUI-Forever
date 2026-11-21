@@ -56,7 +56,8 @@ ForeverBlackListed addon and delegates writes/sync to it when loaded.
   (channel, own/peer revision, live share, auto-accept, trust, last
   sender, live member count) plus a persisted log of all sync
   traffic in and out, and a peers strip listing known FBL clients
-  on the channel with version, revision and last-seen time
+  on the channel with version, revision, their entry count vs ours
+  (FBLstat announce) and last-seen time
 - Admin page: admin roster, auto-accept/trust switches, import/export,
   pending removal requests, 'Sync all'
 

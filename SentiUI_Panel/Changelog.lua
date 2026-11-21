@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.19",
+		changes = {
+			"Blacklist peers strip now shows whether someone's list is complete: a lightweight FBLstat message (rev + entry count, ignored by older clients and the standalone) rides alongside the version ping, so each peer row displays 'rev N  theirs/ours' - green when the peer is caught up, red when behind. Our own stats re-announce shortly after merges and manual imports.",
+		},
+		changesDE = {
+			"Blacklist-Peerliste zeigt jetzt ob eine Liste vollstaendig angekommen ist: eine leichte FBLstat-Nachricht (Rev + Eintraegezahl, von aelteren Clients und dem Standalone ignoriert) fliegt mit dem Versions-Ping mit, sodass jede Peer-Zeile 'rev N  deren/unsere' anzeigt - gruen bei Stand gleich, rot bei Rueckstand. Eigene Stats werden nach Merges und manuellen Importen zeitnah neu angekuendigt.",
+		},
+	},
+
+	{
 		version = "0.5.18",
 		changes = {
 			"Blacklist sync log: fixed the search box overlapping the new chip (window is wider now) and added a peers strip on the sync page - known FBL clients on the channel with addon version, list revision and last-seen time, plus a live channel member count when the roster API resolves.",
