@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.14",
+		changes = {
+			"The shared blacklist now actually reaches other players: the importer routes through the sync owner's store (the standalone's ImportJSON when it is loaded, our live FBLDB otherwise) and runs non-quiet, so the list revision bumps and live-share rebroadcasts the fresh entries on the FBL channel. The probe now checks the sync store too, not just the saved global.",
+		},
+		changesDE = {
+			"Die geteilte Blacklist erreicht jetzt wirklich andere Spieler: Der Importer laeuft ueber den Store des Sync-Besitzers (ImportJSON des Standalone wenn geladen, sonst unser live FBLDB) und nicht-quiet, sodass die Listen-Revision steigt und Live-Share die neuen Eintraege auf dem FBL-Kanal sendet. Die Pruefung schaut jetzt ebenfalls in den Sync-Store statt nur ins gespeicherte Global.",
+		},
+	},
+
+	{
 		version = "0.5.13",
 		changes = {
 			"Fixed the shared-blacklist import re-running (and reporting) every login: FBLDB is declared by several addons and the last saved-variables file to load replaces the global - the cached F.db pointed at an orphaned table, so the once-flag and imported entries never reached disk. All FBL reads now resolve the live global, the importer probes for present entries before running and stays silent either way.",

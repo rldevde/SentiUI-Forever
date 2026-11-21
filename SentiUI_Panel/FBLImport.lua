@@ -1336,14 +1336,15 @@ boot:SetScript("OnEvent", function()
 		db.imports = db.imports or {}
 		if db.imports.xenshiLucas then return end
 
-		-- entries may already sit in the store (sync, a shared saved
-		-- file): importing again would only re-report them, so probe the
-		-- list first and stay silent either way - this is bootstrap
-		-- housekeeping, not news
+		-- probe the store the entries have to live in: with the standalone
+		-- loaded its own .db is the sync source (the saved global can be a
+		-- different table), without it our live global is the store
+		local ext = _G.ForeverBlackListed
+		local store = (ext and ext.db) or db
 		local missing = 0
 		for _, e in pairs(ENTRIES) do
 			local k = F.Key and F.Key(e.kind == "guild" and "guild" or "player", e.name)
-			if not (k and db.entries and db.entries[k]) then
+			if not (k and store.entries and store.entries[k]) then
 				missing = missing + 1
 			end
 		end
@@ -1369,7 +1370,15 @@ boot:SetScript("OnEvent", function()
 			app = "ForeverBlackListed", version = 1,
 			entries = entries, tombstones = tombs, groups = groups,
 		})
-		F.ImportJSON(json, nil, true)
+		-- import through the store that syncs: the standalone's own api
+		-- writes its .db and bumps its rev, so live-share rebroadcasts the
+		-- fresh entries on the channel; quiet=false on purpose - we WANT
+		-- the dirty/broadcast, just not the chat line
+		if ext and type(ext.ImportJSON) == "function" then
+			ext:ImportJSON(json, nil, false)
+		else
+			F.ImportJSON(json, nil, false)
+		end
 		db.imports.xenshiLucas = true
 	end)
 end)
