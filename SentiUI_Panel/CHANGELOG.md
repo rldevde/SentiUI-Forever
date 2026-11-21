@@ -1,5 +1,10 @@
 # SentiUI Panel
 
+## 0.5.13
+
+- Fixed the shared-blacklist import re-running (and reporting) every login: FBLDB is declared by several addons and the last saved-variables file to load replaces the global - the cached F.db pointed at an orphaned table, so the once-flag and imported entries never reached disk. All FBL reads now resolve the live global, the importer probes for present entries before running and stays silent either way.
+
+
 ## 0.5.12
 
 - SecureAPI now delegates to the shared core wrapper: blocked or failed engine calls print their call site (file.lua:line) once, the same reporting every module gets.

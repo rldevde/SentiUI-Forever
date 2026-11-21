@@ -1327,9 +1327,30 @@ boot:RegisterEvent("PLAYER_LOGIN")
 boot:SetScript("OnEvent", function()
 	C_Timer.After(8, function()
 		local F = ns.FBL
-		if not (F and F.db and F.ImportJSON and F.JsonEncode) then return end
-		F.db.imports = F.db.imports or {}
-		if F.db.imports.xenshiLucas then return end
+		if not (F and F.ImportJSON and F.JsonEncode) then return end
+		-- live global, not F.db: several addons declare FBLDB and the last
+		-- saved-variables file to load replaces it - a cached .db can point
+		-- at an orphaned table whose flag write never reaches disk
+		local db = _G.FBLDB
+		if type(db) ~= "table" then return end
+		db.imports = db.imports or {}
+		if db.imports.xenshiLucas then return end
+
+		-- entries may already sit in the store (sync, a shared saved
+		-- file): importing again would only re-report them, so probe the
+		-- list first and stay silent either way - this is bootstrap
+		-- housekeeping, not news
+		local missing = 0
+		for _, e in pairs(ENTRIES) do
+			local k = F.Key and F.Key(e.kind == "guild" and "guild" or "player", e.name)
+			if not (k and db.entries and db.entries[k]) then
+				missing = missing + 1
+			end
+		end
+		if missing == 0 then
+			db.imports.xenshiLucas = true
+			return
+		end
 
 		-- keyed saved-variable maps -> the array shape the importer reads
 		local entries = {}
@@ -1348,9 +1369,7 @@ boot:SetScript("OnEvent", function()
 			app = "ForeverBlackListed", version = 1,
 			entries = entries, tombstones = tombs, groups = groups,
 		})
-		local added, updated = F.ImportJSON(json, nil, true)
-		F.db.imports.xenshiLucas = true
-		S.Print(format(ns.L["Blacklist import: %d added, %d updated"],
-			added or 0, updated or 0))
+		F.ImportJSON(json, nil, true)
+		db.imports.xenshiLucas = true
 	end)
 end)

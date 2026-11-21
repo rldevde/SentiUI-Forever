@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.13",
+		changes = {
+			"Fixed the shared-blacklist import re-running (and reporting) every login: FBLDB is declared by several addons and the last saved-variables file to load replaces the global - the cached F.db pointed at an orphaned table, so the once-flag and imported entries never reached disk. All FBL reads now resolve the live global, the importer probes for present entries before running and stays silent either way.",
+		},
+		changesDE = {
+			"Der Blacklist-Import lief (und meldete) bei jedem Login erneut: FBLDB wird von mehreren Addons deklariert und die zuletzt geladene Saved-Variables-Datei ersetzt das Global - das gecachte F.db zeigte auf eine verwaiste Tabelle, sodass Einmal-Flag und importierte Eintraege nie gespeichert wurden. Alle FBL-Zugriffe lesen jetzt das live Global, der Importer prueft vorhandene Eintraege vorher und bleibt in jedem Fall still.",
+		},
+	},
+
+	{
 		version = "0.5.12",
 		changes = {
 			"SecureAPI now delegates to the shared core wrapper: blocked or failed engine calls print their call site (file.lua:line) once, the same reporting every module gets.",

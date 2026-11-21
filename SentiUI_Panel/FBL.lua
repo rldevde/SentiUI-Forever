@@ -51,13 +51,18 @@ end
 FBLDB = type(FBLDB) == "table" and FBLDB or {}
 Merge(FBLDB, DEFAULTS)
 F.db = FBLDB
+-- several addons declare FBLDB (standalone, My-Social, us); whichever
+-- saved-variables file loads last replaces the global, so a .db captured
+-- at file load can point at an orphaned table whose writes never reach
+-- disk. DB() always resolves the live global instead.
+local function DB() return _G.FBLDB or {} end
 
 -- the standalone addon, when loaded, owns sync/votes/merge - delegate
 local function ext() return _G.ForeverBlackListed end
-local function extdb() return ext() and ext().db or F.db end
+local function extdb() return ext() and ext().db or DB() end
 
 local function Dirty()
-	local db = F.db
+	local db = DB()
 	db.rev = (db.rev or 0) >= time() and (db.rev + 1) or time()
 	local x = ext()
 	if x and x.SyncDirty then x:SyncDirty()
@@ -97,6 +102,7 @@ local function Key(kind, name)
 	if not clean then return nil end
 	return kind .. "|" .. clean:lower()
 end
+F.Key = Key -- the one-time importer probes for present entries with it
 
 function F.GetUnitFullName(unit)
 	local name
@@ -138,7 +144,7 @@ function F.AddEntry(name, kind, group, note, guild, list, realm)
 		if ok and type(r) == "string" and r ~= "" then realm = r end
 	end
 	local k = Key(kind, clean)
-	local db = F.db
+	local db = DB()
 	if db.entries[k] then return nil, "exists", db.entries[k] end
 	if not db.groups[group] then group = db.groups[db.lastGroup] and db.lastGroup or "other" end
 	if not db.groups[group] then group = "other" end
@@ -168,8 +174,8 @@ function F.RemoveEntry(entry)
 	if not entry then return end
 	local k = Key(entry.kind, entry.name)
 	if k then
-		F.db.entries[k] = nil
-		F.db.tombstones[k] = time()
+		DB().entries[k] = nil
+		DB().tombstones[k] = time()
 	end
 	if F.RefreshWindow then F.RefreshWindow() end
 	Dirty()
@@ -211,7 +217,7 @@ end
 function F.SetGroup(e, gid)
 	local x = ext()
 	if x and x.SetGroup then return x:SetGroup(e, gid) end
-	if not (e and gid and F.db.groups[gid]) then return end
+	if not (e and gid and DB().groups[gid]) then return end
 	e.group = gid
 	e.mod = time()
 	Dirty()
@@ -643,11 +649,11 @@ function F.Debug()
 	S.Print(format("FBL: channel=%s prefix=%s autoAccept=%s trust=%s entries=%d pending=%d lastSync=%s",
 		tostring(chanNum or "-"),
 		reg == nil and "?" or tostring(reg),
-		tostring(F.db.sync and F.db.sync.autoAccept),
-		tostring(F.db.sync and F.db.sync.trust),
+		tostring(DB().sync and DB().sync.autoAccept),
+		tostring(DB().sync and DB().sync.trust),
 		F.EntryCount(),
 		pend,
-		tostring(F.db.sync and F.db.sync.lastFrom or "-")))
+		tostring(DB().sync and DB().sync.lastFrom or "-")))
 end
 
 -- once in the channel: announce our version+rev, ask for the newest
@@ -656,7 +662,7 @@ end
 OnJoined = function()
 	C_Timer.After(3, SendVersionPing)
 	C_Timer.After(4, SendPullRequest)
-	if DataHash() ~= (F.db.sync.lastHash or -1) then
+	if DataHash() ~= (DB().sync.lastHash or -1) then
 		C_Timer.After(5, QueueChannelSend)
 	end
 end
@@ -812,16 +818,16 @@ end
 function F.AddGroup(name)
 	name = strtrim(name or "")
 	if name == "" then return nil end
-	for id, g in pairs(F.db.groups) do
+	for id, g in pairs(DB().groups) do
 		if F.GroupName(id):lower() == name:lower() then return id end
 	end
-	F.db.groupSeq = (F.db.groupSeq or 3) + 1
-	local id = "g" .. F.db.groupSeq
+	DB().groupSeq = (DB().groupSeq or 3) + 1
+	local id = "g" .. DB().groupSeq
 	local maxOrder = 0
-	for _, g in pairs(F.db.groups) do
+	for _, g in pairs(DB().groups) do
 		if (g.order or 0) > maxOrder then maxOrder = g.order end
 	end
-	F.db.groups[id] = { name = name, order = maxOrder + 1, builtin = false }
+	DB().groups[id] = { name = name, order = maxOrder + 1, builtin = false }
 	return id
 end
 
@@ -829,12 +835,12 @@ end
 -- so an import from us merges into a real FBL client identically
 function F.ExportTable()
 	local groups = {}
-	for id, g in pairs(F.db.groups) do
+	for id, g in pairs(DB().groups) do
 		tinsert(groups, { id = id, name = g.name, builtin = g.builtin and true or nil })
 	end
 	local entries = {}
 	local list = {}
-	for _, e in pairs(F.db.entries) do tinsert(list, e) end
+	for _, e in pairs(DB().entries) do tinsert(list, e) end
 	sort(list, function(a, b) return a.name:lower() < b.name:lower() end)
 	for _, e in ipairs(list) do
 		tinsert(entries, {
@@ -848,7 +854,7 @@ function F.ExportTable()
 		})
 	end
 	local tombs = {}
-	for k, ts in pairs(F.db.tombstones or {}) do
+	for k, ts in pairs(DB().tombstones or {}) do
 		local kind, name = k:match("^(%a+)|(.+)$")
 		if kind and name then
 			tinsert(tombs, { kind = kind, name = name, removed = ts })
@@ -857,7 +863,7 @@ function F.ExportTable()
 	sort(tombs, function(a, b) return a.name < b.name end)
 	return {
 		app = "ForeverBlackListed", version = 1, exported = time(),
-		rev = F.db.rev or 0,
+		rev = DB().rev or 0,
 		groups = groups, entries = entries, tombstones = tombs,
 	}
 end
@@ -890,7 +896,7 @@ function F.ImportJSON(text, sender, quiet)
 	if type(data) ~= "table" or type(data.entries) ~= "table" then
 		return nil, L["Invalid import data"]
 	end
-	local db = F.db
+	local db = DB()
 	local groupsById, groupsByName = {}, {}
 	for id, g in pairs(db.groups) do
 		groupsById[id] = true
@@ -1025,7 +1031,7 @@ local ignored = {}
 
 DataHash = function()
 	local h, n = 0, 0
-	for _, e in pairs(F.db.entries) do
+	for _, e in pairs(DB().entries) do
 		n = n + 1
 		local nc = 0
 		for _ in pairs(e.notes or {}) do nc = nc + 1 end
@@ -1035,7 +1041,7 @@ DataHash = function()
 			+ nc + nv + (e.rating or 0) + (e.list == "good" and 7 or 3)
 			+ (e.mod or 0) % 9973) % 16777216
 	end
-	for _, ts in pairs(F.db.tombstones or {}) do
+	for _, ts in pairs(DB().tombstones or {}) do
 		h = (h * 33 + ts % 65536) % 16777216
 	end
 	return h * 1024 + n
@@ -1043,7 +1049,7 @@ end
 
 -- trust check for channel auto-accept: "all" | "guild" | "friends"
 local function Trusted(name)
-	local mode = (F.db.sync and F.db.sync.trust) or "all"
+	local mode = (DB().sync and DB().sync.trust) or "all"
 	if mode == "all" then return true end
 	local function norm(n)
 		n = n and F.CleanName(n)
@@ -1085,11 +1091,11 @@ local function Trusted(name)
 end
 
 local function MergeReceived(json, from, quiet)
-	local wasClean = DataHash() == (F.db.sync.lastHash or -1)
+	local wasClean = DataHash() == (DB().sync.lastHash or -1)
 	local added, updated = F.ImportJSON(json, from, true)
 	if added then
-		if wasClean then F.db.sync.lastHash = DataHash() end
-		F.db.sync.lastFrom, F.db.sync.lastAt = from, time()
+		if wasClean then DB().sync.lastHash = DataHash() end
+		DB().sync.lastFrom, DB().sync.lastAt = from, time()
 		if not quiet and (added > 0 or updated > 0) then
 			S.Print(format(L["Sync from %s: %d added, %d updated"], from, added, updated))
 		end
@@ -1128,7 +1134,7 @@ local function FinishReceive(from, transport)
 	local done = lastDone[from]
 	if done and done.json == json and time() - done.at < 120 then return end
 	lastDone[from] = { json = json, at = time() }
-	if not (F.db.sync and F.db.sync.autoAccept) then
+	if not (DB().sync and DB().sync.autoAccept) then
 		StaticPopup_Show("SENTIFBL_SYNC_ACCEPT", from, nil,
 			{ json = json, from = from })
 		return
@@ -1151,12 +1157,12 @@ local pullRespAt = 0
 -- OnPullRequest defers into it
 local function OnPullRequest(text)
 	local reqRev = tonumber(text:match("^FBLpull;(%d+)"))
-	if not reqRev or (F.db.rev or 0) <= reqRev then return end
-	if not (F.db.sync and F.db.sync.liveShare) then return end
+	if not reqRev or (DB().rev or 0) <= reqRev then return end
+	if not (DB().sync and DB().sync.liveShare) then return end
 	if time() - pullRespAt < 60 then return end
 	pullRespAt = time()
 	C_Timer.After(math.random(5, 40), function()
-		if (F.db.rev or 0) > reqRev then QueueChannelSend() end
+		if (DB().rev or 0) > reqRev then QueueChannelSend() end
 	end)
 end
 
@@ -1165,7 +1171,7 @@ end
 SendPullRequest = function()
 	if not chanNum then return end
 	if InCombatLockdown and InCombatLockdown() then return end
-	local msg = "FBLpull;" .. tostring(F.db.rev or 0)
+	local msg = "FBLpull;" .. tostring(DB().rev or 0)
 	-- addon messages only: SendChatMessage on a channel is hardware-gated
 	-- on this client, every timer-driven attempt raised a blocked call
 	local f = C_ChatInfo and C_ChatInfo.SendAddonMessage or SendAddonMessage
@@ -1194,7 +1200,7 @@ SendVersionPing = function()
 	if not chanNum then return end
 	if InCombatLockdown and InCombatLockdown() then return end
 	local msg = "FBLver;SentiUI_Panel-" .. OurVersion()
-		.. ";" .. tostring(F.db.rev or 0)
+		.. ";" .. tostring(DB().rev or 0)
 	local f = C_ChatInfo and C_ChatInfo.SendAddonMessage or SendAddonMessage
 	if f then
 		ns.HardAPI("SendAddonMessage", f, PREFIX, msg, "CHANNEL", chanNum)
@@ -1263,14 +1269,14 @@ QueueChannelSend = function()
 		sendQueue[i] = format("FBLv1;%d;%d;%s", i, total,
 			json:sub((i - 1) * SYNC_CHUNK + 1, i * SYNC_CHUNK))
 	end
-	F.db.sync.lastHash = DataHash()
+	DB().sync.lastHash = DataHash()
 	if not sendTicker then sendTicker = C_Timer.NewTicker(0.3, DrainSend) end
 end
 
 -- live share: local changes rebroadcast after a short debounce
 local liveTimer
 F._liveShare = function()
-	if not (chanNum and F.db.sync and F.db.sync.liveShare) then return end
+	if not (chanNum and DB().sync and DB().sync.liveShare) then return end
 	if liveTimer then liveTimer:Cancel() end
 	liveTimer = C_Timer.NewTimer(6, function()
 		liveTimer = nil
@@ -1339,8 +1345,8 @@ reqf:SetScript("OnEvent", function(_, ev, a1, a2, a3, a4)
 	if ver then
 		rev = tonumber(rev)
 		if rev then
-			F.db.sync.seenRev = math.max(F.db.sync.seenRev or 0, rev)
-			if rev > (F.db.rev or 0) then MaybePull() end
+			DB().sync.seenRev = math.max(DB().sync.seenRev or 0, rev)
+			if rev > (DB().rev or 0) then MaybePull() end
 		end
 		return
 	end
@@ -1539,8 +1545,8 @@ local function Window()
 	-- taints the engine's later spell-stop calls
 	adEdit.onType = function(self)
 		local v = strtrim(self:GetText() or "")
-		F.db.sync = F.db.sync or {}
-		F.db.sync.admin = v ~= "" and v or nil
+		DB().sync = DB().sync or {}
+		DB().sync.admin = v ~= "" and v or nil
 		F.RefreshWindow()
 	end
 	adminPanel.adminEdit = adEdit
@@ -1553,20 +1559,20 @@ local function Window()
 	local adSync = adminPanel.syncAll
 
 	local autoChip = Chip(adminPanel, L["Auto-accept sync"], function(c)
-		F.db.sync.autoAccept = not F.db.sync.autoAccept
-		c:SetActive(F.db.sync.autoAccept)
+		DB().sync.autoAccept = not DB().sync.autoAccept
+		c:SetActive(DB().sync.autoAccept)
 	end)
 	autoChip:SetPoint("TOPRIGHT", adSync, "BOTTOMRIGHT", 0, -6)
 	adminPanel.autoChip = autoChip
 
 	local trustChip = Chip(adminPanel, "", function()
 		local modes = { "all", "guild", "friends" }
-		local cur = F.db.sync.trust or "all"
+		local cur = DB().sync.trust or "all"
 		local nextMode = "all"
 		for i, m in ipairs(modes) do
 			if m == cur then nextMode = modes[i % 3 + 1] end
 		end
-		F.db.sync.trust = nextMode
+		DB().sync.trust = nextMode
 		F.RefreshWindow()
 	end)
 	trustChip:SetPoint("TOPRIGHT", autoChip, "BOTTOMRIGHT", 0, -6)
@@ -1720,13 +1726,13 @@ function F.RefreshWindow()
 		for n in pairs(F.EffectiveAdmins()) do tinsert(names, n) end
 		sort(names)
 		ap.admins:SetText(format(L["Effective admin: %s"], table.concat(names, ", ")))
-		ap.autoChip:SetActive(F.db.sync.autoAccept == true)
-		local tmode = F.db.sync.trust or "all"
+		ap.autoChip:SetActive(DB().sync.autoAccept == true)
+		local tmode = DB().sync.trust or "all"
 		ap.trustChip:SetLabel(format(L["Trust: %s"],
 			tmode == "all" and L["Everyone"] or tmode == "guild" and L["Guild"] or L["Friends"]))
 		ap.trustChip:SetActive(tmode ~= "all")
 		if not ap.adminEdit:HasFocus() then
-			ap.adminEdit:SetText(F.db.sync and F.db.sync.admin or "")
+			ap.adminEdit:SetText(DB().sync and DB().sync.admin or "")
 		end
 		local reqs = F.PendingRequests()
 		for i = 1, math.max(#reqs, #ap.reqRows) do
