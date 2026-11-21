@@ -1,0 +1,27 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Character
+## Notes: The Sentinel character window: gear slots, stats and model.
+## Notes-deDE: Das Sentinel-Charakterfenster: Ausrüstung, Werte und Modell.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.2.10
+## Dependencies: SentiUI
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Core.lua
+Menus.lua
+Pages.lua
+Window.lua
+Slots.lua
+Stats.lua
+Options.lua
+Changelog.lua
+Module.lua

@@ -1,0 +1,24 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r BugSack
+## Notes: The error grabber for SentiUI: captures Lua errors and forbidden calls, groups them by addon and shows them in a copyable BugSack-style window.
+## Notes-deDE: Der Fehlersammler für SentiUI: fängt Lua-Fehler und verbotene Aufrufe ab, gruppiert sie nach Addon und zeigt sie in einem kopierbaren BugSack-Fenster.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.1.4
+## Dependencies: SentiUI
+## SavedVariables: SentiUIBugSackDB
+## LoadSavedVariablesFirst: 1
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Defaults.lua
+Core.lua
+Window.lua
+Options.lua
+Changelog.lua
+Module.lua

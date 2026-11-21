@@ -1,0 +1,22 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Messenger
+## Notes: A whisper hub for SentiUI: every conversation in one window, unread counters, pinned chats, per-character history and an away auto-reply.
+## Notes-deDE: Ein Whisper-Hub für SentiUI: alle Unterhaltungen in einem Fenster, Ungelesen-Zähler, angepinnte Chats, Verlauf pro Charakter und eine AFK-Automatwort.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.3.5
+## Dependencies: SentiUI
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Messenger.lua
+Options.lua
+Changelog.lua
+Module.lua

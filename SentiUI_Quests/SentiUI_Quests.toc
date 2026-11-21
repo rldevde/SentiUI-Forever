@@ -1,0 +1,28 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Quests
+## Notes: The quest tracker module for SentiUI: own Sentinel tracker or Questie's tracker.
+## Notes-deDE: Das Quest-Modul für SentiUI: eigene Sentinel-Questverfolgung oder die von Questie.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.4.6
+## Dependencies: SentiUI
+## OptionalDeps: Questie
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Blizzard.lua
+Questie.lua
+Nav.lua
+Progress.lua
+AutoQuest.lua
+Tracker.lua
+Options.lua
+Changelog.lua
+Module.lua

@@ -1,0 +1,23 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Buffs
+## Notes: The buffs module for SentiUI: the client's own buff, debuff and weapon-enchant frames with the Sentinel look, on movable anchors.
+## Notes-deDE: Das Buffs-Modul für SentiUI: die eigenen Buff-, Debuff- und Waffenverzauberungs-Fenster des Clients im Sentinel-Look auf beweglichen Ankern.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.6.9
+## Dependencies: SentiUI
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Templates.xml
+Buffs.lua
+Options.lua
+Changelog.lua
+Module.lua

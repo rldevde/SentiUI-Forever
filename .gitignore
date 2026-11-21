@@ -1,0 +1,8 @@
+# Repo root = the live AddOns folder. Only the SentiUI suite is tracked;
+# every other addon in this folder belongs to someone else.
+/*
+!/SentiUI/
+!/SentiUI_*/
+!/.gitignore
+!/LICENSE
+!/README.md

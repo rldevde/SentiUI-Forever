@@ -1,0 +1,20 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: SentiUI Nameplates
+## Notes: Sentinel-styled nameplates: threat colors, cast bars, debuffs, class colors.|nPart of the SentiUI suite.
+## Author: SentiUI
+## Version: 0.1.15
+## SavedVariables: SentiUI_NameplatesDB
+## Dependencies: SentiUI
+
+Locales\Locales.lua
+Locales\deDE.lua
+Defaults.lua
+Threat.lua
+Plate.lua
+Cast.lua
+Auras.lua
+Manager.lua
+Options.lua
+Changelog.lua
+Module.lua

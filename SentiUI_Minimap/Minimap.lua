@@ -1,0 +1,1045 @@
+-- The Sentinel minimap for SentiUI, built the proven SentinelForeverCore way
+-- for this client:
+--   * a dark panel wraps the client's own Minimap in place - NO reparenting:
+--     SetParent on Minimap is protected-ish here, so the panel is the mover
+--     and the map is merely anchored inside it
+--   * MinimapCluster is NEVER hidden (hiding it takes the whole map)
+--   * blizzard decorations are faded with SetAlpha(0) + EnableMouse(false),
+--     never Hide()d, and a 1s ticker keeps them down - GameTimeFrame and
+--     AddonCompartmentFrame keep coming back to life on this client
+--   * zone bar above, coords bar below (burger menu left, "+" addon-button
+--     collection right), wheel zoom, pvp-colored zone text
+local addonName, ns = ...
+local S = SentiUI
+local L = ns.L
+local C = S.colors
+
+local Core = {}
+ns.Core = Core
+
+local BLANK = "Interface\\Buttons\\WHITE8X8"
+local RING = "Interface\\AddOns\\SentiUI_Minimap\\Media\\Ring.tga"
+local CIRCLE = "Interface\\AddOns\\SentiUI_Minimap\\Media\\CircleMask.tga"
+local SUN = "Interface\\AddOns\\SentiUI_Minimap\\Media\\Sun.tga"
+local MOON = "Interface\\AddOns\\SentiUI_Minimap\\Media\\Moon.tga"
+
+local mod        -- module def, mod.db filled at enable
+local panel, deco, ring, halo, zoneBar, zoneText, coordsBar, coordsText
+local menuBtn, menu, suiMenu, addonPop, addonTrigger
+local corners = {}
+local moverSet
+local built
+local captured = {} -- collected addon minimap buttons, [name] = {btn, name}
+
+-- Lets other addons ask which shape the map has (standard convention).
+function GetMinimapShape()
+	local db = mod and mod.db
+	return (db and db.shape == "square") and "SQUARE" or "ROUND"
+end
+
+-- Fading ---------------------------------------------------------------------
+-- On this client decorations are faded, not hidden: Hide() makes blizzard
+-- scripts fight back, alpha + mouse-off sticks.
+local function fade(f)
+	if type(f) ~= "table" or f == Minimap then return end
+	if f.SetAlpha then pcall(f.SetAlpha, f, 0) end
+	if f.EnableMouse then pcall(f.EnableMouse, f, false) end
+end
+
+local function unfade(f)
+	if type(f) ~= "table" then return end
+	if f.SetAlpha then pcall(f.SetAlpha, f, 1) end
+	if f.EnableMouse then pcall(f.EnableMouse, f, true) end
+end
+
+local function resolve(spec)
+	if type(spec) == "table" then
+		local f = _G[spec[1]]
+		for i = 2, #spec do
+			if type(f) ~= "table" then return nil end
+			f = f[spec[i]]
+		end
+		return f
+	end
+	local obj = _G
+	for part in spec:gmatch("[^%.]+") do obj = obj and obj[part] end
+	return obj
+end
+
+-- Everything the Sentinel look removes, resolved freshly each pass - some of
+-- these frames are created late or wake up again, so never cache them.
+local DECOR_NAMES = {
+	"MinimapBorder", "MinimapBorderTop", "MinimapNorthTag", "MinimapZoomIn",
+	"MinimapZoomOut", "MinimapZoneTextButton", "MinimapToggleButton",
+	"MinimapBackdrop", "MinimapCompassTexture", "MiniMapWorldMapButton",
+	"MiniMapMailBorder", "MiniMapTrackingBorder", "MiniMapTrackingBackground",
+	"MiniMapVoiceChatFrame", "TimeManagerClockButton",
+	"GameTimeFrame", "AddonCompartmentFrame",
+	"MinimapCluster.BorderTop", "MinimapCluster.ZoneTextButton",
+	"Minimap.ZoomIn", "Minimap.ZoomOut", "Minimap.ZoomHitArea",
+	"Minimap.NorthTag", "Minimap.CompassTexture",
+}
+
+-- Some chrome survives alpha-fading because blizzard scripts SetAlpha(1)
+-- again; for those the OnShow-hook route is the reliable kill: Hide() plus
+-- a hook that re-hides every time a script pulls it back up.
+local STRANGLE_NAMES = {
+	"GameTimeFrame", "TimeManagerClockButton", "AddonCompartmentFrame",
+	"MinimapCompassTexture", "Minimap.CompassTexture", "MinimapBackdrop",
+	"MinimapCluster.ZoneTextButton", "MinimapCluster.BorderTop",
+	"MinimapBorderTop", "MinimapBorder", "MinimapNorthTag",
+	"MinimapZoomIn", "MinimapZoomOut", "MinimapToggleButton",
+	"MiniMapWorldMapButton", "Minimap.ZoomIn", "Minimap.ZoomOut",
+	"Minimap.ZoomHitArea", "Minimap.NorthTag", "MiniMapVoiceChatFrame",
+	-- Forever-client decoration frames:
+	"MinimapCluster.DielFrame",                       -- the day/night dial
+	"MinimapCompassTextureUnderlay",
+	"Minimap.backdrop",                               -- the map's round disc
+	"MinimapCluster.MinimapContainer.PlayerCoords",   -- blizzard's own coords
+	"MinimapCluster.IndicatorFrame.CraftingOrderFrame",
+	"MinimapBackdrop.ExternalEventURLButton",
+	"MiniMapMailBorder", "MiniMapTrackingBorder", "MiniMapTrackingBackground",
+	"MiniMapTrackingButtonBorder", "MiniMapBattlefieldBorder",
+	"BattlegroundShine", "LFGIconBorder",
+}
+local strangled = {}
+
+local function strangle(f)
+	if type(f) ~= "table" or f == Minimap then return end
+	if f.SetAlpha then pcall(f.SetAlpha, f, 0) end
+	if f.EnableMouse then pcall(f.EnableMouse, f, false) end
+	if not strangled[f] and f.Hide then
+		strangled[f] = true
+		pcall(f.Hide, f)
+		-- WatchShown, not OnShow: an insecure script on a client frame runs
+		-- inside its show dispatch and taints whatever the client does next
+		-- there. The alpha is already 0, so a frame-late re-hide is invisible.
+		S.WatchShown(f, function(fr)
+			pcall(fr.SetAlpha, fr, 0)
+			pcall(fr.Hide, fr)
+		end)
+	elseif f.Hide then
+		pcall(f.Hide, f)
+	end
+end
+
+function Core.FadeDecor()
+	for _, n in ipairs(STRANGLE_NAMES) do strangle(resolve(n)) end
+	for _, n in ipairs(DECOR_NAMES) do fade(resolve(n)) end
+end
+
+-- Docking ----------------------------------------------------------------------
+-- Indicators are re-anchored onto the map WITHOUT SetParent: the anchor
+-- follows Minimap wherever the panel takes it, and blizzard's own parent
+-- (IndicatorFrame layout etc.) keeps working untouched.
+local function dock(f, point, relPoint, x, y, scale)
+	if type(f) ~= "table" then return end
+	pcall(f.ClearAllPoints, f)
+	pcall(f.SetPoint, f, point, Minimap, relPoint, x, y)
+	if scale then pcall(f.SetScale, f, scale) end
+	-- cluster children render in the cluster's low strata - an icon that
+	-- only anchors onto the map still draws UNDER it (the mail button
+	-- vanished exactly like that). Lift the docked frame to the map's own
+	-- strata/level band so it always sits on top of the deco.
+	local strata = select(2, pcall(Minimap.GetFrameStrata, Minimap))
+	local lvl = select(2, pcall(Minimap.GetFrameLevel, Minimap))
+	if strata then pcall(f.SetFrameStrata, f, strata) end
+	if type(lvl) == "number" then pcall(f.SetFrameLevel, f, lvl + 9) end
+end
+
+-- Blizzard layout frames (MinimapCluster.IndicatorFrame et al.) re-anchor
+-- their children every time one of them shows - pending mail snaps the
+-- mail button back into the cluster and it vanishes under the panel.
+-- A post-hook only FLAGS the drift: re-anchoring inside the client's own
+-- SetPoint dispatch taints whatever the client does next in that pass;
+-- the pump corrects the anchor a frame later, from a safe dispatch.
+local dockGuards = {}
+local dockPump
+local function keepDocked(f, point, relPoint, x, y, scale)
+	if type(f) ~= "table" or f.__sentiDockGuard or not hooksecurefunc then
+		return
+	end
+	f.__sentiDockGuard = true
+	dockGuards[#dockGuards + 1] = { f = f, p = point, rp = relPoint, x = x, y = y, s = scale }
+	if not dockPump then
+		dockPump = CreateFrame("Frame")
+		dockPump:SetScript("OnUpdate", function()
+			for _, g in ipairs(dockGuards) do
+				local fr = g.f
+				if fr.__sentiDockDirty then
+					fr.__sentiDockDirty = nil
+					pcall(fr.ClearAllPoints, fr)
+					pcall(fr.SetPoint, fr, g.p, Minimap, g.rp, g.x, g.y)
+					if g.s then pcall(fr.SetScale, fr, g.s) end
+				end
+			end
+		end)
+	end
+	pcall(hooksecurefunc, f, "SetPoint", function(fr, _, rel)
+		if rel ~= Minimap then fr.__sentiDockDirty = true end
+	end)
+end
+
+-- Element toggles: shown = unfaded + docked, hidden = faded.
+local ELEMENTS = {
+	tracking   = { "MiniMapTracking", "MiniMapTrackingButton", "MiniMapTrackingFrame", { "MinimapCluster", "Tracking" }, { "MinimapCluster", "Tracking", "Button" } },
+	mail       = { "MiniMapMailFrame", { "MinimapCluster", "IndicatorFrame", "MailFrame" } },
+	difficulty = { "MiniMapInstanceDifficulty", "MiniMapChallengeMode", "GuildInstanceDifficulty", { "MinimapCluster", "InstanceDifficulty" } },
+}
+
+function Core.PositionIndicators()
+	local db = mod.db
+	-- tracking: docks top-left into the map
+	if db.hide.tracking then
+		for _, s in ipairs(ELEMENTS.tracking) do fade(resolve(s)) end
+	else
+		for _, s in ipairs(ELEMENTS.tracking) do
+			local f = resolve(s)
+			unfade(f)
+			dock(f, "TOPLEFT", "TOPLEFT", 2, -2, 0.8)
+			keepDocked(f, "TOPLEFT", "TOPLEFT", 2, -2, 0.8)
+			if f and f.Background then pcall(f.Background.SetAlpha, f.Background, 0) end
+		end
+	end
+	-- mail: top-right next to the menu button, only when mail waits
+	for _, s in ipairs(ELEMENTS.mail) do
+		local f = resolve(s)
+		if f then
+			if db.hide.mail then
+				fade(f)
+			else
+				unfade(f)
+				dock(f, "TOPRIGHT", "TOPRIGHT", -21, -3, 0.85)
+				keepDocked(f, "TOPRIGHT", "TOPRIGHT", -21, -3, 0.85)
+			end
+		end
+	end
+	-- difficulty flag: top-right corner
+	for _, s in ipairs(ELEMENTS.difficulty) do
+		local f = resolve(s)
+		if f then
+			if db.hide.difficulty then fade(f) else
+				unfade(f)
+				dock(f, "TOPRIGHT", "TOPRIGHT", 0, 0)
+				keepDocked(f, "TOPRIGHT", "TOPRIGHT", 0, 0)
+			end
+		end
+	end
+	-- queue tools + expansion landing bottom-left
+	for _, n in ipairs({ "MiniMapLFGFrame", "MiniMapBattlefieldFrame", "LFGMinimapFrame", "QueueStatusMinimapButton" }) do
+		local f = _G[n]
+		if f then
+			dock(f, "BOTTOMLEFT", "BOTTOMLEFT", 2, 2)
+			local b = _G[n .. "Border"]
+			if b then fade(b) end
+		end
+	end
+	local landing = ExpansionLandingPageMinimapButton or GarrisonLandingPageMinimapButton
+	if landing then
+		dock(landing, "BOTTOMLEFT", "BOTTOMLEFT", 26, 2, 0.6)
+		keepDocked(landing, "BOTTOMLEFT", "BOTTOMLEFT", 26, 2, 0.6)
+	end
+end
+
+function Core.ApplyElements()
+	-- the bar renders its own clock and day/night icon; blizzard's clock and
+	-- calendar buttons stay faded (GameTimeFrame is in DECOR_NAMES)
+	if zoneBar and zoneBar.clockText then
+		local showClock = not mod.db.hide.clock
+		zoneBar.clockText:SetShown(showClock)
+		zoneBar.dayNight:SetShown(showClock and not mod.db.hide.calendar)
+		zoneBar.clockBtn:SetShown(showClock)
+	end
+	Core.PositionIndicators()
+end
+
+-- Shape + signature deco -----------------------------------------------------------
+
+local function accent()
+	local c = mod.db.accentColor
+	return (c and (c[1] or c.r)) or C.accent.r, (c and (c[2] or c.g)) or C.accent.g, (c and (c[3] or c.b)) or C.accent.b
+end
+
+function Core.ApplyAccent()
+	local r, g, b = accent()
+	if ring then ring:SetVertexColor(r, g, b, 1) end
+	for _, t in ipairs(corners) do t:SetVertexColor(r, g, b, 1) end
+	if zoneBar and zoneBar.line then zoneBar.line:SetVertexColor(r, g, b, 0.9) end
+	if coordsBar and coordsBar.line then coordsBar.line:SetVertexColor(r, g, b, 0.9) end
+	if menuBtn and menuBtn.lines then
+		for _, t in ipairs(menuBtn.lines) do t:SetVertexColor(r, g, b) end
+	end
+	if addonTrigger then addonTrigger.icon:SetTextColor(r, g, b) end
+end
+
+function Core.ApplyShape()
+	local square = mod.db.shape == "square"
+	if square then
+		pcall(Minimap.SetMaskTexture, Minimap, BLANK)
+	else
+		pcall(Minimap.SetMaskTexture, Minimap, CIRCLE)
+	end
+	pcall(function() Minimap:SetArchBlobRingAlpha(0) Minimap:SetQuestBlobRingAlpha(0) end)
+	if HybridMinimap and HybridMinimap.CircleMask then
+		pcall(HybridMinimap.CircleMask.SetTexture, HybridMinimap.CircleMask, square and BLANK or CIRCLE)
+	end
+	if ring then ring:SetShown(not square) end
+	if halo then halo:SetShown(not square) end
+	for _, t in ipairs(corners) do t:SetShown(square) end
+end
+
+local function buildDeco()
+	-- dark halo behind the round map
+	halo = Minimap:CreateTexture(nil, "BACKGROUND")
+	halo:SetTexture(CIRCLE)
+	halo:SetVertexColor(0, 0, 0, 0.75)
+	halo:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -5, 5)
+	halo:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 5, -5)
+
+	deco = CreateFrame("Frame", "SentiUIMinimapDeco", Minimap)
+	deco:SetAllPoints()
+	deco:SetFrameLevel(Minimap:GetFrameLevel() + 3)
+
+	-- amber ring with compass ticks for the round map
+	ring = deco:CreateTexture(nil, "OVERLAY")
+	ring:SetTexture(RING)
+	ring:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -3, 3)
+	ring:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 3, -3)
+
+	-- amber corner brackets: the Sentinel signature for the square map
+	for _, p in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
+		for _, horiz in ipairs({ true, false }) do
+			local t = deco:CreateTexture(nil, "OVERLAY", nil, 7)
+			t:SetTexture(BLANK)
+			t:SetPoint(p, Minimap, p, (p:find("LEFT") and -2 or 2), (p:find("TOP") and 2 or -2))
+			if horiz then t:SetSize(14, 2) else t:SetSize(2, 14) end
+			corners[#corners + 1] = t
+		end
+	end
+end
+
+-- Zone bar above the panel --------------------------------------------------------------
+
+local PVP_COLORS = {
+	sanctuary = { 0.41, 0.8, 0.94 }, arena = { 1, 0.1, 0.1 },
+	friendly = { 0.1, 1, 0.1 }, hostile = { 1, 0.1, 0.1 },
+	contested = { 1, 0.7, 0 }, combat = { 1, 0.1, 0.1 },
+}
+
+function Core.UpdateZoneText()
+	if not zoneText then return end
+	local text = (GetMinimapZoneText and GetMinimapZoneText()) or (GetZoneText and GetZoneText()) or ""
+	local pvp = GetZonePVPInfo and GetZonePVPInfo()
+	local c = (pvp and PVP_COLORS[pvp]) or { 1, 0.9, 0.7 }
+	zoneText:SetText(text)
+	zoneText:SetTextColor(c[1], c[2], c[3])
+end
+
+local function buildZoneBar()
+	-- sibling of the panel, only anchored to it: children of the LOW-strata
+	-- panel can be occluded by the reparented map widget on this client
+	zoneBar = S.Panel(UIParent, 10, 20, "panel")
+	zoneBar:SetFrameStrata("MEDIUM")
+	zoneBar:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 0, 2)
+	zoneBar:SetPoint("BOTTOMRIGHT", panel, "TOPRIGHT", 0, 2)
+	zoneBar.line = zoneBar:CreateTexture(nil, "BORDER")
+	zoneBar.line:SetTexture(BLANK)
+	zoneBar.line:SetHeight(1)
+	zoneBar.line:SetPoint("BOTTOMLEFT", zoneBar, "BOTTOMLEFT")
+	zoneBar.line:SetPoint("BOTTOMRIGHT", zoneBar, "BOTTOMRIGHT")
+	zoneText = S.Font(zoneBar, mod.db.locationFontSize, nil, "OUTLINE")
+	zoneText:SetPoint("CENTER", zoneBar, "CENTER")
+	zoneText:SetJustifyH("CENTER")
+	-- own clock + day/night icon on the right: TimeManagerClockButton is not
+	-- guaranteed to exist on this client, so the bar renders the time itself
+	zoneBar.clockText = S.Font(zoneBar, math.max(9, (mod.db.locationFontSize or 13) - 1), nil, "OUTLINE")
+	zoneBar.clockText:SetPoint("RIGHT", zoneBar, "RIGHT", -6, 0)
+	zoneBar.clockText:SetJustifyH("RIGHT")
+	zoneBar.dayNight = zoneBar:CreateTexture(nil, "OVERLAY")
+	zoneBar.dayNight:SetSize(13, 13)
+	zoneBar.dayNight:SetPoint("RIGHT", zoneBar.clockText, "LEFT", -3, 0)
+	-- the clock segment doubles as the calendar button
+	zoneBar.clockBtn = CreateFrame("Button", nil, zoneBar)
+	zoneBar.clockBtn:SetHeight(18)
+	zoneBar.clockBtn:SetPoint("RIGHT", zoneBar, "RIGHT", -2, 0)
+	zoneBar.clockBtn:SetPoint("LEFT", zoneBar.dayNight, "LEFT", -2, 0)
+	zoneBar.clockBtn:RegisterForClicks("AnyUp")
+	zoneBar.clockBtn:SetScript("OnClick", function()
+		if ToggleCalendar then ToggleCalendar()
+		elseif C_Calendar and C_Calendar.OpenCalendar then C_Calendar.OpenCalendar() end
+	end)
+	zoneBar.clockBtn:SetScript("OnEnter", function(b)
+		GameTooltip:SetOwner(b, "ANCHOR_BOTTOM")
+		GameTooltip:AddLine(L["Calendar"])
+		GameTooltip:Show()
+	end)
+	zoneBar.clockBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	-- the zone name stays centered in the space LEFT of the clock segment -
+	-- bounded on both sides it can never run under the day/night icon or time
+	zoneText:ClearAllPoints()
+	zoneText:SetPoint("LEFT", zoneBar, "LEFT", 8, 0)
+	zoneText:SetPoint("RIGHT", zoneBar.clockBtn, "LEFT", -4, 0)
+	zoneText:SetWordWrap(false)
+	zoneText:SetMaxLines(1)
+end
+
+function Core.ApplyZoneBar()
+	if not zoneBar then return end
+	local mode = mod.db.locationText
+	zoneBar:SetShown(mode == "show" or (mode == "mouseover" and (panel:IsMouseOver() or zoneBar:IsMouseOver())))
+	zoneText:SetFont(S.media.font, mod.db.locationFontSize or 13, "OUTLINE")
+end
+
+-- Coords bar below the panel: burger left, coords center, "+" right ---------------
+
+-- Entries with a matching Blizzard micro button get a secure click-through:
+-- the row is a SecureActionButtonTemplate with type=macro and
+-- macrotext "/click <micro button>", so the hardware click is dispatched
+-- by the client's own macro engine and the micro button's OnClick runs
+-- untainted (the secure `click` type itself does not fire on this build).
+-- Calling the Toggle* functions from addon code instead drags our taint
+-- into Blizzard's show path, where secret status-bar values fail to
+-- compare (seen on the character frame). securecall does NOT untaint on
+-- this client - only a real secure click does.
+local MENU_ENTRIES = {
+	{ "Character", function() if ToggleCharacter then ToggleCharacter("PaperDollFrame") end end, { "CharacterMicroButton" } },
+	{ "Spellbook", function() if ToggleSpellBook then ToggleSpellBook(BOOKTYPE_SPELL) elseif SpellBookFrame then ToggleFrame(SpellBookFrame) end end, { "PlayerSpellsMicroButton", "SpellbookMicroButton" } },
+	{ "Talents", function() if ToggleTalentFrame then ToggleTalentFrame() elseif PlayerTalentFrame then ToggleFrame(PlayerTalentFrame) end end, { "TalentMicroButton", "PlayerSpellsMicroButton" } },
+	{ "Quest Log", function() if ToggleQuestLog then ToggleQuestLog() elseif QuestLogFrame then ToggleFrame(QuestLogFrame) end end, { "QuestLogMicroButton" } },
+	{ "Social", function() if ToggleFriendsFrame then ToggleFriendsFrame() elseif FriendsFrame then ToggleFrame(FriendsFrame) end end, { "SocialsMicroButton" } },
+	{ "Guild", function() if ToggleGuildFrame then ToggleGuildFrame() elseif GuildFrame then ToggleFrame(GuildFrame) end end, { "GuildMicroButton", "CommunitiesMicroButton" } },
+	{ "Group Finder", function() if ToggleLFGParentFrame then ToggleLFGParentFrame() elseif LFGParentFrame then ToggleFrame(LFGParentFrame) elseif PVEFrame then ToggleFrame(PVEFrame) end end, { "GroupFinderMicroButton", "LFDMicroButton", "LFGMicroButton", "PVEMicroButton" } },
+	{ "Achievements", function() if ToggleAchievementFrame then ToggleAchievementFrame() end end, { "AchievementMicroButton", "AchievementsMicroButton" } },
+	{ "Collections", function() if ToggleCollectionsJournal then ToggleCollectionsJournal() end end, { "CollectionsMicroButton" } },
+	{ "World Map", function() if ToggleWorldMap then ToggleWorldMap() elseif WorldMapFrame then ToggleFrame(WorldMapFrame) end end, { "WorldMapMicroButton", "MinimapPanelTab" } },
+	{ "Macros", function()
+		if MacroFrame_LoadUI then MacroFrame_LoadUI() end -- LoD addon
+		if ShowMacroFrame then ShowMacroFrame()
+		elseif ToggleMacroFrame then ToggleMacroFrame()
+		elseif MacroFrame then ToggleFrame(MacroFrame) end
+	end },
+	{ "Keybindings", function()
+		if ToggleKeyBindingFrame then ToggleKeyBindingFrame()
+		elseif KeyBindingFrame_LoadUI then
+			KeyBindingFrame_LoadUI()
+			if KeyBindingFrame then ToggleFrame(KeyBindingFrame) end
+		end
+	end },
+	{ "Options", function() if SettingsPanel then ToggleFrame(SettingsPanel) elseif InterfaceOptionsFrame then ToggleFrame(InterfaceOptionsFrame) end end },
+	{ "Main Menu", function() if GameMenuFrame then ToggleFrame(GameMenuFrame) end end, { "MainMenuMicroButton" } },
+}
+
+local function clickTarget(entry)
+	if type(entry[3]) ~= "table" then return end
+	for _, name in ipairs(entry[3]) do
+		local f = _G[name]
+		if type(f) == "table" and f.Click then return f end
+	end
+end
+
+local SUI_ENTRIES = {
+	{ "Settings", function() S.OptionsPanel.Toggle() end },
+	{ "Move frames", function() S.Movers.Toggle() end },
+	{ "Run installer", function() S.Installer.Show() end },
+	{ "Reload", function() (C_UI and C_UI.Reload or ReloadUI)() end },
+}
+
+local function buildMenu()
+	menu = CreateFrame("Frame", "SentiUIMinimapMenu", UIParent, "BackdropTemplate")
+	menu:SetFrameStrata("TOOLTIP")
+	menu:SetToplevel(true)
+	S.Template(menu, "panel")
+	menu:SetClampedToScreen(true)
+	menu.rows = {}
+	menu:Hide()
+
+	suiMenu = CreateFrame("Frame", "SentiUIMinimapMenuSUI", menu, "BackdropTemplate")
+	suiMenu:SetFrameStrata("TOOLTIP")
+	suiMenu:SetToplevel(true)
+	S.Template(suiMenu, "panel")
+	suiMenu.rows = {}
+	suiMenu:Hide()
+
+	local function makeRow(parent, i)
+		-- secure template: rows that forward to a Blizzard micro button need
+		-- type=click attributes; a plain OnClick on it still works for the rest
+		local b = CreateFrame("Button", nil, parent, "SecureActionButtonTemplate")
+		b:RegisterForClicks("AnyDown", "AnyUp")
+		b:SetHeight(18)
+		b:SetPoint("LEFT", 4, 0)
+		b:SetPoint("RIGHT", -4, 0)
+		b.text = S.Font(b, 11)
+		b.text:SetPoint("LEFT", 6, 0)
+		b.hl = b:CreateTexture(nil, "HIGHLIGHT")
+		b.hl:SetAllPoints()
+		b.hl:SetTexture(BLANK)
+		b.hl:SetVertexColor(C.accent.r, C.accent.g, C.accent.b, 0.18)
+		parent.rows[i] = b
+		return b
+	end
+
+	local suiRow = makeRow(menu, 1)
+	suiRow.text:SetText("|cff" .. S.Hex(C.accent) .. "SentiUI|r  »")
+	suiRow:SetScript("OnEnter", function()
+		for i, e in ipairs(SUI_ENTRIES) do
+			local r = suiMenu.rows[i] or makeRow(suiMenu, i)
+			r.text:SetText(L[e[1]])
+			r:SetScript("OnClick", function()
+				suiMenu:Hide() menu:Hide()
+				S.SafeCall("MinimapMenu:" .. e[1], function()
+					-- panel toggles must run untainted: Blizzard's own
+					-- handlers compare secret values (status bar text)
+					if type(securecall) == "function" then return securecall(e[2]) end
+					return e[2]()
+				end)
+			end)
+			r:ClearAllPoints()
+			r:SetPoint("TOPLEFT", suiMenu, "TOPLEFT", 4, -(4 + (i - 1) * 18))
+			r:SetPoint("TOPRIGHT", suiMenu, "TOPRIGHT", -4, -(4 + (i - 1) * 18))
+			r:Show()
+		end
+		local w = 110
+		for i = 1, #SUI_ENTRIES do
+			suiMenu.rows[i].text:SetWidth(0)
+			w = math.max(w, suiMenu.rows[i].text:GetStringWidth() + 16)
+		end
+		suiMenu:SetSize(w, 8 + #SUI_ENTRIES * 18)
+		suiMenu:ClearAllPoints()
+		suiMenu:SetPoint("BOTTOMRIGHT", menu, "BOTTOMLEFT", -2, 0)
+		suiMenu:Show()
+	end)
+
+	-- entry wiring lives in its own pass: a first open during combat can
+	-- not SetAttribute, so the rows get a retry on the next peaceful open
+	local function setupEntries()
+		menu.insecure = nil
+		for i, e in ipairs(MENU_ENTRIES) do
+			local b = menu.rows[i + 1] or makeRow(menu, i + 1)
+			b.text:SetText(L[e[1]])
+			local target = clickTarget(e)
+			local secured = false
+			if target and not InCombatLockdown() then
+				-- the secure `click` type does not fire on this build - the
+				-- macro path does: "/click <micro button>" is dispatched by
+				-- the client's own secure engine, so the micro button's
+				-- handler runs untainted (SFC proven)
+				local tname = target.GetName and target:GetName()
+				if type(tname) == "string" and tname ~= "" then
+					secured = pcall(b.SetAttribute, b, "type", "macro")
+						and pcall(b.SetAttribute, b, "type1", "macro")
+						and pcall(b.SetAttribute, b, "macrotext", "/click " .. tname)
+						and pcall(b.SetAttribute, b, "macrotext1", "/click " .. tname)
+						or false
+				end
+			elseif target then
+				menu.insecure = true -- lockdown blocked the secure wiring
+			end
+			if secured then
+				-- keep the template's SecureActionButton_OnClick - clearing
+				-- it would stop the macro attribute from firing at all
+				if SecureActionButton_OnClick then
+					b:SetScript("OnClick", SecureActionButton_OnClick)
+				end
+				b:SetScript("PostClick", function() menu:Hide() end)
+			else
+				b:SetScript("PostClick", nil)
+				b:SetScript("OnClick", function()
+					menu:Hide()
+					S.SafeCall("MinimapMenu:" .. e[1], e[2])
+				end)
+			end
+			b:HookScript("OnEnter", function() suiMenu:Hide() end)
+		end
+	end
+	setupEntries()
+	menu.setupEntries = setupEntries
+	-- once, not per OnShow: re-inserting on every show piled duplicate
+	-- entries into the client's special-frame list
+	if type(UISpecialFrames) == "table" then
+		local found = false
+		for _, n in ipairs(UISpecialFrames) do
+			if n == "SentiUIMinimapMenu" then found = true break end
+		end
+		if not found then tinsert(UISpecialFrames, "SentiUIMinimapMenu") end
+	end
+	menu:EnableMouse(true)
+
+	-- no OnHide hooks: the menu joins UISpecialFrames, so OnHide would
+	-- run inside the Escape dispatch and taint the engine's protected
+	-- spell-stop calls. The watcher polls the hidden transition from
+	-- OnUpdate (a safe dispatch) and folds the old OnHide work into it.
+	local watcher = CreateFrame("Frame")
+	watcher:Hide()
+	watcher:SetScript("OnUpdate", function(f)
+		if not menu:IsShown() then
+			suiMenu:Hide()
+			f:Hide()
+			return
+		end
+		if not menu:IsMouseOver() and not suiMenu:IsMouseOver() and not menuBtn:IsMouseOver()
+			and (IsMouseButtonDown("LeftButton") or IsMouseButtonDown("RightButton")) then
+			menu:Hide()
+			f:Hide()
+		end
+	end)
+	menu:HookScript("OnShow", function() watcher:Show() end)
+end
+
+local function layoutMenu()
+	local RH = 18
+	for i, b in ipairs(menu.rows) do
+		b:ClearAllPoints()
+		b:SetPoint("TOPLEFT", menu, "TOPLEFT", 4, -(4 + (i - 1) * RH))
+		b:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -4, -(4 + (i - 1) * RH))
+		b:Show()
+	end
+	local w = 110
+	for _, b in ipairs(menu.rows) do
+		b.text:SetWidth(0)
+		w = math.max(w, b.text:GetStringWidth() + 16)
+	end
+	menu:SetSize(w, 8 + #menu.rows * RH)
+end
+
+local function buildMenuButton()
+	menuBtn = CreateFrame("Button", "SentiUIMinimapMenuButton", coordsBar)
+	menuBtn:SetSize(16, 16)
+	menuBtn:SetPoint("LEFT", coordsBar, "LEFT", 3, 0)
+	menuBtn.lines = {}
+	for i = 1, 3 do
+		local t = menuBtn:CreateTexture(nil, "ARTWORK")
+		t:SetTexture(BLANK)
+		t:SetSize(8, 1)
+		t:SetPoint("CENTER", menuBtn, "CENTER", 0, 4 - i * 3 + 3)
+		menuBtn.lines[i] = t
+	end
+	menuBtn:RegisterForClicks("AnyUp")
+	menuBtn:SetScript("OnClick", function()
+		if not menu then buildMenu() end
+		if menu.insecure and not InCombatLockdown() then
+			menu.setupEntries() -- combat blocked the secure wiring before
+		end
+		if menu:IsShown() then menu:Hide() return end
+		layoutMenu()
+		menu:ClearAllPoints()
+		menu:SetPoint("BOTTOMLEFT", menuBtn, "TOPLEFT", 0, 3)
+		menu:Show()
+	end)
+	menuBtn:SetScript("OnEnter", function(b)
+		GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
+		GameTooltip:AddLine(L["Main Menu"])
+		GameTooltip:Show()
+	end)
+	menuBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+end
+
+-- "+" addon-button collection ---------------------------------------------------------
+-- Same idea as SentinelMinimapButtonHide / the SFC collector: real minimap
+-- buttons are faded out, our dropdown rows forward the click.
+local SKIP = {
+	MinimapZoomIn = true, MinimapZoomOut = true, MinimapZoneTextButton = true,
+	MinimapToggleButton = true, MinimapNorthTag = true, MinimapBorderTop = true,
+	MinimapBackdrop = true, MinimapCompassTexture = true, TimeManagerClockButton = true,
+	GameTimeFrame = true, AddonCompartmentFrame = true,
+}
+local BUTTON_PATTERNS = { "^LibDBIcon10_", "MinimapButton", "MinimapFrame", "MinimapIcon", "[-_]Minimap[-_]", "Minimap$" }
+local PIN_PATTERNS = { "^HandyNotes", "^TomTom", "^HereBeDragons", "^Questie", "^GatherMate", "^pin", "^Pin", "^EasyFind" }
+
+local function matchesAny(name, list)
+	for _, p in ipairs(list) do if name:match(p) then return true end end
+end
+
+local PIN_TOP = "SentiUIMinimapButton" -- our own settings button, always first
+
+local function wanted(name)
+	if name == PIN_TOP then return true end
+	if not name or name == "" or SKIP[name] then return false end
+	if name:find("^SentiUI") or name:find("^SFC") then return false end
+	if name:match("^TomCats-") then return true end
+	if name:match("%d$") then return false end -- pooled frames (QuestieFrame10, ...)
+	return matchesAny(name, BUTTON_PATTERNS) and not matchesAny(name, PIN_PATTERNS)
+end
+
+local function takeButton(child)
+	local name = child and child.GetName and child:GetName()
+	if name and wanted(name) and not captured[name] then
+		captured[name] = { btn = child, name = name }
+	end
+	if name and captured[name] then fade(child) end
+end
+
+local function capture()
+	local lib = _G.LibStub and _G.LibStub.GetLibrary and _G.LibStub:GetLibrary("LibDBIcon-1.0", true)
+	if lib and lib.GetButtonList then
+		for _, n in ipairs(lib:GetButtonList()) do
+			local b = lib.GetMinimapButton and lib:GetMinimapButton(n)
+			if b then takeButton(b) end
+		end
+	end
+	local libMap = _G.LibStub and _G.LibStub:GetLibrary("LibMapButton-1.1", true)
+	if libMap and libMap.buttons then
+		for _, b in pairs(libMap.buttons) do takeButton(b) end
+	end
+	for _, child in ipairs({ Minimap:GetChildren() }) do
+		if child and child.IsObjectType and child:IsObjectType("Button") then takeButton(child) end
+	end
+end
+Core.Capture = capture
+
+local function prettyName(n)
+	n = n:gsub("LibDBIcon10_", ""):gsub("LibDBIcon_", "")
+	n = n:gsub("MinimapButton$", ""):gsub("MiniMapButton$", "")
+	n = n:gsub("Minimap$", ""):gsub("Button$", ""):gsub("Frame$", "")
+	return n ~= "" and n or "?"
+end
+
+local function btnIcon(btn)
+	local t = btn.icon or (btn.GetNormalTexture and btn:GetNormalTexture())
+	if t and t.GetTexture and t:GetTexture() then return t:GetTexture() end
+	if btn.GetRegions then
+		for _, r in ipairs({ btn:GetRegions() }) do
+			if r:IsObjectType("Texture") and r.GetTexture and r:GetTexture() then return r:GetTexture() end
+		end
+	end
+end
+
+local addonRows = {}
+local function rebuildRows()
+	for _, r in ipairs(addonRows) do r:Hide() end
+	local list = {}
+	for _, c in pairs(captured) do list[#list + 1] = c end
+	table.sort(list, function(a, b)
+		if a.name == PIN_TOP then return true end
+		if b.name == PIN_TOP then return false end
+		return prettyName(a.name) < prettyName(b.name)
+	end)
+	local y = -4
+	for i, c in ipairs(list) do
+		local r = addonRows[i]
+		if not r then
+			r = CreateFrame("Button", nil, addonPop)
+			r:SetHeight(20)
+			r.icon = r:CreateTexture(nil, "ARTWORK")
+			r.icon:SetSize(16, 16)
+			r.icon:SetPoint("LEFT", r, "LEFT", 6, 0)
+			r.txt = S.Font(r, 10)
+			r.txt:SetPoint("LEFT", r.icon, "RIGHT", 5, 0)
+			r.txt:SetPoint("RIGHT", r, "RIGHT", -4, 0)
+			r.hl = r:CreateTexture(nil, "HIGHLIGHT")
+			r.hl:SetAllPoints()
+			r.hl:SetTexture(BLANK)
+			r.hl:SetVertexColor(C.accent.r, C.accent.g, C.accent.b, 0.15)
+			addonRows[i] = r
+		end
+		local tex = btnIcon(c.btn)
+		r.icon:SetTexture(tex or BLANK)
+		if not tex then r.icon:SetAlpha(0) else r.icon:SetAlpha(1) end
+		r.txt:SetText(prettyName(c.name))
+		local col = c.name == PIN_TOP and C.accent or C.text
+		r.txt:SetTextColor(col.r, col.g, col.b)
+		local src = c.btn
+		fade(src)
+		r:SetScript("OnClick", function(_, button)
+			pcall(src.Click, src, button == "RightButton" and "RightButton" or "LeftButton")
+		end)
+		r:SetScript("OnEnter", function(self)
+			local oe = src.GetScript and src:GetScript("OnEnter")
+			if oe then pcall(oe, src) end
+			if not GameTooltip:IsShown() then
+				GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+				GameTooltip:AddLine(prettyName(c.name))
+				GameTooltip:Show()
+			else
+				GameTooltip:ClearAllPoints()
+				GameTooltip:SetPoint("LEFT", self, "RIGHT", 4, 0)
+			end
+		end)
+		r:SetScript("OnLeave", function()
+			local ol = src.GetScript and src:GetScript("OnLeave")
+			if ol then pcall(ol, src) else GameTooltip:Hide() end
+		end)
+		r:ClearAllPoints()
+		r:SetPoint("TOPLEFT", addonPop, "TOPLEFT", 4, y)
+		r:SetPoint("TOPRIGHT", addonPop, "TOPRIGHT", -4, y)
+		r:Show()
+		y = y - 22
+	end
+	addonPop:SetHeight(#list > 0 and (-y + 4) or 30)
+end
+
+local function buildAddonTrigger()
+	addonTrigger = CreateFrame("Button", "SentiUIMinimapAddonsTrigger", coordsBar, "BackdropTemplate")
+	addonTrigger:SetSize(16, 16)
+	S.Template(addonTrigger, "raised")
+	addonTrigger.icon = S.Font(addonTrigger, 13, C.accent)
+	addonTrigger.icon:SetPoint("CENTER")
+	addonTrigger.icon:SetText("+")
+	addonTrigger:SetPoint("RIGHT", coordsBar, "RIGHT", -3, 0)
+
+	addonPop = S.Panel(UIParent, 190, 30, "panel")
+	addonPop:SetPoint("BOTTOMRIGHT", addonTrigger, "TOPRIGHT", 0, 3)
+	addonPop:SetFrameStrata("HIGH")
+	addonPop:SetClampedToScreen(true)
+	addonPop:Hide()
+
+	addonTrigger:SetScript("OnClick", function()
+		if InCombatLockdown() then return end
+		if addonPop:IsShown() then addonPop:Hide() else
+			capture()
+			rebuildRows()
+			addonPop:Show()
+		end
+	end)
+	addonTrigger:SetScript("OnEnter", function(b)
+		GameTooltip:SetOwner(b, "ANCHOR_LEFT")
+		GameTooltip:AddLine(L["Addon buttons"])
+		GameTooltip:AddLine(L["Click to open"], 0.6, 0.6, 0.6)
+		GameTooltip:Show()
+	end)
+	addonTrigger:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+	local lib = _G.LibStub and _G.LibStub.GetLibrary and _G.LibStub:GetLibrary("LibDBIcon-1.0", true)
+	if lib and lib.RegisterCallback then
+		pcall(lib.RegisterCallback, lib, "SentiUIMinimap", "LibDBIcon_IconCreated", function(_, b)
+			if b then takeButton(b) end
+		end)
+	end
+end
+
+local function buildCoordsBar()
+	coordsBar = S.Panel(UIParent, 10, 20, "panel")
+	coordsBar:SetFrameStrata("MEDIUM")
+	coordsBar:SetPoint("TOPLEFT", panel, "BOTTOMLEFT", 0, -2)
+	coordsBar:SetPoint("TOPRIGHT", panel, "BOTTOMRIGHT", 0, -2)
+	coordsBar.line = coordsBar:CreateTexture(nil, "BORDER")
+	coordsBar.line:SetTexture(BLANK)
+	coordsBar.line:SetHeight(1)
+	coordsBar.line:SetPoint("TOPLEFT", coordsBar, "TOPLEFT")
+	coordsBar.line:SetPoint("TOPRIGHT", coordsBar, "TOPRIGHT")
+	coordsText = S.Font(coordsBar, 10)
+	coordsText:SetPoint("CENTER", coordsBar, "CENTER")
+	coordsText:SetJustifyH("CENTER")
+	buildMenuButton()
+	buildAddonTrigger()
+end
+
+function Core.UpdateCoords()
+	if not coordsText then return end
+	local ok, pos = pcall(function()
+		return C_Map.GetPlayerMapPosition(C_Map.GetBestMapForUnit("player"), "player")
+	end)
+	if ok and pos and pos.x and pos.y then
+		local ok2, txt = pcall(string.format, "%.1f, %.1f", pos.x * 100, pos.y * 100)
+		coordsText:SetText(ok2 and txt or "")
+	else
+		coordsText:SetText("")
+	end
+end
+
+function Core.ApplyBars()
+	if coordsBar then coordsBar:SetShown(mod.db.coords == true) end
+	if menuBtn then menuBtn:SetShown(mod.db.menuButton == true and mod.db.coords == true) end
+	if addonTrigger then addonTrigger:SetShown(mod.db.addonButtons == true and mod.db.coords == true) end
+	if menu and mod.db.coords ~= true then menu:Hide() end
+	if addonPop and (mod.db.addonButtons ~= true or mod.db.coords ~= true) then addonPop:Hide() end
+	Core.ApplyZoneBar()
+end
+
+-- Mouse ---------------------------------------------------------------------------------
+
+local function hookMouse()
+	-- every hook on its own, so one unsupported script doesn't kill the rest
+	pcall(Minimap.EnableMouse, Minimap, true)
+	pcall(Minimap.EnableMouseWheel, Minimap, true)
+	pcall(Minimap.SetScript, Minimap, "OnMouseWheel", function(m, delta)
+		if not mod.db.scrollZoom then return end
+		local ok, zoom = pcall(Minimap.GetZoom, Minimap)
+		if not ok or type(zoom) ~= "number" or S.IsSecret(zoom) then return end
+		local maxZ = 5
+		if Minimap.GetZoomLevels then
+			local ok2, mz = pcall(Minimap.GetZoomLevels, Minimap)
+			if ok2 and type(mz) == "number" and mz > 0 then maxZ = mz end
+		end
+		pcall(Minimap.SetZoom, Minimap, math.max(0, math.min(maxZ, zoom + delta)))
+		if mod.db.zoomReset then
+			Core.zoomToken = (Core.zoomToken or 0) + 1
+			local token = Core.zoomToken
+			C_Timer.After(6, function()
+				local ok3, z = pcall(Minimap.GetZoom, Minimap)
+				if Core.zoomToken == token and ok3 and z and z > 0 then
+					pcall(Minimap.SetZoom, Minimap, 0)
+				end
+			end)
+		end
+	end)
+	pcall(Minimap.HookScript, Minimap, "OnMouseUp", function(_, button)
+		if button == "RightButton" then
+			local t = resolve("MinimapCluster.Tracking.Button")
+			if MiniMapTrackingDropDown and ToggleDropDownMenu then
+				ToggleDropDownMenu(1, nil, MiniMapTrackingDropDown, "cursor")
+			elseif t and t.OpenMenu then t:OpenMenu()
+			elseif t and t.Click then t:Click()
+			elseif MiniMapTrackingButton then MiniMapTrackingButton:Click()
+			end
+		elseif button == "MiddleButton" then
+			if ToggleCalendar then ToggleCalendar() end
+		end
+	end)
+	-- zone text on mouseover reads from the panel, the map itself may eat hovers
+	panel:HookScript("OnEnter", function()
+		if mod.db.locationText == "mouseover" then zoneBar:Show() end
+	end)
+	panel:HookScript("OnLeave", function()
+		if mod.db.locationText == "mouseover" and not zoneBar:IsMouseOver() then zoneBar:Hide() end
+	end)
+end
+
+-- Build ---------------------------------------------------------------------------------
+
+local function buildPanel()
+	panel = CreateFrame("Frame", "SentiUIMinimapPanel", UIParent, "BackdropTemplate")
+	S.Template(panel, "panel")
+	panel:SetFrameStrata("LOW")
+	panel:SetFrameLevel(1)
+	panel:SetSize(mod.db.size + 8, mod.db.size + 8)
+	panel:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -6, -30)
+	panel:EnableMouse(true)
+
+	S.RunOutOfCombat(function()
+		-- try SetParent first: if the client allows it the map is immune to
+		-- ancestor hiding; if not it stays put and the anchor below still
+		-- moves it (its own widget ops are allowed out of combat)
+		pcall(Minimap.SetParent, Minimap, panel)
+		pcall(Minimap.ClearAllPoints, Minimap)
+		pcall(Minimap.SetPoint, Minimap, "TOPLEFT", panel, "TOPLEFT", 4, -4)
+		pcall(Minimap.SetSize, Minimap, mod.db.size, mod.db.size)
+		-- keep MinimapCluster alive: hiding it takes the whole minimap
+		-- with it on this client. Only the decorations go.
+	end)
+	-- keep the map pinned inside the panel if something re-anchors it
+	if hooksecurefunc then
+		hooksecurefunc(Minimap, "SetPoint", function(m, _, rel)
+			if rel ~= panel and not InCombatLockdown() then
+				pcall(m.ClearAllPoints, m)
+				pcall(m.SetPoint, m, "TOPLEFT", panel, "TOPLEFT", 4, -4)
+			end
+		end)
+	end
+	-- the panel carries the mover: map, bars and deco travel together
+	if not moverSet then
+		local ratio = panel:GetEffectiveScale() / UIParent:GetEffectiveScale()
+		local cx, cy = panel:GetCenter()
+		local ux, uy = UIParent:GetCenter()
+		if cx and ux then
+			S.Movers.Register(panel, "minimap", L["Minimap"], {
+				x = (cx - ux) / ratio, y = (cy - uy) / ratio })
+			moverSet = true
+		end
+	end
+end
+
+function Core.ApplySize()
+	if not panel then return end
+	local size = mod.db.size or 190
+	panel:SetSize(size + 8, size + 8)
+	pcall(Minimap.SetSize, Minimap, size, size)
+end
+
+-- The 1s upkeep: zone + coords text, resurrecting decorations, late addon
+-- buttons, indicator re-dock. Cheap loops, self-healing.
+local function tick()
+	if not mod or not mod.db.enabled then return end
+	Core.UpdateZoneText()
+	Core.UpdateCoords()
+	if zoneBar and zoneBar.clockText and zoneBar.clockText:IsShown() then
+		-- server time: it follows the in-game day/night cycle (6-18 = day)
+		local h, m
+		if GetGameTime then
+			local ok, hh, mm = pcall(GetGameTime)
+			if ok and type(hh) == "number" then h, m = hh, mm end
+		end
+		if not h then h, m = tonumber(date("%H")), tonumber(date("%M")) end
+		if h then
+			zoneBar.clockText:SetText(string.format("%d:%02d", h, m))
+			zoneBar.dayNight:SetTexture((h >= 6 and h < 18) and SUN or MOON)
+		end
+	end
+	Core.FadeDecor()
+	Core.ApplyElements()
+	capture()
+end
+
+function Core.ApplyAll()
+	if not mod.db.enabled then return end
+	local function step(name, fn)
+		S.RunOutOfCombat(function() S.SafeCall("Minimap:" .. name, fn) end)
+	end
+	step("size", Core.ApplySize)
+	step("deco", function()
+		Core.ApplyShape()
+		Core.ApplyAccent()
+	end)
+	step("hide", Core.FadeDecor)
+	step("elements", Core.ApplyElements)
+	step("bars", Core.ApplyBars)
+	step("rotate", function()
+		local setCVar = (C_CVar and C_CVar.SetCVar) or SetCVar
+		if not setCVar then return end
+		local want = mod.db.rotate and "1" or "0"
+		local getCVar = (C_CVar and C_CVar.GetCVar) or GetCVar
+		if not getCVar or getCVar("rotateMinimap") ~= want then
+			pcall(setCVar, "rotateMinimap", want)
+		end
+	end)
+end
+
+-- Every phase on its own SafeCall: one piece failing on this client can't
+-- keep the rest of the minimap dead, and the printed error names the phase.
+function Core.Enable(m)
+	mod = m
+	-- one-time migration: earlier builds persisted a round map, a
+	-- mouseover-only zone bar and a hidden clock/calendar
+	if mod.db._v ~= 3 then
+		mod.db._v = 3
+		mod.db.shape = "square"
+		mod.db.locationText = "show"
+		mod.db.locationFontSize = 11
+		if type(mod.db.hide) ~= "table" then mod.db.hide = {} end
+		mod.db.hide.clock = false
+		mod.db.hide.calendar = false
+	end
+	if built then Core.ApplyAll() return end
+	built = true
+	local function step(name, fn) S.SafeCall("Minimap:" .. name, fn) end
+	step("panel", buildPanel)
+	step("deco", buildDeco)
+	step("zonebar", buildZoneBar)
+	step("coordsbar", buildCoordsBar)
+	step("mouse", hookMouse)
+	step("apply", Core.ApplyAll)
+	step("zone", Core.UpdateZoneText)
+	step("coords", Core.UpdateCoords)
+	C_Timer.NewTicker(1, tick)
+end
+
+function Core.SettingChanged(m, path)
+	mod = m
+	if path == "enabled" then return end -- that option asks for a reload itself
+	Core.ApplyAll()
+end
+
+S.RegisterEvent("ZONE_CHANGED", function() if mod then Core.UpdateZoneText() end end)
+S.RegisterEvent("ZONE_CHANGED_INDOORS", function() if mod then Core.UpdateZoneText() end end)
+S.RegisterEvent("ZONE_CHANGED_NEW_AREA", function() if mod then Core.UpdateZoneText() end end)
+S.RegisterEvent("PLAYER_ENTERING_WORLD", function()
+	if mod then
+		S.RunOutOfCombat(function()
+			if panel then
+				pcall(Minimap.ClearAllPoints, Minimap)
+				pcall(Minimap.SetPoint, Minimap, "TOPLEFT", panel, "TOPLEFT", 4, -4)
+			end
+			Core.PositionIndicators()
+		end)
+	end
+end)
+S.RegisterEvent("UPDATE_PENDING_MAIL", function() if mod then Core.PositionIndicators() end end)

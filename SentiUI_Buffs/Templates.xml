@@ -1,0 +1,14 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<!-- Aura button spawned by the secure headers. OnLoad runs whenever the
+	     header creates a child - including mid-combat, where the restricted
+	     environment does the spawn and this script dresses the button. -->
+	<Button name="SentiUIAuraIconTemplate" inherits="SecureActionButtonTemplate,BackdropTemplate" virtual="true">
+		<Scripts>
+			<OnLoad>SentiUI_BuffsAuraButton_OnLoad(self)</OnLoad>
+		</Scripts>
+		<Attributes>
+			<Attribute name="type" value="cancelaura"/>
+		</Attributes>
+	</Button>
+	<Button name="SentiUIAuraTemplate" inherits="SentiUIAuraIconTemplate" virtual="true" framelevel="4" registerForClicks="RightButtonUp, RightButtonDown"/>
+</Ui>

@@ -1,0 +1,22 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Data Bars
+## Notes: The data bars module for SentiUI: an experience bar with rested and pending-quest-XP segments and a faction-colored reputation bar.
+## Notes-deDE: Das Datenleisten-Modul für SentiUI: Erfahrungsleiste mit Rested- und Quest-EP-Anteil sowie Rufleiste in Fraktionsfarbe.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.1.4
+## Dependencies: SentiUI
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+DataBars.lua
+Options.lua
+Changelog.lua
+Module.lua

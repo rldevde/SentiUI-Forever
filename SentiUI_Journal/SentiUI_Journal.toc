@@ -1,0 +1,42 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: SentiUI Journal |cffebad33Compendium|r
+## Notes: Dungeon compendium - bosses, quests, maps and loot.
+## Author: Senti
+## Version: 0.1.6
+## X-Category: Interface
+## RequiredDeps: SentiUI
+## SavedVariables: SentiUIJournalDB
+## IconTexture: Interface\Icons\INV_Misc_Book_11
+
+Locales\Locales.lua
+Locales\deDE.lua
+Defaults.lua
+Bootstrap.lua
+Data\Compendium.lua
+Data\CompendiumNew.lua
+Data\CompendiumVerified.lua
+Data\CompendiumAliases.lua
+Data\CompendiumBosses.lua
+Data\CompendiumChains.lua
+Data\CompendiumLoot.lua
+Data\CompendiumPortraits.lua
+Data\CompendiumEntrances.lua
+Data\CompendiumQuestMaps.lua
+Data\CompendiumMapData.lua
+Data\CompendiumMapText.lua
+Data\CompendiumDeDE.lua
+Data\CompendiumEsES.lua
+Data\CompendiumFrFR.lua
+Data\CompendiumItIT.lua
+Data\CompendiumKoKR.lua
+Data\CompendiumPtBR.lua
+Data\CompendiumRuRU.lua
+Data\CompendiumZhCN.lua
+Data\CompendiumZhTW.lua
+BossPortrait.lua
+DungeonMap.lua
+Page.lua
+Window.lua
+Changelog.lua
+Module.lua

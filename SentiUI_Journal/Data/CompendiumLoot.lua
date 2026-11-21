@@ -1,0 +1,110 @@
+local _, DJ = ...
+if not DJ or not DJ.DB then return end
+DJ.sharedLootMissing = DJ.sharedLootMissing or {}
+
+local BFD, STOCKS, RFK, SMGY = "Blackfathom Deeps", "The Stockade", "Razorfen Kraul", "Scarlet Monastery: Graveyard"
+local DROWNED = "The Drowned City"
+
+local SHARED = {
+    { 252512, "Brawler's Leather Helm", {
+        [BFD] = { "Gelihast", "Aku'mai", "Lorgus Jett" },
+        [STOCKS] = { "Kam Deepfury", "Dextren Ward" },
+        [RFK] = { "Aggem Thorncurse", "Death Speaker Jargba", "Overlord Ramtusk", "Agathelos the Raging", "Charlga Razorflank", "Roogug" },
+        [SMGY] = { "Azshir the Sleepless" },
+    } },
+    { 252513, "Trapper's Leather Helm", {
+        [BFD] = { "Gelihast", "Twilight Lord Kelris", "Lorgus Jett" },
+        [STOCKS] = { "Kam Deepfury", "Hamhock" },
+        [RFK] = { "Overlord Ramtusk", "Agathelos the Raging" },
+        [SMGY] = { "Interrogator Vishas", "Bloodmage Thalnos" },
+    } },
+    { 252455, "Defender's Leather Helm", {
+        [BFD] = { "Twilight Lord Kelris", "Old Serra'kis", "Aku'mai", "Lorgus Jett" },
+        [STOCKS] = { "Kam Deepfury", "Bazil Thredd" },
+        [RFK] = { "Aggem Thorncurse", "Agathelos the Raging", "Charlga Razorflank", "Earthcaller Halmgar" },
+        [SMGY] = { "Interrogator Vishas", "Bloodmage Thalnos" },
+    } },
+    { 252456, "Totemic Leather Helm", {
+        [BFD] = { "Gelihast", "Twilight Lord Kelris", "Old Serra'kis", "Aku'mai" },
+        [STOCKS] = { "Bazil Thredd", "Dextren Ward" },
+        [RFK] = { "Charlga Razorflank" },
+        [SMGY] = { "Azshir the Sleepless" },
+    } },
+    { 252514, "Stormrider's Leather Helm", {
+        [BFD] = { "Gelihast", "Aku'mai" },
+        [STOCKS] = { "Dextren Ward" },
+        [RFK] = { "Earthcaller Halmgar" },
+    } },
+    { 252515, "Wisdom's Leather Helm", {
+        [BFD] = { "Gelihast", "Twilight Lord Kelris", "Aku'mai" },
+        [STOCKS] = { "Kam Deepfury", "Bazil Thredd", "Dextren Ward" },
+        [RFK] = { "Death Speaker Jargba", "Overlord Ramtusk", "Charlga Razorflank" },
+    } },
+
+    { 271718, "Linken's Boots of Iron", {
+        [DROWNED] = { "Zul'Alai", "Var'Taka", "Captain Dreadrise", "Deathless Marrow", "Min'loth the Serpent", "Gill" },
+    }, "Feet, Mail" },
+
+}
+
+DJ.SHARED_LOOT_IDS = DJ.SHARED_LOOT_IDS or {}
+DJ.SHARED_BY_BOSS = DJ.SHARED_BY_BOSS or {}
+DJ.sharedLootMissing = {}
+
+local function FindBoss(dungeon, bossName)
+    for _, boss in ipairs(dungeon.bosses or {}) do
+        if type(boss) == "table" and boss.name == bossName then return boss end
+    end
+    return nil
+end
+
+local function AddShared(dungeonName, bossName, item)
+    local byBoss = DJ.SHARED_BY_BOSS[dungeonName] or {}
+    DJ.SHARED_BY_BOSS[dungeonName] = byBoss
+    local list = byBoss[bossName] or {}
+    byBoss[bossName] = list
+    for _, existing in ipairs(list) do
+        if tonumber(existing[1]) == tonumber(item[1]) then return end
+    end
+    list[#list + 1] = item
+end
+
+for _, entry in ipairs(SHARED) do
+    DJ.SHARED_LOOT_IDS[entry[1]] = true
+end
+
+for dungeonName, dungeon in pairs(DJ.DB) do
+    for _, boss in ipairs(dungeon.bosses or {}) do
+        if type(boss) == "table" and type(boss.loot) == "table" and not boss.trash and not boss.recipeTab then
+            for i = #boss.loot, 1, -1 do
+                local item = boss.loot[i]
+                if DJ.SHARED_LOOT_IDS[tonumber(item[1]) or 0] then
+                    table.remove(boss.loot, i)
+                    AddShared(dungeonName, boss.name, item)
+                end
+            end
+        end
+    end
+end
+
+for _, entry in ipairs(SHARED) do
+    local itemID, itemName, drops, itemType = entry[1], entry[2], entry[3], entry[4]
+    for dungeonName, bosses in pairs(drops) do
+        local dungeon = DJ.DB[dungeonName]
+        for _, bossName in ipairs(bosses) do
+            if dungeon and FindBoss(dungeon, bossName) then
+                AddShared(dungeonName, bossName, { itemID, itemName, itemType or "Head, Leather", 3 })
+            else
+                DJ.sharedLootMissing[#DJ.sharedLootMissing + 1] = dungeonName .. " / " .. bossName
+            end
+        end
+    end
+end
+
+function DJ.GetBossSharedLoot(dungeonName, boss)
+    if type(boss) ~= "table" or boss.trash or boss.recipeTab or boss.dungeonWide then return nil end
+    local byBoss = DJ.SHARED_BY_BOSS[dungeonName]
+    local list = byBoss and byBoss[boss.name]
+    if list and #list > 0 then return list end
+    return nil
+end

@@ -1,0 +1,43 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Training
+## Notes: Class trainer compendium for SentiUI: every spell your class and weapon masters still teach plus every profession recipe, sorted into learnable now / missing requirements / later / ignored / known. Opens from the SentiUI Panel.
+## Notes-deDE: Lehrer-Kompendium für SentiUI: alle Zauber, die Klassen- und Waffenlehrer noch beibringen, plus jedes Berufsrezept, sortiert nach jetzt lernbar / Voraussetzungen fehlen / später / ignoriert / bekannt. Öffnet über das SentiUI-Panel.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.2.6
+## Dependencies: SentiUI
+## SavedVariables: SentiUITrainingDB
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Service.lua
+
+Data\TrainingText.lua
+Data\TrainingFactions.lua
+Data\TrainingQuestSpells.lua
+Data\TrainingWeaponSkills.lua
+Data\TrainingDruid.lua
+Data\TrainingHunter.lua
+Data\TrainingHunterPets.lua
+Data\TrainingMage.lua
+Data\TrainingPaladin.lua
+Data\TrainingPriest.lua
+Data\TrainingRogue.lua
+Data\TrainingShaman.lua
+Data\TrainingWarlock.lua
+Data\TrainingWarlockTomes.lua
+Data\TrainingWarrior.lua
+Data\TrainingRecipes.lua
+Data\TrainingInit.lua
+
+Window.lua
+Options.lua
+Changelog.lua
+Module.lua

@@ -1,0 +1,34 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Panel
+## Notes: The panel module for SentiUI: Titan-style info bars at the screen edges with plugins (clock, coords, gold, bags, performance and more), kill statistics, quest book and notification toasts.
+## Notes-deDE: Das Panel-Modul für SentiUI: Infoleisten am Bildschirmrand mit Plugins (Uhr, Koordinaten, Gold, Taschen, Leistung und mehr), Kill-Statistik, Questbuch und Benachrichtigungen.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.5.11
+## Dependencies: SentiUI
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+## SavedVariables: FBLDB
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Core.lua
+Bars.lua
+Viewport.lua
+Toasts.lua
+Plugins.lua
+Plugins\Info.lua
+Plugins\Player.lua
+Plugins\World.lua
+FBL.lua
+FBLJson.lua
+FBLImport.lua
+
+Options.lua
+Changelog.lua
+Module.lua

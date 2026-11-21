@@ -1,0 +1,224 @@
+-- Changelog registry. Every SentiUI addon files its release entries here
+-- (modules pass `changelog = {...}` in their RegisterModule def, the core
+-- registers its own below) and the settings show them on SentiUI > Changelog,
+-- in the client's language. Entry shape:
+--   { version = "x.y.z", date = "YYYY-MM-DD"?,
+--     changes   = { "English line", ... },
+--     changesDE = { "German line", ... }? }   -- falls back to `changes`
+local _, S = ...
+
+local CL = { list = {}, byName = {} }
+S.Changelog = CL
+
+function CL.Register(addon, entries)
+	if type(addon) ~= "string" or type(entries) ~= "table" then return end
+	local slot = CL.byName[addon]
+	if not slot then
+		slot = { addon = addon, entries = {} }
+		CL.byName[addon] = slot
+		CL.list[#CL.list + 1] = slot
+	end
+	for _, e in ipairs(entries) do slot.entries[#slot.entries + 1] = e end
+end
+
+function CL.List() return CL.list end
+
+CL.Register("SentiUI", {
+	{
+		version = "0.3.9",
+		changes = {
+			"WatchPump treats a non-boolean IsShown answer (error or secret) as unknown, not hidden - it could otherwise fake a shown->hidden transition that never happened.",
+		},
+		changesDE = {
+			"WatchPump behandelt eine nicht-boolesche IsShown-Antwort (Fehler oder Secret) als unbekannt statt versteckt - sonst koennte ein nie passierter shown->hidden-Uebergang vorgetaeuscht werden.",
+		},
+	},
+	{
+		version = "0.3.8",
+		changes = {
+			"WatchPump hardened: a frame resolver or IsShown call that errors no longer kills the whole visibility watcher loop - every watched window after it stayed dead (bank, merchant, loot re-hide).",
+		},
+		changesDE = {
+			"WatchPump gehaertet: Ein fehlernder Frame-Resolver oder IsShown-Aufruf killt nicht mehr die komplette Watcher-Schleife - alle danach ueberwachten Fenster (Bank, Haendler, Loot-Re-Hide) blieben tot.",
+		},
+	},
+	{
+		version = "0.3.7",
+		changes = {
+			"Added S.WatchShown: central ticker-based visibility-transition watcher (shown and hidden callbacks) for Blizzard windows that may open/close inside a protected dispatch.",
+		},
+		changesDE = {
+			"Neu: S.WatchShown - zentraler Ticker-Waechter fuer Sichtbarkeitswechsel (Show- und Hide-Callbacks) bei Blizzard-Fenstern, die innerhalb eines geschuetzten Dispatch oeffnen/schliessen koennen.",
+		},
+	},
+	{
+		version = "0.3.6",
+		changes = {
+			"Escape-forbidden-call hardening, suite-wide: the shared edit box lost its OnEscapePressed/OnEditFocusLost handlers (they ran insecure Lua inside the Escape dispatch and tainted the engine's protected SpellStopCasting/SpellStopTargeting calls), the lit border now resets from a focus-poll timer, and new S.WatchHide replaces OnHide scripts on Escape-closed windows - movers bar included.",
+		},
+		changesDE = {
+			"Escape-Blockier-Haertung fuer die ganze Suite: Die gemeinsame Editbox hat ihre OnEscapePressed-/OnEditFocusLost-Handler verloren (sie liefen unsicher im Escape-Dispatch und tainteten die geschuetzten SpellStopCasting/SpellStopTargeting-Aufrufe der Engine), der helle Rahmen wird jetzt per Fokus-Ticker zurueckgesetzt, und S.WatchHide ersetzt OnHide-Scripts an Escape-geschlossenen Fenstern - inklusive Movers-Leiste.",
+		},
+	},
+
+	{
+		version = "0.3.5",
+		changes = {
+			"Changelog page gets module categories: a filter dropdown on top lists every addon that filed entries (All modules, SentiUI, each SentiUI_* module) and narrows the cards to the picked module.",
+		},
+		changesDE = {
+			"Changelog-Seite bekommt Modul-Kategorien: Ein Filter-Dropdown oben listet jedes Addon mit Einträgen (Alle Module, SentiUI, jedes SentiUI_*-Modul) und begrenzt die Karten auf das gewählte Modul.",
+		},
+	},
+	{
+		version = "0.3.4",
+		changes = {
+			"Changelog/settings page fixed: text rows stayed at a fixed 26px height while long changelog lines wrapped onto two or three lines - entries drew over each other. Text rows now measure the wrapped label height (explicit width + word wrap) and grow to fit, controls rows stay single-line.",
+		},
+		changesDE = {
+			"Changelog-/Einstellungsseite repariert: Textzeilen blieben auf fixen 26px, während lange Changelog-Zeilen auf zwei bis drei Zeilen umbrachen - Einträge übermalten sich. Textzeilen messen jetzt die umgebrochene Label-Höhe (explizite Breite + Wortumbruch) und wachsen mit, Kontrollzeilen bleiben einzeilig.",
+		},
+	},
+	{
+		version = "0.3.3",
+		changes = {
+			"New shared S.LevelColor(unit) helper: asks the server for the unit's content difficulty and maps it through GetDifficultyColor - real difficulty colors (red/orange/yellow/green/gray) for level text, secret-safe.",
+		},
+		changesDE = {
+			"Neuer gemeinsamer Helfer S.LevelColor(unit): fragt die Content-Schwierigkeit der Einheit am Server ab und bildet sie über GetDifficultyColor ab - echte Schwierigkeitsfarben (rot/orange/gelb/grün/grau) für Stufentexte, secret-sicher.",
+		},
+	},
+	{
+		version = "0.3.2",
+		changes = {
+			"Mover hardening: a throwing snap pass could kill the drag-stop handler before the save ran - moved frames then looked placed but snapped back on the next apply/reload. The snap is now pcall'd so the save always happens, UIParent rect/size reads got their secret guards, and NearestAnchor returns nil instead of a fake {BOTTOMLEFT,0,0} so an unreadable rect skips the save instead of teleporting the frame into the corner. M.Apply on an unknown key no longer indexes nil, and proxy movers now save and refresh the handle's own rect instead of the unmoving frame's (no module uses proxies yet).",
+		},
+		changesDE = {
+			"Mover-Härtung: Ein werfender Snap konnte den Drag-Stop-Handler vor dem Speichern abbrechen - verschobene Frames sahen platziert aus, sprangen aber beim nächsten Apply/Reload zurück. Der Snap läuft jetzt per pcall, sodass das Speichern immer passiert; UIParent-Rect/Größe bekamen ihre Secret-Guards, und NearestAnchor gibt nil statt eines falschen {BOTTOMLEFT,0,0} zurück - ein unlesbares Rect überspringt das Speichern statt den Frame in die Ecke zu werfen. M.Apply mit unbekanntem Key indexiert nicht mehr nil, und Proxy-Mover speichern und refreshen jetzt das eigene Rect des Handles statt das des unbewegten Frames (nutzt noch kein Modul).",
+		},
+	},
+	{
+		version = "0.3.1",
+		changes = {
+			"New SentiUI artwork shipped as Media/Logo.tga (Alliance/Horde emblem, 1024x1024) and Media/LongLogo.tga (wide banner); S.media.longLogo + longLogoBand expose the banner crop band, and the settings Home page shows the banner as a hero row. The minimap button, installer and settings title now use the new emblem automatically via S.media.logo.",
+		},
+		changesDE = {
+			"Neues SentiUI-Artwork als Media/Logo.tga (Allianz/Horde-Emblem, 1024x1024) und Media/LongLogo.tga (breites Banner); S.media.longLogo + longLogoBand exportieren den Banner-Ausschnitt, und die Einstellungen-Startseite zeigt das Banner als Hero-Zeile. Minimap-Button, Installer und Einstellungs-Titel nutzen das neue Emblem automatisch über S.media.logo.",
+		},
+	},
+	{
+		version = "0.3.0",
+		changes = {
+			"Settings search upgraded: results now scroll to and flash the matching option, page titles are searchable, the result header shows the hit count, and Enter jumps to the first result.",
+			"The search field gets a gold accent edge so it reads as an input, and a strtrim fallback guards the filter on this client.",
+		},
+		changesDE = {
+			"Einstellungs-Suche verbessert: Treffer scrollen jetzt zur passenden Option und markieren sie, Seitentitel sind durchsuchbar, der Kopf zeigt die Trefferzahl, Enter springt zum ersten Treffer.",
+			"Das Suchfeld bekommt eine goldene Kante als Erkennungsmerkmal, plus strtrim-Fallback für den Client.",
+		},
+	},
+	{
+		version = "0.2.9",
+		changes = {
+			"Fonts are now applied through real font objects (CreateFontFamily + SetFontObject with a GetFont verify) because plain SetFont fails silently on this client - fixes invisible text in module frames.",
+			"New Movers.Save(key) lets modules persist a directly-dragged frame position through the mover DB (used by the bag windows' title-bar drag).",
+		},
+		changesDE = {
+			"Fonts werden jetzt über echte Font-Objekte gesetzt (CreateFontFamily + SetFontObject mit GetFont-Verifikation), weil schlichtes SetFont auf diesem Client still fehlschlägt - behebt unsichtbaren Text in Modul-Frames.",
+			"Neu: Movers.Save(key) speichert direkt gezogene Frame-Positionen in der Mover-DB (genutzt vom Titelzeilen-Drag der Taschenfenster).",
+		},
+	},
+	{
+		version = "0.2.7",
+		changes = {
+			"Widget buttons no longer throw on non-string captions: Button:SetText ignores secret values and coerces anything that is not a string or number to empty (installer SetText error).",
+		},
+		changesDE = {
+			"Widget-Buttons werfen bei Nicht-String-Beschriftungen nicht mehr: Button:SetText ignoriert Secret-Werte und wandelt alles außer String/Zahl in einen leeren Text um (Installer-SetText-Fehler).",
+		},
+	},
+	{
+		version = "0.2.6",
+		changes = {
+			"Error messages now include a one-time hint per session pointing to the bug tracker at https://dev.xrl-dev.de/bugtracker (Lua errors via SafeCall and forbidden/blocked calls).",
+		},
+		changesDE = {
+			"Fehlermeldungen enthalten jetzt einmal pro Sitzung einen Hinweis auf den Bugtracker unter https://dev.xrl-dev.de/bugtracker (Lua-Fehler via SafeCall und forbidden/blocked-Calls).",
+		},
+	},
+	{
+		version = "0.2.5",
+		changes = {
+			"Buttons and installer steps tolerate nil text now - no more \"bad argument to SetText\".",
+		},
+		changesDE = {
+			"Buttons und Installer-Schritte vertragen jetzt leeren Text - kein \"bad argument to SetText\" mehr.",
+		},
+	},
+	{
+		version = "0.2.4",
+		changes = {
+			"Error radar fully hardened: secret error messages no longer break the xpcall handler, and the forbidden report labels addon vs. function correctly.",
+		},
+		changesDE = {
+			"Fehler-Radar vollständig abgehärtet: Secret-Fehlermeldungen brechen den Fehlerhandler nicht mehr, und der Forbidden-Report beschriftet Addon vs. Funktion korrekt.",
+		},
+	},
+	{
+		version = "0.2.3",
+		changes = {
+			"Fixed the error radar: debug.traceback does not exist on this client - tracebacks now come from debugstack, so real errors print file and line instead of \"error in error handling\".",
+			"New IsSecretTable helper: indexing a secret table throws before a field can be checked.",
+		},
+		changesDE = {
+			"Fehler-Radar repariert: debug.traceback existiert auf diesem Client nicht - Tracebacks kommen jetzt von debugstack, echte Fehler zeigen wieder Datei und Zeile statt \"error in error handling\".",
+			"Neuer IsSecretTable-Helfer: Das Indizieren einer Secret-Tabelle wirft, bevor ein Feld geprüft werden kann.",
+		},
+	},
+	{
+		version = "0.2.2",
+		changes = {
+			"New in-game changelog: SentiUI > Changelog lists the release history of the core and every module, in English and German.",
+		},
+		changesDE = {
+			"Neuer In-Game-Changelog: Unter SentiUI > Changelog steht die Versionshistorie des Cores und aller Module, auf Englisch und Deutsch.",
+		},
+	},
+	{
+		version = "0.2.1",
+		changes = {
+			"Error radar: failures print a Lua traceback with file and line.",
+			"Forbidden and blocked protected calls are reported in chat with the function name and the blamed addon.",
+		},
+		changesDE = {
+			"Fehler-Radar: Fehler zeigen jetzt einen Lua-Traceback mit Datei und Zeile.",
+			"Verbotene und geblockte geschützte Aufrufe werden im Chat gemeldet - mit Funktionsname und beschuldigtem Addon.",
+		},
+	},
+	{
+		version = "0.2.0",
+		changes = {
+			"Movers rebuilt on the proven SentinelForeverCore mechanics: real frames move via SetMovable/StartMoving, handles live on UIParent, hidden frames stay placeable.",
+			"Positions save as the nearest screen anchor; every size/point read is secret-guarded.",
+			"Mover extras: selection highlight, arrow-key nudging (Shift = 10px), live anchor restore on reset.",
+		},
+		changesDE = {
+			"Mover auf die bewährte SentinelForeverCore-Mechanik umgebaut: echte Fenster bewegen per SetMovable/StartMoving, Griffe liegen auf UIParent, versteckte Fenster bleiben platzierbar.",
+			"Positionen werden als nächster Bildschirm-Anker gespeichert; jede Größen-/Punkt-Abfrage ist Secret-gesichert.",
+			"Mover-Extras: Auswahl-Markierung, Verschieben per Pfeiltasten (Shift = 10px), Live-Anker beim Zurücksetzen.",
+		},
+	},
+	{
+		version = "0.1.0",
+		changes = {
+			"First release: settings shell for the SentiUI suite.",
+			"Minimap button, options window with sections and search, mover system, first-run installer.",
+			"Option types: toggle, slider, dropdown, color, button, text, custom. /sui opens the settings.",
+		},
+		changesDE = {
+			"Erste Version: Settings-Hülle für die SentiUI-Suite.",
+			"Minimap-Button, Optionsfenster mit Bereichen und Suche, Mover-System, Installer für den ersten Start.",
+			"Optionstypen: Schalter, Slider, Dropdown, Farbe, Button, Text, Custom. /sui öffnet die Einstellungen.",
+		},
+	},
+})

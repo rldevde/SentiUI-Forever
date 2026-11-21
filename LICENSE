@@ -1,0 +1,22 @@
+SentiUI — License (All Rights Reserved / Source Available)
+
+Copyright (c) 2025–2026 Robin (rldevde, xRL-Dev.de). All rights reserved.
+
+SentiUI is source-available, NOT open source. The code is published so
+users can read, audit, and understand what the addon does — nothing more.
+
+You MAY:
+  - view and study the source code,
+  - install and use the addons in World of Warcraft,
+  - report bugs and propose changes via issues or pull requests.
+
+You may NOT, without prior written permission from the copyright holder:
+  - copy, reproduce, redistribute or republish this code, in whole or in part,
+  - create derivative works or modified re-uploads,
+  - fork this repository for the purpose of distributing your own version,
+  - sell, sublicense or commercially exploit this code,
+  - bundle this code, or parts of it, into addon packs, compilations or
+    other software.
+
+Copying code from this project into another addon — or uploading it
+anywhere else — violates this license.

@@ -1,0 +1,108 @@
+-- German translations. English keys fall back to themselves.
+local _, S = ...
+if GetLocale() ~= "deDE" then return end
+local L = S.L
+
+-- core / commands
+L["version %s loaded - %s for settings"] = "Version %s geladen - %s für die Einstellungen"
+L["Commands: /sui - settings | /sui unlock - move frames | /sui lock | /sui reset - reset positions | /sui minimap - toggle button"] = "Befehle: /sui - Einstellungen | /sui unlock - Fenster verschieben | /sui lock | /sui reset - Positionen zurücksetzen | /sui minimap - Minimap-Button umschalten"
+
+-- movers
+L["Can't move frames during combat."] = "Fenster können im Kampf nicht verschoben werden."
+L["Drag: move - right-click: reset"] = "Ziehen: verschieben - Rechtsklick: zurücksetzen"
+L["Arrow keys nudge the selected element (Shift: 10px)"] = "Pfeiltasten verschieben das gewählte Element (Shift: 10px)"
+L["Mouse wheel: scale"] = "Mausrad: Skalierung"
+L["Move mode"] = "Verschiebemodus"
+L["Drag frames to move them - right-click resets - wheel scales"] = "Fenster ziehen zum Verschieben - Rechtsklick setzt zurück - Mausrad skaliert"
+L["Lock"] = "Sperren"
+L["Reset all"] = "Alle zurücksetzen"
+L["Reset every frame position and scale?"] = "Alle Fensterpositionen und -skalierungen zurücksetzen?"
+L["Drag frames to move them - right-click resets - wheel scales - ESC locks"] = "Fenster ziehen zum Verschieben - Rechtsklick setzt zurück - Mausrad skaliert - ESC sperrt"
+L["Nothing movable yet - enable 'Show test frame' in the settings or install a SentiUI module."] = "Noch nichts Verschiebbares - aktiviere 'Testfenster anzeigen' in den Einstellungen oder installiere ein SentiUI-Modul."
+L["Move mode: %d frames"] = "Verschiebemodus: %d Fenster"
+
+-- minimap button
+L["Left-click: settings - right-click: move frames - drag: move button"] = "Linksklick: Einstellungen - Rechtsklick: Fenster verschieben - Ziehen: Button bewegen"
+
+-- widgets
+L["The color picker could not be opened."] = "Die Farbauswahl konnte nicht geöffnet werden."
+
+-- options registry
+L["This change needs a reload to take effect. Reload now?"] = "Diese Änderung braucht einen Reload. Jetzt neu laden?"
+L["Reload"] = "Neu laden"
+L["Later"] = "Später"
+L["Options (%s): unknown item type %s"] = "Optionen (%s): unbekannter Elementtyp %s"
+L["Options (%s): item without label"] = "Optionen (%s): Element ohne Beschriftung"
+L["Options (%s): %s needs a key or get/set"] = "Optionen (%s): %s braucht einen Key oder get/set"
+L["Options (%s): slider with a bad range"] = "Optionen (%s): Slider mit ungültigem Bereich"
+
+-- options window
+L["Settings"] = "Einstellungen"
+L["Search settings..."] = "Einstellungen suchen..."
+L["Results"] = "Ergebnisse"
+L["No results"] = "Keine Ergebnisse"
+L["Reset page"] = "Seite zurücksetzen"
+L["Are you sure?"] = "Bist du sicher?"
+L["Reset every setting on this page?"] = "Alle Einstellungen auf dieser Seite zurücksetzen?"
+
+-- pages
+L["Home"] = "Start"
+L["The SentiUI suite core. Modules from SentiUI_* addons dock their own sections here."] = "Der Kern der SentiUI-Suite. Module aus SentiUI_*-Addons docken ihre eigenen Bereiche hier an."
+L["Welcome"] = "Willkommen"
+L["SentiUI %s - settings core for the SentiUI suite."] = "SentiUI %s - Einstellungskern der SentiUI-Suite."
+L["Type /sui to open this window, or use the minimap button."] = "Tippe /sui um dieses Fenster zu öffnen, oder nutze den Minimap-Button."
+L["Quick actions"] = "Schnellaktionen"
+L["Move frames"] = "Fenster verschieben"
+L["Unlock"] = "Entsperren"
+L["Shows a labeled handle over every movable SentiUI frame."] = "Zeigt einen beschrifteten Griff über jedem verschiebbaren SentiUI-Fenster."
+L["Reload the interface"] = "Interface neu laden"
+L["Loaded modules"] = "Geladene Module"
+L["No SentiUI modules loaded yet. SentiUI_* addons add their sections here."] = "Noch keine SentiUI-Module geladen. SentiUI_*-Addons fügen ihre Bereiche hier hinzu."
+L["General"] = "Allgemein"
+L["The minimap button, move mode and the master scale."] = "Der Minimap-Button, der Verschiebemodus und die globale Skalierung."
+L["Minimap button"] = "Minimap-Button"
+L["Show minimap button"] = "Minimap-Button anzeigen"
+L["Left-click opens the settings, right-click toggles move mode. Drag repositions it."] = "Linksklick öffnet die Einstellungen, Rechtsklick schaltet den Verschiebemodus um. Ziehen positioniert ihn."
+L["Reset button position"] = "Button-Position zurücksetzen"
+L["Reset"] = "Zurücksetzen"
+L["Back to the default spot at the minimap's lower left."] = "Zurück zur Standardposition links unten an der Minimap."
+L["How frames behave while they are unlocked."] = "Wie sich Fenster verhalten, solange sie entsperrt sind."
+L["Snap to grid"] = "Am Raster ausrichten"
+L["Grid size"] = "Rastergröße"
+L["Snap to frames and screen"] = "An Fenstern und Bildschirm ausrichten"
+L["Frames snap to other movers' edges and centers and to the screen's."] = "Fenster rasten an Kanten und Mitten anderer Fenster und des Bildschirms ein."
+L["Reset all positions"] = "Alle Positionen zurücksetzen"
+L["Interface"] = "Interface"
+L["Interface scale"] = "Interface-Skalierung"
+L["Master scale for SentiUI frames that opted into it."] = "Globale Skalierung für SentiUI-Fenster, die sie nutzen."
+L["Layout"] = "Layout"
+L["Every frame a SentiUI module registered for moving. Unlock to drag them, right-click a handle to reset one."] = "Jedes Fenster, das ein SentiUI-Modul zum Verschieben angemeldet hat. Entsperren zum Ziehen, Rechtsklick auf einen Griff setzt es zurück."
+L["No movable frames yet. SentiUI modules register theirs here."] = "Noch keine verschiebbaren Fenster. SentiUI-Module melden ihre hier an."
+L["default"] = "Standard"
+L["%d frames"] = "%d Fenster"
+L["Show test frame"] = "Testfenster anzeigen"
+L["A sample frame to try move mode with before modules add their own."] = "Ein Beispielfenster, um den Verschiebemodus auszuprobieren, bevor Module eigene anmelden."
+L["Test frame"] = "Testfenster"
+
+-- installer ---------------------------------------------------------------
+L["Back"] = "Zurück"
+L["Next"] = "Weiter"
+L["Finish"] = "Fertig"
+L["Welcome to SentiUI"] = "Willkommen bei SentiUI"
+L["Your controls"] = "Deine Steuerung"
+L["Modules"] = "Module"
+L["Done"] = "Fertig"
+L["Run installer"] = "Installer starten"
+L["Start"] = "Start"
+L["The first-run wizard, again from step one."] = "Der Einrichtungsassistent, nochmal von Schritt eins."
+L["INSTALLER_WELCOME"] = "SentiUI %s ist installiert.\n\nDieses kurze Setup zeigt dir, wo deine Steuerung liegt. Jeder Schritt ist optional - den Installer öffnest du jederzeit über SentiUI > Start oder /sui install."
+L["INSTALLER_CONTROLS"] = "Der Minimap-Button: Linksklick öffnet die Einstellungen, Rechtsklick entsperrt den Verschiebemodus.\n\n/sui - Einstellungen öffnen\n/sui unlock - Verschiebemodus (Griffe an jedem angemeldeten Fenster, Rechtsklick setzt zurück, Mausrad skaliert)\n/sui reset - alle Einstellungen zurücksetzen"
+L["INSTALLER_MODULES_NONE"] = "Es sind noch keine SentiUI-Module geladen. Module sind eigene Addons namens SentiUI_<Name>; sobald eines installiert ist, meldet es seine Optionen automatisch als eigene Sektion in den Einstellungen an - nichts zu verkabeln."
+L["INSTALLER_MODULES_LIST"] = "Geladene Module: %s.\n\nJedes Modul ergänzt die Einstellungen automatisch um eine eigene Sektion."
+L["INSTALLER_DONE"] = "Alles erledigt. Öffne die Einstellungen mit /sui oder dem Minimap-Button und probiere den Verschiebemodus aus (SentiUI > Allgemein > Testfenster anzeigen gibt dir ein Beispielfenster zum Ziehen)."
+L["What's new in SentiUI and its modules."] = "Was es Neues in SentiUI und seinen Modulen gibt."
+L["No changelog entries yet."] = "Noch keine Changelog-Einträge."
+L["Please report errors at https://dev.xrl-dev.de/bugtracker"] = "Bitte Fehler unter https://dev.xrl-dev.de/bugtracker melden"
+L["All modules"] = "Alle Module"
+L["Filter"] = "Filter"
+L["Module"] = "Modul"

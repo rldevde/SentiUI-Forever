@@ -1,0 +1,31 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Settings
+## Title-deDE: |cffebad33SentiUI|r Einstellungen
+## Notes: Settings core for the SentiUI suite. SentiUI_* addons dock their own option pages into the window.
+## Notes-deDE: Einstellungs-Kern fuer das SentiUI-Interface. SentiUI_*-Addons docken ihre eigenen Optionen an.
+## Category: Sentinel
+## Category-deDE: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.3.9
+## DefaultState: enabled
+## SavedVariables: SentiUIDB
+## AddonCompartmentFunc: SentiUI_OnAddonCompartmentClick
+## X-Flavor: camelot
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Core.lua
+DB.lua
+Changelog.lua
+Style.lua
+Widgets.lua
+Movers.lua
+MinimapButton.lua
+Installer.lua
+
+Options\Registry.lua
+Options\Panel.lua
+Options\Pages.lua

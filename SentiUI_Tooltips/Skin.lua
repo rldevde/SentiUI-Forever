@@ -1,0 +1,174 @@
+-- Tooltip skin: the game's own art is alpha'd out (never Hide() - hiding a
+-- shared tooltip from addon code taints its handlers), the tooltip itself
+-- gets the flat Sentinel backdrop and the Sentinel font family on every
+-- FontString. Border tinting is just SetBackdropBorderColor.
+local _, ns = ...
+local S = SentiUI
+
+local Skin = {}
+ns.Skin = Skin
+
+local BLANK = S.media.blank
+local BACKDROP = { bgFile = BLANK, edgeFile = BLANK, edgeSize = 1 }
+
+local skinned = setmetatable({}, { __mode = "k" })
+
+-- tooltip names the game (and most addons) use
+Skin.NAMED = {
+	"GameTooltip", "ItemRefTooltip", "ShoppingTooltip1", "ShoppingTooltip2",
+	"ItemRefShoppingTooltip1", "ItemRefShoppingTooltip2",
+	"EmbeddedItemTooltip", "BuffFrameTooltip",
+}
+
+local function StyleFont(fs)
+	if fs.__sentiTipFont then return end
+	local ok, _, size, flags = pcall(fs.GetFont, fs)
+	size = (ok and type(size) == "number" and size) or 11
+	if type(flags) ~= "string" then flags = "" end
+	S.ApplyFont(fs, nil, size, flags)
+	fs.__sentiTipFont = true
+end
+
+function Skin.Fonts(tip)
+	for _, r in ipairs({ tip:GetRegions() }) do
+		if type(r) == "table" and r.IsObjectType and r:IsObjectType("FontString") then
+			StyleFont(r)
+		end
+	end
+end
+
+function Skin.SetBorder(tip, r, g, b)
+	if tip.SetBackdropBorderColor then
+		pcall(tip.SetBackdropBorderColor, tip, r, g, b, 1)
+	elseif tip.__sentiShell then
+		pcall(tip.__sentiShell.SetBackdropBorderColor, tip.__sentiShell, r, g, b, 1)
+	end
+end
+
+function Skin.ResetBorder(tip)
+	local c = S.colors.border
+	Skin.SetBorder(tip, c.r, c.g, c.b)
+end
+
+-- the gold top edge can take the unit/quality color; rgb may be secret
+-- numbers - SetVertexColor accepts them raw
+function Skin.SetAccent(tip, r, g, b)
+	local e = tip.__sentiEdge
+	if type(e) == "table" and e.SetVertexColor then
+		pcall(e.SetVertexColor, e, r, g, b, 0.95)
+	end
+end
+
+function Skin.ResetAccent(tip)
+	local a = S.colors.accent
+	Skin.SetAccent(tip, a.r, a.g, a.b)
+end
+
+function Skin.Tip(tip)
+	if type(tip) ~= "table" or skinned[tip] then return end
+	skinned[tip] = true
+
+	-- kill the game's own art; alpha, not Hide. Only BACKGROUND/BORDER
+	-- layer textures: artwork regions are embedded icons (item, money)
+	-- and must stay
+	local ns9 = tip.NineSlice
+	if type(ns9) == "table" and ns9.SetAlpha then pcall(ns9.SetAlpha, ns9, 0) end
+	for _, r in ipairs({ tip:GetRegions() }) do
+		if type(r) == "table" and r.IsObjectType and r:IsObjectType("Texture") then
+			local ok, layer = pcall(r.GetDrawLayer, r)
+			if ok and (layer == "BACKGROUND" or layer == "BORDER") then
+				pcall(r.SetAlpha, r, 0)
+			end
+		end
+	end
+
+	if tip.SetBackdrop then
+		tip:SetBackdrop(BACKDROP)
+		local c = S.colors
+		tip:SetBackdropColor(c.bg.r, c.bg.g, c.bg.b, c.bg.a)
+		Skin.ResetBorder(tip)
+	else
+		-- oddball tooltip without backdrop support: give it a shell child
+		local shell = CreateFrame("Frame", nil, tip, "BackdropTemplate")
+		shell:SetAllPoints()
+		shell:SetFrameLevel(1)
+		shell:SetBackdrop(BACKDROP)
+		local c = S.colors
+		shell:SetBackdropColor(c.bg.r, c.bg.g, c.bg.b, c.bg.a)
+		c = S.colors.border
+		shell:SetBackdropBorderColor(c.r, c.g, c.b, 1)
+		tip.__sentiShell = shell
+	end
+
+	-- Sentinel signature: the gold edge line across the top
+	if tip.CreateTexture and not tip.__sentiEdge then
+		local edge = tip:CreateTexture(nil, "OVERLAY")
+		edge:SetTexture(BLANK)
+		local a = S.colors.accent
+		edge:SetVertexColor(a.r, a.g, a.b, 0.9)
+		edge:SetHeight(1)
+		edge:SetPoint("TOPLEFT", tip, "TOPLEFT", 1, -1)
+		edge:SetPoint("TOPRIGHT", tip, "TOPRIGHT", -1, -1)
+		tip.__sentiEdge = edge
+	end
+
+	Skin.Fonts(tip)
+end
+
+-- the client sizes the tip before our post-call lines/rewrites land, so a
+-- line we touched (or the wider SentiUI font) can outgrow the frame: text
+-- then draws over the right border, which reads as "the frame is cut off".
+-- Measure the real line widths and grow the frame to fit; the game's own
+-- next layout pass shrinks it again when the content needs less.
+function Skin.Reflow(tip)
+	if not (tip and tip.GetNumLines and tip.SetWidth) then return end
+	local name = tip.GetName and tip:GetName()
+	if type(name) ~= "string" then return end
+	local need = 0
+	for i = 1, tip:NumLines() or 0 do
+		local w = 0
+		for _, side in ipairs({ "TextLeft", "TextRight" }) do
+			local fs = _G[name .. side .. i]
+			local ok, sw = pcall(function()
+				return fs and fs.GetStringWidth and fs:GetStringWidth()
+			end)
+			if ok and type(sw) == "number" and not S.IsSecret(sw) then
+				w = w + sw + (w > 0 and 8 or 0)
+			end
+		end
+		if w > need then need = w end
+	end
+	if need <= 0 then return end
+	-- side inset the client puts around its text columns
+	local pad = 24
+	local okp, lp, rp = pcall(function()
+		return tip.GetPadding and tip:GetPadding()
+	end)
+	if okp then
+		lp = type(lp) == "number" and not S.IsSecret(lp) and lp or 0
+		rp = type(rp) == "number" and not S.IsSecret(rp) and rp or 0
+		if lp + rp > 0 then pad = lp + rp + 4 end
+	end
+	need = need + pad
+	local okc, cur = pcall(tip.GetWidth, tip)
+	if okc and type(cur) == "number" and not S.IsSecret(cur)
+		and need > cur + 0.5 then
+		pcall(tip.SetWidth, tip, need)
+	end
+end
+
+function Skin.All()
+	for _, name in ipairs(Skin.NAMED) do
+		local tip = _G[name]
+		if type(tip) == "table" then Skin.Tip(tip) end
+	end
+end
+
+-- a tooltip created later shows up through the post-calls; skin it on
+-- first sight
+function Skin.Ensure(tip)
+	if type(tip) == "table" and tip.GetObjectType
+		and tip:GetObjectType() == "GameTooltip" then
+		Skin.Tip(tip)
+	end
+end

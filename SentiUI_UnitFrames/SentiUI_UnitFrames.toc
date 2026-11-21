@@ -1,0 +1,29 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Unit Frames
+## Notes: Unit frames for SentiUI: player, target, target-of-target, pet, focus, party and raid frames with castbars, auras, threat highlight and range fading.
+## Notes-deDE: Einheitenfenster für SentiUI: Spieler, Ziel, Ziel-des-Ziels, Begleiter, Fokus, Party- und Raid-Fenster mit Zauberleisten, Auren, Bedrohungs-Markierung und Reichweiten-Abdimmung.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.2.17
+## Dependencies: SentiUI
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Core.lua
+CastBar.lua
+Auras.lua
+Units.lua
+Extras.lua
+Group.lua
+Blizzard.lua
+
+Options.lua
+Changelog.lua
+Module.lua

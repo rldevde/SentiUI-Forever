@@ -1,0 +1,60 @@
+-- German locale for the Messenger module.
+local _, ns = ...
+local L = ns.L
+if GetLocale() ~= "deDE" then return end
+
+L["Messenger"] = "Messenger"
+L["Whisper hub: every conversation in one window, unread counters, pinned chats, per-character history and an away auto-reply."] =
+	"Whisper-Hub: alle Unterhaltungen in einem Fenster, Ungelesen-Zähler, angepinnte Chats, Verlauf pro Charakter und eine AFK-Automatwort."
+L["Enable messenger module"] = "Messenger-Modul aktivieren"
+L["Turns every messenger feature off after a reload."] = "Schaltet alle Messenger-Funktionen nach einem Reload ab."
+L["Open Messenger"] = "Messenger öffnen"
+L["Notifications"] = "Benachrichtigungen"
+L["Whisper sound"] = "Whisper-Sound"
+L["Play a short sound when a whisper arrives, at most every few seconds."] = "Spielt bei eingehendem Whisper einen kurzen Ton, höchstens alle paar Sekunden."
+L["Minimap unread badge"] = "Ungelesen-Zähler am Minimap-Button"
+L["Shows the number of unread whispers on the SentiUI minimap button."] = "Zeigt die Zahl ungelesener Whispers am SentiUI-Minimap-Button."
+L["History"] = "Verlauf"
+L["Lines per conversation"] = "Zeilen pro Unterhaltung"
+L["Conversations kept"] = "Aufbewahrte Unterhaltungen"
+L["Show timestamps"] = "Zeitstempel anzeigen"
+L["Away auto-reply"] = "AFK-Automatwort"
+L["Answers an incoming whisper once per person every 15 minutes while you are flagged away."] = "Beantwortet eingehende Whispers einmal pro Person alle 15 Minuten, solange du als abwesend markiert bist."
+L["Reply text (empty = default)"] = "Antworttext (leer = Standard)"
+L["No conversations yet."] = "Noch keine Unterhaltungen."
+L["Search..."] = "Suchen..."
+L["Whisper to %s"] = "Flüstern an %s"
+L["Clear all"] = "Alle löschen"
+L["Pin"] = "Anpinnen"
+L["Unpin"] = "Lösen"
+L["Delete"] = "Löschen"
+L["unread"] = "ungelesen"
+L["You"] = "Ich"
+L["Battle.net"] = "Battle.net"
+L["Cannot whisper while chat is locked."] = "Whisper nicht möglich, solange der Chat gesperrt ist."
+L["Messenger: %d unread"] = "Messenger: %d ungelesen"
+L["Away"] = "Abwesend"
+L["Send"] = "Senden"
+L["Open"] = "Öffnen"
+L["toggle the window"] = "Fenster ein-/ausblenden"
+L["Character whispers persist per account; Battle.net chats last for the session."] =
+	"Charakter-Whispers bleiben accountweit erhalten; Battle.net-Chats nur für die Sitzung."
+L["Whisper tiles"] = "Whisper-Kacheln"
+L["Small squares over the chat, one per recent conversation. Left-click opens that chat's own window, right-click opens it in the Messenger hub. Move the strip via /sui unlock."] =
+	"Kleine Kacheln über dem Chat, eine pro letzter Unterhaltung. Linksklick öffnet das eigene Fenster des Chats, Rechtsklick öffnet ihn im Messenger-Hub. Die Leiste verschiebst du über /sui unlock."
+L["Show whisper tiles"] = "Whisper-Kacheln anzeigen"
+L["Tiles shown"] = "Kacheln sichtbar"
+L["New whisper preview"] = "Vorschau bei neuem Whisper"
+L["Flashes the sender and first line above the tiles for a few seconds."] =
+	"Blendet Absender und erste Zeile einige Sekunden über den Kacheln ein."
+L["Preview seconds"] = "Vorschau-Sekunden"
+L["Open in Messenger"] = "Im Messenger öffnen"
+L["Open window on whisper"] = "Fenster bei Whisper öffnen"
+L["A new incoming whisper opens that person's conversation window right away."] =
+	"Ein neuer eingehender Whisper öffnet sofort das Unterhaltungsfenster der Person."
+L["Reply key opens window"] = "Antwort-Taste öffnet Fenster"
+L["Pressing the reply key (r) opens the conversation window instead of the chat input."] =
+	"Die Antwort-Taste (r) öffnet das Unterhaltungsfenster statt der Chat-Eingabe."
+L["Copy history"] = "Verlauf kopieren"
+L["Chat history"] = "Chat-Verlauf"
+L["Conversation"] = "Unterhaltung"

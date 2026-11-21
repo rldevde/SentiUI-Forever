@@ -1,0 +1,288 @@
+local _, ns = ...
+
+ns.CHANGELOG = {
+	{
+		version = "0.4.5",
+		changes = {
+			"Removed the leftover bag diagnostics (trace buffer, /sbagtrace) now that the mirror is stable. Bank and merchant open/close work (window swap, auto-repair, auto-sell) now runs a frame outside the client dispatch - those dispatches carry secret values and item APIs called inside them can fail.",
+		},
+		changesDE = {
+			"Die restliche Taschen-Diagnose entfernt (Trace-Puffer, /sbagtrace) - das Mirror laeuft stabil. Bank- und Haendler-Arbeit (Fensterwechsel, Auto-Reparatur, Auto-Verkauf) laeuft jetzt einen Frame ausserhalb des Client-Dispatch - diese Dispatches tragen Secret-Werte und Item-APIs darin koennen fehlschlagen.",
+		},
+	},
+
+	{
+		version = "0.4.4",
+		changes = {
+			"Bag window mirror is hook-driven only now: the 0.15s state poll raced the client's multi-frame open sequence - IsAnyBagOpen can read false mid-transition, which flashed the window open and shut on some key presses. Every real open/close path already goes through the hooked bag functions, so the deferred mirror after them is the only driver.",
+		},
+		changesDE = {
+			"Das Taschen-Mirror ist jetzt rein hook-getrieben: Der 0,15s-Zustandspoll raste der mehrstufigen Oeffnungssequenz des Clients hinterher - IsAnyBagOpen kann mitten im Uebergang false lesen, wodurch das Fenster bei manchen Tastendruecken kurz auf- und wieder zuging. Jeder echte Auf/Zu-Weg laeuft ohnehin ueber die gehakten Taschenfunktionen, das deferred Mirror danach ist der einzige Treiber.",
+		},
+	},
+	{
+		version = "0.4.3",
+		changes = {
+			"Followed the bag model proven elsewhere on this client: addon code never calls CloseAllBags/ToggleAllBags (their bookkeeping writes run tainted and break follow-up calls) - the game's containers are hidden directly like their own close buttons do. Window stays out of UISpecialFrames; hooks flag a batched mirror and the state poll keeps watching IsAnyBagOpen.",
+		},
+		changesDE = {
+			"Dem auf diesem Client bewaehrten Taschenmodell gefolgt: Addon-Code ruft nie CloseAllBags/ToggleAllBags (deren Bookkeeping-Schreibzugriffe laufen tainted und brechen Folgeaufrufe) - die Container des Spiels werden direkt versteckt wie deren eigene Schliessen-Buttons. Fenster bleibt aus UISpecialFrames; Hooks flaggen ein gebatchtes Mirror und der Zustands-Poll wacht weiter ueber IsAnyBagOpen.",
+		},
+	},
+	{
+		version = "0.4.2",
+		changes = {
+			"Root cause of the instant close found via trace: the client's own UISpecialFrames walk hid the window a tick after it showed (it closes members it did not open), our WatchHide then called CloseAllBags and the state looped. The window is no longer a special frame - ESC still works because it hides the game's container frames, which the state poll mirrors. Containers are reparented again (the alpha ghost made the client flap the bag state).",
+		},
+		changesDE = {
+			"Ursache des Sofort-Zu via Trace gefunden: Der UISpecialFrames-Walk des Clients versteckte das Fenster einen Tick nach dem Oeffnen (er schliesst Mitglieder, die er nicht geoeffnet hat), unser WatchHide rief daraufhin CloseAllBags und der Zustand lief in Schleife. Das Fenster ist kein Special-Frame mehr - ESC funktioniert weiterhin, weil er die Container-Frames des Spiels versteckt, die der Zustands-Poll spiegelt. Container sind wieder umgarentet (das Alpha-Ghosting liess den Taschenzustand flattern).",
+		},
+	},
+	{
+		version = "0.4.1",
+		changes = {
+			"Fixed the bag window closing instantly on B: the reparented-under-hidden container frames were IsVisible=false, so the client treated them as closed, flipped its bag state back and hid our window in the close pass. They are ghosted instead now (SetAlpha 0 + mouse off, staying IsVisible and truthful to IsAnyBagOpen) plus a state poll - BAG_OPEN/CLOSED never fire on this client. /sbagtrace toggles a diagnostic trace.",
+		},
+		changesDE = {
+			"Fix: Taschenfenster schloss sofort nach B - die unter einem versteckten Holder geparkten Container-Frames waren IsVisible=false, der Client behandelte sie als geschlossen, kippte den Taschen-Zustand zurueck und versteckte unser Fenster beim Close-Pass mit. Sie werden jetzt geghostet (Alpha 0 + Maus aus, bleiben IsVisible und wahrheitsgemaess fuer IsAnyBagOpen) plus Zustands-Poll - BAG_OPEN/CLOSED feuern auf diesem Client nie. /sbagtrace schaltet eine Diagnose-Spur.",
+		},
+	},
+	{
+		version = "0.4.1",
+		changes = {
+			"Dispatcher rollback: BAG_OPEN/BAG_CLOSED/MERCHANT_* events restored (the 0.15s poll is gone) and GameBagOpen is back to IsAnyBagOpen/IsBagOpen - the parked containers' IsShown read as always-hidden under the holder, so the bag window could never report open.",
+		},
+		changesDE = {
+			"Dispatcher-Rollback: BAG_OPEN/BAG_CLOSED/MERCHANT_*-Events sind zurueck (der 0,15s-Poll ist weg) und GameBagOpen nutzt wieder IsAnyBagOpen/IsBagOpen - das IsShown der geparkten Container las unter dem versteckten Parent immer als unsichtbar, das Taschenfenster meldete sich nie offen.",
+		},
+	},
+	{
+		version = "0.4.0",
+		changes = {
+			"Bag state is read from the parked container frames' own IsShown flags instead of IsAnyBagOpen/IsBagOpen: those can return secret or plain wrong values on this client, which dropped Sync to a blind toggle - each hooked call in the B-key chain toggled again and the window closed right after opening.",
+		},
+		changesDE = {
+			"Taschen-Zustand wird jetzt aus den IsShown-Flags der geparkten Container-Frames gelesen statt IsAnyBagOpen/IsBagOpen: Die liefern auf diesem Client Secret- oder schlicht falsche Werte, wodurch Sync auf einen Blind-Toggle fiel - jeder gehakte Aufruf in der B-Kette toggelte erneut und das Fenster schloss direkt nach dem Oeffnen.",
+		},
+	},
+	{
+		version = "0.3.9",
+		changes = {
+			"Fixed the bag state poll never mirroring: the transition check tested an undeclared variable and could never pass, so the window only followed the bag-function hooks. Polling now tracks bagSeen correctly.",
+		},
+		changesDE = {
+			"Taschen-Zustandspoll repariert: Die Uebergangspruefung testete eine nicht deklarierte Variable und konnte nie zutreffen - das Fenster folgte nur den Funktions-Hooks. Der Poll verfolgt bagSeen jetzt korrekt.",
+		},
+	},
+	{
+		version = "0.3.8",
+		changes = {
+			"Bag function post-hooks (ToggleBag, OpenBag, ...) now only set a flag - running our sync inside the client's keypress dispatch tainted the follow-up protected calls. The mirror runs from a 0.05s ticker.",
+		},
+		changesDE = {
+			"Post-Hooks der Taschenfunktionen (ToggleBag, OpenBag, ...) setzen nur noch ein Flag - der Sync lief sonst im Tasten-Dispatch des Clients und taintete die folgenden geschuetzten Aufrufe. Der Mirror laeuft ueber einen 0,05s-Ticker.",
+		},
+	},
+	{
+		version = "0.3.7",
+		changes = {
+			"Bag, bank and merchant windows no longer use BAG_OPEN/BAG_CLOSED/BANKFRAME_*/MERCHANT_* events - those fire inside the client's protected window dispatch. Open/close state is now detected via GameBagOpen plus S.WatchShown visibility polling.",
+		},
+		changesDE = {
+			"Taschen-, Bank- und Haendlerfenster nutzen keine BAG_OPEN/BAG_CLOSED/BANKFRAME_*/MERCHANT_*-Events mehr - die feuern im geschuetzten Fenster-Dispatch. Der Zustand wird jetzt ueber GameBagOpen und S.WatchShown-Polling erkannt.",
+		},
+	},
+	{
+		version = "0.3.6",
+		changes = {
+			"Escape-forbidden-call fix: the bag window's OnHide hook ran inside the Escape dispatch (it is in UISpecialFrames) - the new-item cleanup now runs via S.WatchHide polling instead.",
+		},
+		changesDE = {
+			"Escape-Blockier-Fix: Der OnHide-Hook des Taschenfensters lief im Escape-Dispatch (es steht in UISpecialFrames) - das New-Item-Cleanup laeuft jetzt ueber S.WatchHide-Polling.",
+		},
+	},
+
+	{
+		version = "0.3.5",
+		changes = {
+			"Fixed dragging items out of the bags: the modern item-button mixin reads BagID/SlotID off the button itself, not the parent holder's GetID, so drag-pickup ran on a nil bag and nothing lifted. The fields are set now plus a fallback OnDragStart that calls C_Container.PickupContainerItem if the template did not - items can be dragged between slots and thrown out into the world again.",
+		},
+		changesDE = {
+			"Items lassen sich wieder per Drag aus den Taschen ziehen: Das moderne Item-Button-Mixin liest BagID/SlotID am Button selbst statt am Holder-Parent - der Drag-Pickup lief auf einer nil-Tasche ins Leere. Die Felder sind jetzt gesetzt, plus ein Fallback-OnDragStart über C_Container.PickupContainerItem, falls das Template nicht gegriffen hat - Items lassen sich zwischen Slots ziehen und in die Welt werfen.",
+		},
+	},
+	{
+		version = "0.3.4",
+		changes = {
+			"Equipped-bag slots are back: both windows now show a strip of bag slots above the item grid (bags 1-4 + reagent bag; bank bags in the bank window). Drag a bag onto a slot to equip it, click an equipped bag to pick it back up - swap goes through the game's own PutItemInBag/PickupBagFromSlot so the client rules (non-empty bags, soulbound) apply natively.",
+			"Slots paint the equipped bag's icon, tint the border by its quality, dim the empty-slot placeholder and show the bag's tooltip (or a hint on empty slots). BAG_SLOT_FLAGS_UPDATED refreshes them live.",
+		},
+		changesDE = {
+			"Taschenplätze sind zurück: Beide Fenster zeigen jetzt eine Reihe Taschenplätze über dem Item-Raster (Taschen 1-4 + Mats-Tasche; Banktaschen im Bankfenster). Tasche auf einen Platz ziehen zum Ausrüsten, ausgerüstete Tasche anklicken zum Aufheben - der Tausch läuft über die Spiel-eigenen PutItemInBag/PickupBagFromSlot, sodass die Client-Regeln (volle Taschen, seelengebunden) nativ greifen.",
+			"Plätze zeigen das Icon der ausgerüsteten Tasche, färben den Rand nach deren Qualität, dimmen den Leer-Platzhalter und zeigen den Taschen-Tooltip (oder einen Hinweis bei leeren Plätzen). BAG_SLOT_FLAGS_UPDATED aktualisiert sie live.",
+		},
+	},
+	{
+		version = "0.3.3",
+		changes = {
+			"Parking/hidden frames now stub the Blizzard layout methods (Layout, MarkDirty, SetNeedsLayout, UpdateLayout, IsLayoutFrame) that client scripts call on GetParent() - fixes a StatusTrackingManager UpdateShownState crash caused by frames parked under a bare hidden parent.",
+		},
+		changesDE = {
+			"Park-/Versteck-Frames stubben jetzt die Blizzard-Layout-Methoden (Layout, MarkDirty, SetNeedsLayout, UpdateLayout, IsLayoutFrame), die Client-Skripte auf GetParent() aufrufen - behebt einen StatusTrackingManager-UpdateShownState-Fehler durch unter einem nackten versteckten Parent geparkte Frames.",
+		},
+	},
+	{
+		version = "0.3.2",
+		changes = {
+			"Auto repair clarified and hardened: it pays from your own gold by default (enable 'Guild repair first' only if you want guild funds tried first - it falls back to your gold when the guild bank doesn't allow it). The repair report now prints the full cost in gold/silver/copper, and guild funds are only attempted when you're in a guild and actually allowed to withdraw for repairs.",
+		},
+		changesDE = {
+			"Auto-Reparatur klargestellt und robuster: Sie zahlt standardmäßig aus deinem eigenen Gold ('Gildenreparatur zuerst' nur einschalten, wenn die Gildenkasse zuerst probiert werden soll - fällt bei fehlender Erlaubnis auf dein Gold zurück). Der Reparatur-Report zeigt jetzt die vollen Kosten in Gold/Silber/Kupfer, und Gildengeld wird nur versucht, wenn du in einer Gilde bist und für Reparaturen abheben darfst.",
+		},
+	},
+	{
+		version = "0.3.1",
+		changes = {
+			"Fixed the window creeping upward on every item click or bag update: the pixel-snap re-anchored the frame from measured screen coordinates (GetLeft/GetTop) on every layout, which drifts on this client. It now rounds the stored anchor offsets (GetPoint) instead - it converges after one half-unit nudge and can never accumulate.",
+			"Fixed leftover ghost slots: buttons freed by a layout were never hidden because their parent is now the per-bag holder frame, not the grid.",
+		},
+		changesDE = {
+			"Behoben: Das Fenster rutschte bei jedem Item-Klick oder Bag-Update nach oben - der Pixel-Snap hat das Fenster bei jedem Layout aus gemessenen Bildschirm-Koordinaten (GetLeft/GetTop) neu verankert, was auf diesem Client driftet. Er rundet jetzt die gespeicherten Anker-Offsets (GetPoint) - konvergiert nach einmaligem Halb-Pixel-Nudge und kann sich nie aufschaukeln.",
+			"Behoben: verwaiste Geist-Slots - freigewordene Buttons wurden nie versteckt, weil ihr Eltern-Frame jetzt der Holder pro Tasche ist, nicht das Grid.",
+		},
+	},
+	{
+		version = "0.3.0",
+		changes = {
+			"The last piece of the click puzzle: slots are now created as ItemButton frames, not plain Buttons with the same template. On this client the mixin's click logic (pickup, use, sell, split, link/dressup) lives on the ItemButton class - a Button only got the look, which is why right click and splitting stayed dead and left click behaved oddly.",
+		},
+		changesDE = {
+			"Das letzte Puzzleteil für die Klicks: Die Slots werden jetzt als ItemButton-Frames erstellt, nicht als plain Buttons mit demselben Template. Auf diesem Client lebt die Mixin-Klicklogik (Aufheben, Benutzen, Verkaufen, Teilen, Verlinken/Anprobe) auf der ItemButton-Klasse - ein Button bekam nur das Aussehen, weshalb Rechtsklick und Teilen tot blieben und Linksklick sich merkwürdig verhielt.",
+		},
+	},
+	{
+		version = "0.2.9",
+		changes = {
+			"Item clicks completely rebuilt: slots are now real ContainerFrameItemButtonTemplate buttons, so the game's own trusted click handler does everything natively - pickup, use, equip, sell at vendors, bank transfers, stack split, link/dressup. Custom handlers and the secure overlay are gone; that path could never work because protected actions only run inside game code. Bag id comes from the slot's holder frame, slot from its own ID - the proven recipe on this client.",
+			"Bonus: the template's cooldown wheel is now driven (item cooldowns show on slots).",
+		},
+		changesDE = {
+			"Item-Klicks komplett neu: Die Slots sind jetzt echte ContainerFrameItemButtonTemplate-Buttons, der vertrauenswürdige Game-Handler macht alles nativ - Aufheben, Benutzen, Anlegen, beim Händler verkaufen, Bank-Transfer, Stapel teilen, Verlinken/Anprobe. Eigene Handler und das Secure-Overlay sind raus; dieser Weg konnte nie funktionieren, weil geschützte Aktionen nur innerhalb des Game-Codes laufen. Bag-ID vom Holder-Frame, Slot von der eigenen ID - das bewährte Rezept auf diesem Client.",
+			"Bonus: Das Cooldown-Rad des Templates wird jetzt angetrieben (Item-Cooldowns sichtbar auf den Slots).",
+		},
+	},
+	{
+		version = "0.2.8",
+		changes = {
+			"Right-click sell for real this time: a transparent SecureActionButton now parks on top of the hovered slot, so your genuine right click lands on it (the way bag addons do it). It registers BOTH the down and the up click because the ActionButtonUseKeyDown cvar decides which one counts - registering only \"up\" is why the previous fix still did nothing. Overlay skips combat, modifiers and a busy cursor, and hides when the window closes.",
+		},
+		changesDE = {
+			"Rechtsklick-Verkauf jetzt wirklich: Ein transparenter SecureActionButton parkt über dem gehoverten Slot, sodass dein echter Rechtsklick ihn trifft (das bewährte Taschen-Rezept). Er registriert Down UND Up, weil der ActionButtonUseKeyDown-CVar entscheidet, welcher Klick zählt - nur \"Up\" zu registrieren war der Grund, warum der letzte Fix nichts brachte. Overlay pausiert in Kampf, bei Modifiers und vollem Cursor und versteckt sich beim Schließen.",
+		},
+	},
+	{
+		version = "0.2.7",
+		changes = {
+			"Right click works again - use items, equip, sell at vendors, move to/from the bank. Slots are now real SecureActionButtons (type2=\"item\"): the previous hidden helper button was clicked programmatically, and the engine only runs protected actions on genuine hardware clicks. Left click pickup stays in OnMouseDown, which does not need protection.",
+		},
+		changesDE = {
+			"Rechtsklick funktioniert wieder - Items benutzen, anlegen, beim Händler verkaufen, in die/aus der Bank legen. Die Slots sind jetzt echte SecureActionButtons (type2=\"item\"): der vorherige versteckte Hilfs-Button wurde programmatisch geklickt, und geschützte Aktionen führt die Engine nur bei echten Hardware-Klicks aus. Linksklick-Aufheben bleibt in OnMouseDown, das braucht keinen Schutz.",
+		},
+	},
+	{
+		version = "0.2.6",
+		changes = {
+			"Fixed the strange \"15:15\" style numbers on slots: this client reports fractional item levels (15.15) whose decimal point looks like a colon at slot font size - the display is now rounded to whole numbers.",
+			"Item level no longer appears on trade goods and consumables: the gear check now uses GetItemInfoInstant's classID (weapon/armour) instead of an unreliable GetItemInfo return position.",
+		},
+		changesDE = {
+			"Fix: Die seltsamen Zahlen wie \"15:15\" auf den Slots - der Client meldet Komma-Gegenstandsstufen (15.15), deren Punkt bei der Schriftgröße wie ein Doppelpunkt aussieht; die Anzeige wird jetzt gerundet.",
+			"Gegenstandsstufe erscheint nicht mehr auf Handelswaren und Verbrauchbarem: der Ausrüstungs-Check nutzt jetzt die classID aus GetItemInfoInstant (Waffe/Rüstung) statt einer unzuverlässigen GetItemInfo-Rückgabeposition.",
+		},
+	},
+	{
+		version = "0.2.5",
+		changes = {
+			"Quality borders now start at Uncommon (green) instead of Common - white is the Common quality colour, which drew a plain white box around most of the inventory.",
+			"Fixed slot borders losing their top (or another) edge: the window now snaps its origin to whole pixels on every layout so 1px borders land on real pixels again.",
+		},
+		changesDE = {
+			"Qualitätsrahmen färben jetzt erst ab Ungewöhnlich (grün) statt Common - Weiß ist die Common-Qualitätsfarbe und hat um fast das ganze Inventar einen weißen Kasten gezeichnet.",
+			"Fix: Slot-Ränder verloren die obere (oder eine andere) Kante - das Fenster snapt seinen Ursprung jetzt bei jedem Layout auf ganze Pixel, damit 1px-Ränder wieder auf echten Pixeln liegen.",
+		},
+	},
+	{
+		version = "0.2.4",
+		changes = {
+			"Fixed some item icons rendering blank or partial: the icon field is no longer filtered to numbers (texture paths were dropped) and the whole icon read+apply runs inside one pcall so secret values can't leave a half-painted slot.",
+		},
+		changesDE = {
+			"Fix: Manche Item-Icons renderten leer oder abgeschnitten - das Icon-Feld wird nicht mehr auf Zahlen gefiltert (Textur-Pfade gingen verloren) und das komplette Icon-Lesen läuft in einem pcall, damit Secret-Werte keinen halb bemalten Slot hinterlassen.",
+		},
+	},
+	{
+		version = "0.2.3",
+		changes = {
+			"Bag and bank windows can now be dragged directly by their title bar; the position is persisted through the mover DB (Movers.Save) so unlock-mode moves and resets stay consistent.",
+		},
+		changesDE = {
+			"Taschen- und Bankfenster lassen sich jetzt direkt an der Titelzeile ziehen; die Position wird über die Mover-DB gespeichert (Movers.Save), damit Unlock-Modus und Reset konsistent bleiben.",
+		},
+	},
+	{
+		version = "0.2.2",
+		changes = {
+			"Fixed the bag key needing two presses and the window refusing to close: hooks no longer toggle blindly, they mirror the game's real bag state (IsAnyBagOpen) after each call.",
+			"New close button in the title bar and ESC support; hiding the window also settles the game's bag state so the next key press behaves.",
+			"Fixed the toolbar layout: proper title row, buttons size to their captions and the window never gets narrower than the search bar and buttons.",
+		},
+		changesDE = {
+			"Fix: Die Taschentaste brauchte zwei Drücke und das Fenster ließ sich nicht schließen - die Hooks toggeln nicht mehr blind, sondern spiegeln nach jedem Aufruf den echten Taschen-Status des Spiels (IsAnyBagOpen).",
+			"Neu: Schließen-Button in der Titelzeile und ESC-Support; beim Verstecken wird auch der Taschen-Status des Spiels bereinigt, damit der nächste Tastendruck stimmt.",
+			"Fix: Toolbar-Layout - eigene Titelzeile, Buttons passen sich ihrer Beschriftung an und das Fenster wird nie schmaler als Suchfeld und Buttons.",
+		},
+	},
+	{
+		version = "0.2.1",
+		changes = {
+			"Fixed the bag key doing nothing: the game's container frames are now parked under a hidden parent instead of hidden outright, so the client's bag open/close state stays truthful and toggles keep working.",
+			"New /sbags command toggles the bag window directly; the window also follows the game's BAG_OPEN/BAG_CLOSED events when present.",
+			"Hardened slot painting and junk selling against secret values (isLocked, hasNoValue, quality) so one unreadable field can no longer break the whole grid or the merchant button.",
+		},
+		changesDE = {
+			"Fix: Die Taschentaste tat nichts mehr - die Spiel-Taschen werden jetzt unter einen versteckten Parent geparkt statt versteckt, damit der Client-Öffnen/Schließen-Status stimmt und Toggles weiter funktionieren.",
+			"Neu: /sbags schaltet das Taschenfenster direkt um; das Fenster folgt außerdem den BAG_OPEN/BAG_CLOSED-Events des Spiels, wenn vorhanden.",
+			"Slot-Rendering und Schrott-Verkauf gegen Secret-Werte gehärtet (isLocked, hasNoValue, quality), damit ein unlesbares Feld nicht mehr das ganze Raster oder den Händler-Button bricht.",
+		},
+	},
+	{
+		version = "0.2.0",
+		changes = {
+			"Bank window: the game's bank opens a second Sentinel window (bank container + bank bags + reagent bank) with its own mover, sort button and search. The Blizzard BankFrame is hidden.",
+			"Categories: items group under headers — New, Quest, Equipment, Consumables, Trade goods, Miscellaneous, Junk, Empty — switchable for one flat grid.",
+			"New items section: fresh loot lands on top first and clears when you close the window (client new-item flags).",
+			"Currency strip: backpack-tracked currencies show as icon + amount in the bags footer.",
+			"Per-view settings: slot size, spacing, columns, empty slots, quality border, item level and junk mark are now configured separately for bags and bank.",
+		},
+		changesDE = {
+			"Bankfenster: Die Bank öffnet ein zweites Sentinel-Fenster (Bank-Fach + Banktaschen + Reagenzienbank) mit eigenem Mover, Sortier-Button und Suche. Das Blizzard-BankFrame wird versteckt.",
+			"Kategorien: Items gruppieren sich unter Überschriften — Neu, Quest, Ausrüstung, Verbrauchbares, Handelswaren, Sonstiges, Schrott, Leer — abschaltbar für ein flaches Raster.",
+			"Neue-Items-Sektion: Frische Beute landet zuerst oben und leert sich beim Schließen (Client-New-Item-Flags).",
+			"Währungsleiste: Im Rucksack verfolgte Währungen zeigen sich als Icon + Betrag in der Fußzeile.",
+			"Getrennte Ansichts-Einstellungen: Feldgröße, Abstand, Spalten, leere Felder, Qualitätsrahmen, Gegenstandsstufe und Schrott-Marke sind jetzt getrennt für Taschen und Bank einstellbar.",
+		},
+	},
+	{
+		version = "0.1.0",
+		changes = {
+			"First release: one clean Sentinel-styled bag window replacing the Blizzard bag frames. Unified grid over all carried bags with quality-colored borders, stack counts, item level on gear and a junk mark on grey items.",
+			"Search box dims non-matching slots live; toolbar buttons sort bags, sell every grey item at an open vendor and repair. Optional automations: auto-sell grey items and auto repair (guild funds first, then own gold) when a merchant opens.",
+			"Right-click uses items through a hidden SecureActionButton, left-click picks them onto the cursor; shift-click links, ctrl-click dresses up. The window is a mover.",
+		},
+		changesDE = {
+			"Erste Version: ein sauberes Taschenfenster im Sentinel-Look ersetzt die Blizzard-Taschen. Einheitliches Raster über alle Taschen mit qualitätsgefärbten Rändern, Stapelzahlen, Gegenstandsstufe auf Ausrüstung und Schrott-Markierung auf grauen Items.",
+			"Suchfeld blendet nicht passende Felder live ab; Toolbar-Buttons sortieren, verkaufen alle grauen Items beim offenen Händler und reparieren. Optionale Automatik: graue Items auto-verkaufen und auto-reparieren (erst Gildenkasse, dann eigenes Gold) beim Öffnen eines Händlers.",
+			"Rechtsklick benutzt Items über einen versteckten SecureActionButton, Linksklick hebt sie auf den Cursor; Shift-Klick verlinkt, Strg-Klick zieht an. Das Fenster ist ein Mover.",
+		},
+	},
+}

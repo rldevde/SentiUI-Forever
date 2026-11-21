@@ -1,0 +1,29 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Bags
+## Notes: The bags module for SentiUI: one clean bag window and a bank window with categories, search, sorting, a currency strip, auto sell of grey items and auto repair.
+## Notes-deDE: Das Taschen-Modul für SentiUI: ein übersichtliches Taschen- und Bankfenster mit Kategorien, Suche, Sortieren, Währungsleiste, Auto-Verkauf grauer Items und Auto-Reparatur.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.4.5
+## Dependencies: SentiUI
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Items.lua
+Categories.lua
+Currency.lua
+BagSlots.lua
+Bags.lua
+Bank.lua
+Merchant.lua
+Blizzard.lua
+Options.lua
+Changelog.lua
+Module.lua

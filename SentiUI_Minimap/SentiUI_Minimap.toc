@@ -1,0 +1,22 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Minimap
+## Notes: The minimap module for SentiUI: shape, scale, border and element visibility.
+## Notes-deDE: Das Minimap-Modul für SentiUI: Form, Skalierung, Rahmen und sichtbare Elemente.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.3.8
+## Dependencies: SentiUI
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Minimap.lua
+Options.lua
+Changelog.lua
+Module.lua

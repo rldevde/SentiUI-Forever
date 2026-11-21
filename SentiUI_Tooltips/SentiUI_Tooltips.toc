@@ -1,0 +1,25 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Tooltips
+## Notes: The tooltip module for SentiUI: Sentinel-styled tooltips with class and quality borders, health bar, guild rank, target of target, item level, IDs, cursor or fixed anchor and combat hiding.
+## Notes-deDE: Das Tooltip-Modul für SentiUI: Tooltips im Sentinel-Look mit Klassen- und Qualitätsrahmen, Lebensbalken, Gildenrang, Ziel des Ziels, Gegenstandsstufe, IDs, Cursor- oder fixer Verankerung und Kampf-Ausblendung.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.2.9
+## Dependencies: SentiUI
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Skin.lua
+Unit.lua
+Item.lua
+Tooltip.lua
+Options.lua
+Changelog.lua
+Module.lua

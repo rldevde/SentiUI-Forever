@@ -1,0 +1,22 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Chat
+## Notes: The chat module for SentiUI: Sentinel-styled panels, tabs, edit box and message filter.
+## Notes-deDE: Das Chat-Modul für SentiUI: Sentinel-Panels, Tabs, Eingabezeile und Nachrichtenfilter.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.2.9
+## Dependencies: SentiUI
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Chat.lua
+Options.lua
+Changelog.lua
+Module.lua

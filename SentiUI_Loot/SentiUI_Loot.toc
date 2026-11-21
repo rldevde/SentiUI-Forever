@@ -1,0 +1,22 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Loot
+## Notes: The loot module for SentiUI: fast looting, chat loot filter, loot log and styled loot/roll windows.
+## Notes-deDE: Das Beute-Modul für SentiUI: schnelles Plündern, Chat-Filter, Beute-Log und angepasste Beute-/Würfelfenster.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.2.6
+## Dependencies: SentiUI
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Loot.lua
+Options.lua
+Changelog.lua
+Module.lua
