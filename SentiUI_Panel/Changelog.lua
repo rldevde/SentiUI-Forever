@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.18",
+		changes = {
+			"Blacklist sync log: fixed the search box overlapping the new chip (window is wider now) and added a peers strip on the sync page - known FBL clients on the channel with addon version, list revision and last-seen time, plus a live channel member count when the roster API resolves.",
+		},
+		changesDE = {
+			"Blacklist Sync-Log: Suchfeld-Ueberlappung mit dem neuen Chip behoben (Fenster jetzt breiter) und eine Peer-Leiste auf der Sync-Seite ergaenzt - bekannte FBL-Clients im Channel mit Addon-Version, Listen-Revision und Zeitpunkt des letzten Kontakts, plus Live-Mitgliederzahl des Channels wenn die Roster-API aufloesbar ist.",
+		},
+	},
+
+	{
 		version = "0.5.17",
 		changes = {
 			"Blacklist: new 'Sync log' page in the list window (for every user, not just admins) - live status (channel, own/peer revision, live share, auto-accept, trust, last sender) plus a persisted ring buffer of all sync traffic: list sends/receives, chunk counts, pull requests, version pings, peers, removal requests, imports and delegations to the standalone addon. 'Request update' and 'Clear log' buttons included.",

@@ -54,7 +54,9 @@ ForeverBlackListed addon and delegates writes/sync to it when loaded.
   changes, version pings, pull requests and last-write-wins merge
 - 'Sync log' page in the list window (for everyone): live status
   (channel, own/peer revision, live share, auto-accept, trust, last
-  sender) plus a persisted log of all sync traffic in and out
+  sender, live member count) plus a persisted log of all sync
+  traffic in and out, and a peers strip listing known FBL clients
+  on the channel with version, revision and last-seen time
 - Admin page: admin roster, auto-accept/trust switches, import/export,
   pending removal requests, 'Sync all'
 

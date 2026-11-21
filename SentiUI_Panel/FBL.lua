@@ -31,7 +31,8 @@ local DEFAULTS = {
 	groupSeq = 6,
 	lastGroup = "players",
 	tooltip = { enabled = true, showClear = true, checkGuild = true, showNote = true },
-	sync = { join = true, autoAccept = true, liveShare = true, trust = "all", log = {} },
+	sync = { join = true, autoAccept = true, liveShare = true, trust = "all",
+		log = {}, peers = {} },
 	auto = { enabled = false, level = 10, group = "bots", guildMembers = false, realm = "" },
 	warn = { whisper = true, invite = true, autoDecline = false },
 	tombstones = {},
@@ -93,6 +94,37 @@ local function Log(dir, msg)
 	end
 end
 F.SyncLog = Log
+
+-- known peers: FBL-speaking clients seen on the channel. Kept (and
+-- persisted) so the sync page can list who is around, their addon
+-- version and list revision, and when we last heard them
+local PEER_MAX_AGE = 14 * 86400
+local function PeerSeen(name, ver, rev)
+	local db = DB()
+	local p = db.sync.peers
+	if type(p) ~= "table" then p = {} db.sync.peers = p end
+	local key = (name and F.CleanName(name)) or "?"
+	local e = p[key]
+	if type(e) ~= "table" then e = {} p[key] = e end
+	e.at = time()
+	if ver then e.ver = ver end
+	if rev then e.rev = rev end
+end
+
+local function KnownPeers()
+	local db = DB()
+	local p = type(db.sync.peers) == "table" and db.sync.peers or {}
+	local now, out = time(), {}
+	for k, e in pairs(p) do
+		if type(e) == "table" and now - (e.at or 0) < PEER_MAX_AGE then
+			out[#out + 1] = { name = k, ver = e.ver, rev = e.rev, at = e.at }
+		else
+			p[k] = nil -- stale or malformed: prune in place
+		end
+	end
+	sort(out, function(a, b) return (a.at or 0) > (b.at or 0) end)
+	return out
+end
 
 -- the standalone addon, when loaded, owns sync/votes/merge - delegate
 local function ext() return _G.ForeverBlackListed end
@@ -679,6 +711,33 @@ local function PrefixRegistered()
 	return ok and r or nil
 end
 
+-- live channel roster (everyone in the channel, not just FBL speakers):
+-- GetChannelRosterInfo needs the channel's index in the client channel
+-- list, not its number - resolve it through GetChannelList triplets
+local function LiveRosterCount()
+	if not chanNum then return nil end
+	local ri = C_ChatInfo and C_ChatInfo.GetChannelRosterInfo
+		or GetChannelRosterInfo
+	if type(ri) ~= "function" then return nil end
+	local gl = GetChannelList or (C_ChatInfo and C_ChatInfo.GetChannelList)
+	if type(gl) ~= "function" then return nil end
+	local idx
+	local ok, res = pcall(function() return { gl() } end)
+	if ok and type(res) == "table" then
+		for i = 1, #res, 3 do
+			if tonumber(res[i]) == chanNum then idx = (i + 2) / 3 break end
+		end
+	end
+	if not idx then return nil end
+	local n = 0
+	for i = 1, 500 do
+		local okR, nm = pcall(ri, idx, i)
+		if not okR or not nm then break end
+		n = n + 1
+	end
+	return n
+end
+
 function F.Debug()
 	local pend = 0
 	for _ in pairs(pending) do pend = pend + 1 end
@@ -765,6 +824,7 @@ local function ShowNextRequest()
 end
 
 local function OnRemovalRequest(sender, kind, name, reason)
+	PeerSeen(sender)
 	if not F.IsAdmin() then return end
 	if type(name) ~= "string" or name == "" then return end
 	local key = (sender or "?") .. "|" .. kind .. "|" .. name
@@ -1205,6 +1265,7 @@ local pullRespAt = 0
 -- OnPullRequest defers into it
 local function OnPullRequest(text, sender)
 	local reqRev = tonumber(text:match("^FBLpull;(%d+)"))
+	if reqRev then PeerSeen(sender, nil, reqRev) end
 	if not reqRev or (DB().rev or 0) <= reqRev then return end
 	if not (DB().sync and DB().sync.liveShare) then return end
 	if time() - pullRespAt < 60 then return end
@@ -1268,6 +1329,7 @@ local function OnChunk(from, transport, seq, total, chunk)
 	from = F.CleanName(from)
 	if not (from and seq and total and chunk) then return end
 	if total < 1 or total > 2000 then return end
+	PeerSeen(from)
 	local key = transport .. "|" .. from
 	local s = pending[key]
 	if not s or s.total ~= total then
@@ -1405,6 +1467,7 @@ reqf:SetScript("OnEvent", function(_, ev, a1, a2, a3, a4)
 	end
 	local ver, rev = text:match("^FBLver;([^;]*);?(%d*)$")
 	if ver then
+		PeerSeen(sender, ver, tonumber(rev))
 		rev = tonumber(rev)
 		if rev then
 			local db = DB()
@@ -1510,7 +1573,7 @@ end
 local function Window()
 	if win then return win end
 	local f = CreateFrame("Frame", "SentiUIPanelFBLWindow", UIParent, "BackdropTemplate")
-	f:SetSize(560, 580)
+	f:SetSize(620, 580)
 	f:SetPoint("CENTER")
 	f:SetFrameStrata("DIALOG")
 	S.Template(f, "panel")
@@ -1745,7 +1808,7 @@ local function Window()
 
 	local logScroll = CreateFrame("ScrollFrame", nil, logPanel)
 	logScroll:SetPoint("TOPLEFT", 8, -92)
-	logScroll:SetPoint("BOTTOMRIGHT", -8, 8)
+	logScroll:SetPoint("BOTTOMRIGHT", -196, 8)
 	local logHolder = CreateFrame("Frame", nil, logScroll)
 	logScroll:SetScrollChild(logHolder)
 	logScroll:EnableMouseWheel(true)
@@ -1760,6 +1823,33 @@ local function Window()
 	noLog:SetPoint("TOPLEFT", 14, -98)
 	noLog:SetText(L["No sync traffic yet"])
 	logPanel.noLog = noLog
+
+	-- right strip: known FBL peers on the channel (who, version, rev,
+	-- last heard) - the "who is actually out there" user asked for
+	local peersBg = CreateFrame("Frame", nil, logPanel, "BackdropTemplate")
+	S.Template(peersBg, "inset")
+	peersBg:SetPoint("TOPRIGHT", -8, -92)
+	peersBg:SetPoint("BOTTOMRIGHT", -8, 8)
+	peersBg:SetWidth(180)
+	local pHead = ns.Font(peersBg, 10, S.colors.accent2)
+	pHead:SetPoint("TOPLEFT", 8, -6)
+	logPanel.pHead = pHead
+	local pScroll = CreateFrame("ScrollFrame", nil, peersBg)
+	pScroll:SetPoint("TOPLEFT", 4, -26)
+	pScroll:SetPoint("BOTTOMRIGHT", -4, 4)
+	local pHolder = CreateFrame("Frame", nil, pScroll)
+	pScroll:SetScrollChild(pHolder)
+	pScroll:EnableMouseWheel(true)
+	pScroll:SetScript("OnMouseWheel", function(self, d)
+		local m = self:GetVerticalScrollRange()
+		self:SetVerticalScroll(math.min(m, math.max(0, self:GetVerticalScroll() - d * 44)))
+	end)
+	logPanel.pScroll, logPanel.pHolder = pScroll, pHolder
+	pHolder.rows = {}
+	local pEmpty = ns.Font(peersBg, 9, S.colors.textDim)
+	pEmpty:SetPoint("TOPLEFT", 10, -30)
+	pEmpty:SetText(L["No peers seen yet"])
+	logPanel.pEmpty = pEmpty
 
 	local formBg = CreateFrame("Frame", nil, f, "BackdropTemplate")
 	S.Template(formBg, "inset")
@@ -1849,6 +1939,7 @@ function F.RefreshWindow()
 		local lp = f.logPanel
 		lp:Show()
 		local db = DB()
+		local roster = LiveRosterCount()
 		local pendInfo = {}
 		for k, s in pairs(pending) do
 			tinsert(pendInfo, format("%s %d/%d", k, s.got or 0, s.total or 0))
@@ -1868,6 +1959,7 @@ function F.RefreshWindow()
 				L["Auto-accept:"], db.sync.autoAccept
 					and "|cff4dd278on|r" or "|cffff5555off|r",
 				L["Trust:"], "|cffebad33" .. tostring(db.sync.trust or "all") .. "|r")
+			.. (roster and format("    %s |cffebad33%d|r", L["Members:"], roster) or "")
 			.. (db.sync.lastFrom
 				and ("\n" .. format("%s %s  |cff8c919f%s|r", L["Last received:"],
 					db.sync.lastFrom,
@@ -1904,6 +1996,43 @@ function F.RefreshWindow()
 		h:SetHeight(math.max(1, shown * 15))
 		h:SetWidth(math.max(1, lp.scroll:GetWidth()))
 		lp.scroll:UpdateScrollChildRect()
+
+		local peers = KnownPeers()
+		lp.pHead:SetText(format("%s (%d)", L["Peers"], #peers))
+		local ph = lp.pHolder
+		local pShown = 0
+		for _, pe in ipairs(peers) do
+			pShown = pShown + 1
+			local r = ph.rows[pShown]
+			if not r then
+				r = CreateFrame("Frame", nil, ph)
+				r:SetHeight(26)
+				r.name = ns.Font(r, 9)
+				r.name:SetPoint("TOPLEFT", 4, -2)
+				r.name:SetPoint("RIGHT", -4, 0)
+				r.name:SetJustifyH("LEFT")
+				r.name:SetWordWrap(false)
+				r.sub = ns.Font(r, 8, S.colors.textDim)
+				r.sub:SetPoint("TOPLEFT", r.name, "BOTTOMLEFT", 0, 0)
+				r.sub:SetPoint("RIGHT", -4, 0)
+				r.sub:SetJustifyH("LEFT")
+				r.sub:SetWordWrap(false)
+				ph.rows[pShown] = r
+			end
+			r:ClearAllPoints()
+			r:SetPoint("TOPLEFT", 0, -((pShown - 1) * 26))
+			r:SetPoint("RIGHT", -2, 0)
+			r.name:SetText(pe.name or "?")
+			r.sub:SetText(format("%s  rev %s  |cff6a6f7d%s|r",
+				tostring(pe.ver or "-"), tostring(pe.rev or "-"),
+				pe.at and date("%d.%m %H:%M", pe.at) or "-"))
+			r:Show()
+		end
+		for i = pShown + 1, #ph.rows do ph.rows[i]:Hide() end
+		lp.pEmpty:SetShown(pShown == 0)
+		ph:SetHeight(math.max(1, pShown * 26))
+		ph:SetWidth(math.max(1, lp.pScroll:GetWidth()))
+		lp.pScroll:UpdateScrollChildRect()
 		return
 	end
 	if f.logPanel then f.logPanel:Hide() end
