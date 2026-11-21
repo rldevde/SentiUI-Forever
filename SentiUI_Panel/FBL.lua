@@ -31,7 +31,7 @@ local DEFAULTS = {
 	groupSeq = 6,
 	lastGroup = "players",
 	tooltip = { enabled = true, showClear = true, checkGuild = true, showNote = true },
-	sync = { join = true, autoAccept = true, liveShare = true, trust = "all" },
+	sync = { join = true, autoAccept = true, liveShare = true, trust = "all", log = {} },
 	auto = { enabled = false, level = 10, group = "bots", guildMembers = false, realm = "" },
 	warn = { whisper = true, invite = true, autoDecline = false },
 	tombstones = {},
@@ -72,6 +72,27 @@ local function DB()
 	return db
 end
 F.DB = DB
+
+-- sync traffic log: a small persisted ring buffer every user can read on
+-- the window's "Sync" page - what went out, what came in and from whom
+local win -- the list window is created far below; Log pings it when open
+local LOG_MAX = 80
+local function Log(dir, msg)
+	local db = DB()
+	local log = db.sync.log
+	if type(log) ~= "table" then log = {} db.sync.log = log end
+	log[#log + 1] = { t = time(), dir = dir, msg = msg }
+	local n = #log
+	if n > LOG_MAX then
+		local cut = n - LOG_MAX
+		for i = 1, LOG_MAX do log[i] = log[i + cut] end
+		for i = LOG_MAX + 1, n do log[i] = nil end
+	end
+	if win and win:IsShown() and win.filter == "log" then
+		F.RefreshWindow()
+	end
+end
+F.SyncLog = Log
 
 -- the standalone addon, when loaded, owns sync/votes/merge - delegate
 local function ext() return _G.ForeverBlackListed end
@@ -576,7 +597,7 @@ end
 -- admin side shows an accept popup and the tombstone spreads on sync.
 local reqQueue, reqSeen = {}, {}
 local PREFIX = "FBLsync"
-local chanNum
+local chanNum, chanName
 
 local SendPullRequest -- defined in the sync block below
 
@@ -618,7 +639,7 @@ local function JoinSync()
 	for _, name in ipairs(names) do
 		local n = ChanNum(name)
 		if n then
-			chanNum = n
+			chanNum, chanName = n, name
 			OnJoined()
 			return
 		end
@@ -632,7 +653,7 @@ local function JoinSync()
 	C_Timer.After(3, function()
 		local n = ChanNum(names[1])
 		if n then
-			chanNum = n
+			chanNum, chanName = n, names[1]
 			OnJoined()
 			return
 		end
@@ -640,7 +661,7 @@ local function JoinSync()
 		C_Timer.After(3, function()
 			local n2 = ChanNum(names[2])
 			if n2 then
-				chanNum = n2
+				chanNum, chanName = n2, names[2]
 				OnJoined()
 				return
 			end
@@ -676,6 +697,7 @@ end
 -- list and push ours when it changed since our last broadcast - the
 -- same three-way handshake the standalone performs on join
 OnJoined = function()
+	Log("info", format(L["Joined sync channel '%s' (#%d)"], chanName or "?", chanNum or 0))
 	C_Timer.After(3, SendVersionPing)
 	C_Timer.After(4, SendPullRequest)
 	if DataHash() ~= (DB().sync.lastHash or -1) then
@@ -686,13 +708,13 @@ end
 -- rejoin watchdog: a lost channel rejoins within two minutes, like
 -- the standalone's self-heal timer
 C_Timer.NewTicker(120, function()
-	local n
+	local n, nm
 	for _, name in ipairs({ "ForeverBlackListed", "FBLsync" }) do
 		n = ChanNum(name)
-		if n then break end
+		if n then nm = name break end
 	end
 	if n then
-		if n ~= chanNum then chanNum = n end -- slot moved, re-resolve
+		if n ~= chanNum then chanNum, chanName = n, nm end -- slot moved, re-resolve
 		return
 	end
 	chanNum = nil
@@ -749,6 +771,7 @@ local function OnRemovalRequest(sender, kind, name, reason)
 	local now = time()
 	if reqSeen[key] and now - reqSeen[key] < 120 then return end
 	reqSeen[key] = now
+	Log("in", format(L["Removal request from %s: %s"], sender or "?", name))
 	tinsert(reqQueue, { sender = sender, kind = kind, name = name,
 		reason = reason or "" })
 	ShowNextRequest()
@@ -1044,6 +1067,7 @@ local SYNC_CHUNK = 200
 local pending, lastDone = {}, {}
 local sendQueue, sendTicker
 local ignored = {}
+local seenPeers = {} -- session-only: first FBLver per sender hits the log
 
 DataHash = function()
 	local h, n = 0, 0
@@ -1115,7 +1139,9 @@ local function MergeReceived(json, from, quiet)
 		if not quiet and (added > 0 or updated > 0) then
 			S.Print(format(L["Sync from %s: %d added, %d updated"], from, added, updated))
 		end
+		Log("in", format(L["Sync from %s: %d added, %d updated"], from, added, updated))
 	else
+		Log("in", format("%s: %s", from, tostring(updated or L["Invalid import data"])))
 		S.Print("|cffff5555" .. from .. ": " .. tostring(updated or L["Invalid import data"]) .. "|r")
 	end
 end
@@ -1145,12 +1171,17 @@ local function FinishReceive(from, transport)
 	if not s then return end
 	pending[key] = nil
 	local json = table.concat(s.parts)
+	Log("in", format(L["List received from %s via %s (%d chunks)"], from, transport, s.total))
 	-- the same export arriving on a second transport within two
 	-- minutes is the other half of a "Sync all" - merge only once
 	local done = lastDone[from]
-	if done and done.json == json and time() - done.at < 120 then return end
+	if done and done.json == json and time() - done.at < 120 then
+		Log("in", format(L["Duplicate list from %s ignored"], from))
+		return
+	end
 	lastDone[from] = { json = json, at = time() }
 	if not (DB().sync and DB().sync.autoAccept) then
+		Log("in", format(L["Sync offer from %s - awaiting your accept"], from))
 		StaticPopup_Show("SENTIFBL_SYNC_ACCEPT", from, nil,
 			{ json = json, from = from })
 		return
@@ -1158,6 +1189,7 @@ local function FinishReceive(from, transport)
 	if not Trusted(from) then
 		if not ignored[from] then
 			ignored[from] = true
+			Log("in", format(L["Ignored sync from %s (not trusted)"], from))
 			S.Print(format("|cff8c919f" .. L["Ignored sync from %s (not trusted)"] .. "|r", from))
 		end
 		return
@@ -1171,14 +1203,18 @@ end
 local pullRespAt = 0
 -- QueueChannelSend is forward-declared next to OnJoined above;
 -- OnPullRequest defers into it
-local function OnPullRequest(text)
+local function OnPullRequest(text, sender)
 	local reqRev = tonumber(text:match("^FBLpull;(%d+)"))
 	if not reqRev or (DB().rev or 0) <= reqRev then return end
 	if not (DB().sync and DB().sync.liveShare) then return end
 	if time() - pullRespAt < 60 then return end
 	pullRespAt = time()
+	Log("in", format(L["Pull request from %s (rev %d)"], sender or "?", reqRev))
 	C_Timer.After(math.random(5, 40), function()
-		if (DB().rev or 0) > reqRev then QueueChannelSend() end
+		if (DB().rev or 0) > reqRev then
+			Log("out", format(L["Answering pull from %s"], sender or "?"))
+			QueueChannelSend()
+		end
 	end)
 end
 
@@ -1192,6 +1228,7 @@ SendPullRequest = function()
 	-- on this client, every timer-driven attempt raised a blocked call
 	local f = C_ChatInfo and C_ChatInfo.SendAddonMessage or SendAddonMessage
 	ns.HardAPI("SendAddonMessage", f, PREFIX, msg, "CHANNEL", chanNum)
+	Log("out", format(L["Requested list update (rev %d)"], DB().rev or 0))
 end
 
 -- rate-limited pull triggered by peer version pings: a peer
@@ -1223,6 +1260,7 @@ SendVersionPing = function()
 		if IsInGuild and IsInGuild() then
 			ns.HardAPI("SendAddonMessageGUILD", f, PREFIX, msg, "GUILD")
 		end
+		Log("out", format(L["Version ping sent (rev %d)"], DB().rev or 0))
 	end
 end
 
@@ -1267,8 +1305,10 @@ local function DrainSend()
 		sendTicker:Cancel()
 		sendTicker = nil
 		if sendFailed > 0 then
+			Log("out", format(L["Send failed: %d chunks rejected"], sendFailed))
 			S.Print("|cffff5555" .. format(L["Send failed: %d chunks rejected"], sendFailed) .. "|r")
 		else
+			Log("out", L["Blacklist sent"])
 			S.Print(L["Blacklist sent"])
 		end
 		sendFailed = 0
@@ -1286,6 +1326,7 @@ QueueChannelSend = function()
 			json:sub((i - 1) * SYNC_CHUNK + 1, i * SYNC_CHUNK))
 	end
 	DB().sync.lastHash = DataHash()
+	Log("out", format(L["Sending blacklist: %d chunks"], total))
 	if not sendTicker then sendTicker = C_Timer.NewTicker(0.3, DrainSend) end
 end
 
@@ -1302,9 +1343,13 @@ end
 
 function F.SyncSendChannel()
 	local x = ext()
-	if x and x.SyncSendChannel then return x:SyncSendChannel() end
+	if x and x.SyncSendChannel then
+		Log("out", L["Send delegated to ForeverBlackListed"])
+		return x:SyncSendChannel()
+	end
 	if not chanNum then JoinSync() end
 	if not chanNum then
+		Log("out", L["Not in the sync channel"])
 		S.Print("|cffff5555" .. L["Not in the sync channel"] .. "|r")
 		return
 	end
@@ -1326,6 +1371,7 @@ function F.SyncAll()
 	if not AdminGate() then return end
 	local x = ext()
 	if x then
+		Log("out", L["Sync-all delegated to ForeverBlackListed (channel + guild)"])
 		if x.SyncSendChannel then x:SyncSendChannel() end
 		if x.SyncSend and IsInGuild and IsInGuild() then x:SyncSend("GUILD") end
 		return
@@ -1354,7 +1400,7 @@ reqf:SetScript("OnEvent", function(_, ev, a1, a2, a3, a4)
 		return
 	end
 	if text:match("^FBLpull;") then
-		OnPullRequest(text)
+		OnPullRequest(text, sender)
 		return
 	end
 	local ver, rev = text:match("^FBLver;([^;]*);?(%d*)$")
@@ -1366,7 +1412,15 @@ reqf:SetScript("OnEvent", function(_, ev, a1, a2, a3, a4)
 			-- saw the defaults merge - or holds a non-table in the slot
 			if type(db.sync) ~= "table" then db.sync = {} end
 			db.sync.seenRev = math.max(db.sync.seenRev or 0, rev)
-			if rev > (db.rev or 0) then MaybePull() end
+			local who = sender or "?"
+			if not seenPeers[who] then
+				seenPeers[who] = true
+				Log("in", format(L["Peer %s: %s (rev %d)"], who, ver, rev))
+			end
+			if rev > (db.rev or 0) then
+				Log("in", format(L["%s has a newer list (rev %d > %d)"], who, rev, db.rev or 0))
+				MaybePull()
+			end
 		end
 		return
 	end
@@ -1400,14 +1454,16 @@ function F.RequestRemoval(e, reason)
 	end
 
 	if not sent then
+		Log("out", L["Not in the sync channel"])
 		S.Print("|cffff5555" .. L["Not in the sync channel"] .. "|r")
 		return
 	end
+	Log("out", format(L["Removal request for %s sent to the admin"], e.name))
 	S.Print(format(L["Removal request for %s sent to the admin"], e.name))
 end
 
 -- list window ------------------------------------------------------------------------
-local win
+-- ("win" itself is declared up by the sync log so Log() can reach it)
 local function EditBox(parent, w, hint)
 	local e = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
 	e:SetSize(w or 160, 20)
@@ -1503,6 +1559,7 @@ local function Window()
 	FilterChip("black", L["Blocked"])
 	FilterChip("good", L["Good list"])
 	FilterChip("guild", L["Guild"])
+	FilterChip("log", L["Sync log"])
 	local adminChip = FilterChip("admin", L["Admin"])
 	adminChip:Hide()
 	f.adminChip = adminChip
@@ -1604,6 +1661,7 @@ local function Window()
 		ns.TextPopup(L["Import"], "", function(t)
 			local added, updated = F.ImportJSON(t, nil)
 			if added then
+				Log("in", format(L["Import: %d added, %d updated"], added, updated))
 				S.Print(format(L["Import: %d added, %d updated"], added, updated))
 			else
 				S.Print("|cffff5555" .. tostring(updated or L["Invalid import data"]) .. "|r")
@@ -1654,6 +1712,54 @@ local function Window()
 	noReq:SetPoint("TOPLEFT", 14, -206)
 	noReq:SetText(L["No pending requests"])
 	adminPanel.noReq = noReq
+
+	-- sync log page: status lines + the traffic ring buffer, for everyone
+	local logPanel = CreateFrame("Frame", nil, listBg)
+	logPanel:SetAllPoints(listBg)
+	logPanel:Hide()
+	f.logPanel = logPanel
+
+	local lStatus = ns.Font(logPanel, 10, S.colors.textDim)
+	lStatus:SetPoint("TOPLEFT", 12, -10)
+	lStatus:SetPoint("RIGHT", -12, 0)
+	lStatus:SetJustifyH("LEFT")
+	lStatus:SetJustifyV("TOP")
+	logPanel.status = lStatus
+
+	local reqBtn = ns.Button(logPanel, 120, 22, L["Request update"])
+	reqBtn:SetPoint("TOPRIGHT", -12, -62)
+	reqBtn:SetScript("OnClick", function()
+		SendPullRequest()
+		if not chanNum then
+			Log("out", L["Not in the sync channel"])
+			F.RefreshWindow()
+		end
+	end)
+
+	local clrBtn = ns.Button(logPanel, 90, 22, L["Clear log"])
+	clrBtn:SetPoint("RIGHT", reqBtn, "LEFT", -8, 0)
+	clrBtn:SetScript("OnClick", function()
+		DB().sync.log = {}
+		F.RefreshWindow()
+	end)
+
+	local logScroll = CreateFrame("ScrollFrame", nil, logPanel)
+	logScroll:SetPoint("TOPLEFT", 8, -92)
+	logScroll:SetPoint("BOTTOMRIGHT", -8, 8)
+	local logHolder = CreateFrame("Frame", nil, logScroll)
+	logScroll:SetScrollChild(logHolder)
+	logScroll:EnableMouseWheel(true)
+	logScroll:SetScript("OnMouseWheel", function(self, d)
+		local m = self:GetVerticalScrollRange()
+		self:SetVerticalScroll(math.min(m, math.max(0, self:GetVerticalScroll() - d * 44)))
+	end)
+	logPanel.scroll, logPanel.holder = logScroll, logHolder
+	logHolder.rows = {}
+
+	local noLog = ns.Font(logPanel, 10, S.colors.textDim)
+	noLog:SetPoint("TOPLEFT", 14, -98)
+	noLog:SetText(L["No sync traffic yet"])
+	logPanel.noLog = noLog
 
 	local formBg = CreateFrame("Frame", nil, f, "BackdropTemplate")
 	S.Template(formBg, "inset")
@@ -1734,6 +1840,73 @@ function F.RefreshWindow()
 	if not isAdm and f.filter == "admin" then f.filter = "all" end
 	f.sub:SetText(format(L["%d entries"], F.EntryCount())
 		.. (isAdm and ("  |cff4dd278" .. L["Admin"] .. "|r") or ""))
+
+	-- sync log page: status + the traffic ring buffer, newest first
+	if f.filter == "log" then
+		f.scroll:Hide()
+		f.empty:Hide()
+		if f.adminPanel then f.adminPanel:Hide() end
+		local lp = f.logPanel
+		lp:Show()
+		local db = DB()
+		local pendInfo = {}
+		for k, s in pairs(pending) do
+			tinsert(pendInfo, format("%s %d/%d", k, s.got or 0, s.total or 0))
+		end
+		lp.status:SetText(
+			format("%s %s", "|cffebad33" .. L["Channel"] .. ":|r",
+				chanNum and (tostring(chanName or "?")
+						.. "  |cff8c919f(#" .. chanNum .. ")|r")
+					or "|cffff5555" .. L["not joined"] .. "|r")
+			.. "\n" .. format("%s |cffebad33%d|r    %s %d    %s %d",
+				L["Our rev:"], db.rev or 0,
+				L["Peers' rev:"], db.sync.seenRev or 0,
+				L["Entries:"], F.EntryCount())
+			.. "\n" .. format("%s %s    %s %s    %s %s",
+				L["Live share:"], db.sync.liveShare
+					and "|cff4dd278on|r" or "|cffff5555off|r",
+				L["Auto-accept:"], db.sync.autoAccept
+					and "|cff4dd278on|r" or "|cffff5555off|r",
+				L["Trust:"], "|cffebad33" .. tostring(db.sync.trust or "all") .. "|r")
+			.. (db.sync.lastFrom
+				and ("\n" .. format("%s %s  |cff8c919f%s|r", L["Last received:"],
+					db.sync.lastFrom,
+					db.sync.lastAt and date("%d.%m. %H:%M", db.sync.lastAt) or ""))
+				or "")
+			.. (#pendInfo > 0
+				and ("\n" .. format("|cff339eff%s|r %s",
+					L["Receiving:"], table.concat(pendInfo, ", ")))
+				or ""))
+		local log = db.sync.log or {}
+		local h = lp.holder
+		local shown = 0
+		for i = #log, 1, -1 do
+			local e = log[i]
+			shown = shown + 1
+			local r = h.rows[shown]
+			if not r then
+				r = ns.Font(h, 9)
+				r:SetJustifyH("LEFT")
+				r:SetWordWrap(false)
+				h.rows[shown] = r
+			end
+			r:ClearAllPoints()
+			r:SetPoint("TOPLEFT", 6, -((shown - 1) * 15))
+			r:SetPoint("RIGHT", -4, 0)
+			local arrow = e.dir == "in" and "|cff4dd278<<|r"
+				or e.dir == "out" and "|cff339eff>>|r" or "|cff8c919f--|r"
+			r:SetText(format("|cff6a6f7d%s|r %s %s",
+				date("%H:%M", e.t or time()), arrow, e.msg or ""))
+			r:Show()
+		end
+		for i = shown + 1, #h.rows do h.rows[i]:Hide() end
+		lp.noLog:SetShown(shown == 0)
+		h:SetHeight(math.max(1, shown * 15))
+		h:SetWidth(math.max(1, lp.scroll:GetWidth()))
+		lp.scroll:UpdateScrollChildRect()
+		return
+	end
+	if f.logPanel then f.logPanel:Hide() end
 
 	-- admin page: swaps the list for status, admins and pending requests
 	if f.filter == "admin" and isAdm then

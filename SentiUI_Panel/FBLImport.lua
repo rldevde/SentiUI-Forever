@@ -1379,6 +1379,9 @@ boot:SetScript("OnEvent", function()
 		else
 			F.ImportJSON(json, nil, false)
 		end
+		if F.SyncLog then
+			F.SyncLog("in", format(ns.L["Imported shared list: %d entries"], #entries))
+		end
 		db.imports.xenshiLucas = true
 	end)
 end)

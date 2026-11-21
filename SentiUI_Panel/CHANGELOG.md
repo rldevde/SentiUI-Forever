@@ -1,5 +1,10 @@
 # SentiUI Panel
 
+## 0.5.17
+
+- Blacklist: new 'Sync log' page in the list window (for every user, not just admins) - live status (channel, own/peer revision, live share, auto-accept, trust, last sender) plus a persisted ring buffer of all sync traffic: list sends/receives, chunk counts, pull requests, version pings, peers, removal requests, imports and delegations to the standalone addon. 'Request update' and 'Clear log' buttons included.
+
+
 ## 0.5.16
 
 - Hardened the FBL channel handler further: DB() now guarantees .sync is a table on every resolved store (pcall'd merge + a secret-safe table check), and the FBLver handler self-heals a missing sync field instead of indexing nil.
