@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.5",
+		changes = {
+			"Blocked/forbidden action events are no longer stored as 'simple' entries: the grabber captures the full stack trace now, so the BugSack window shows which file and line triggered the blocked call.",
+		},
+		changesDE = {
+			"Blocked/Forbidden-Events werden nicht mehr als 'simple' Eintraege gespeichert: Der Grabber erfasst jetzt den kompletten Stacktrace, das BugSack-Fenster zeigt also welche Datei und Zeile den blockierten Call ausgeloest hat.",
+		},
+	},
+
+	{
 		version = "0.1.4",
 		changes = {
 			"Escape-forbidden-call fix: the three OnEscapePressed handlers ran inside the Escape dispatch and tainted the engine's protected spell-stop calls - the window is in UISpecialFrames, so Escape closes it natively.",

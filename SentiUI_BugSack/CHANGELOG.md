@@ -1,5 +1,10 @@
 # Changelog — SentiUI BugSack
 
+## 0.1.5
+
+- Blocked/forbidden action events are no longer stored as 'simple' entries: the grabber captures the full stack trace now, so the BugSack window shows which file and line triggered the blocked call.
+
+
 ## 0.1.4
 
 - Escape-forbidden-call fix: the three `OnEscapePressed` handlers ran inside the Escape dispatch and tainted the engine's protected spell-stop calls - the window is in `UISpecialFrames`, so Escape closes it natively.

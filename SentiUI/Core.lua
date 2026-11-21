@@ -205,8 +205,29 @@ end
 -- event args are (addonName, functionName); the function name can be
 -- "UNKNOWN()" on this client
 local function forbidden(_, addon, func)
-	S.Print(string.format("|cffff5555forbidden call: %s  (the client blames: %s)|r",
-		tostring(func or "?"), tostring(addon or "unknown")))
+	-- the event fires synchronously inside the blocked call, so the Lua
+	-- stack still holds our call site - find the first SentiUI frame and
+	-- name it (file.lua:line) so the culprit needs no guessing
+	local where
+	if type(debugstack) == "function" then
+		local ok, stack = pcall(debugstack, 2)
+		local secret = type(issecretvalue) == "function"
+			and issecretvalue(stack)
+		if ok and type(stack) == "string" and not secret then
+			local firstLua
+			for src, line in stack:gmatch("([%w%._%-%/\\]+%.lua):(%d+)") do
+				if not firstLua then firstLua = src .. ":" .. line end
+				if src:find("SentiUI", 1, true) then
+					where = src .. ":" .. line
+					break
+				end
+			end
+			where = where or firstLua
+		end
+	end
+	S.Print(string.format("|cffff5555forbidden call: %s  (the client blames: %s)%s|r",
+		tostring(func or "?"), tostring(addon or "unknown"),
+		where and ("  |cffffcc33@ " .. where) or ""))
 	S.BugHint()
 end
 S.RegisterEvent("ADDON_ACTION_FORBIDDEN", forbidden)

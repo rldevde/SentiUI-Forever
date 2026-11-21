@@ -308,8 +308,10 @@ do
 			local name = arg1 or "<name>"
 			if not badAddons[name] then
 				badAddons[name] = true
+				-- not "simple": the event fires inside the blocked call, so
+				-- the stack pinpoints the call site (file.lua:line)
 				captureError(L["%s blocked from %s: %s"]:format(event, name,
-					arg2 or "<func>"), true)
+					arg2 or "<func>"))
 			end
 		end
 	end)
