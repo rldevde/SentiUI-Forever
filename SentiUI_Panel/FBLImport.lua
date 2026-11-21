@@ -1331,7 +1331,7 @@ boot:SetScript("OnEvent", function()
 		-- live global, not F.db: several addons declare FBLDB and the last
 		-- saved-variables file to load replaces it - a cached .db can point
 		-- at an orphaned table whose flag write never reaches disk
-		local db = _G.FBLDB
+		local db = F.DB and F.DB() or _G.FBLDB
 		if type(db) ~= "table" then return end
 		db.imports = db.imports or {}
 		if db.imports.xenshiLucas then return end

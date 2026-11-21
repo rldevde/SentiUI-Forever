@@ -54,8 +54,17 @@ F.db = FBLDB
 -- several addons declare FBLDB (standalone, My-Social, us); whichever
 -- saved-variables file loads last replaces the global, so a .db captured
 -- at file load can point at an orphaned table whose writes never reach
--- disk. DB() always resolves the live global instead.
-local function DB() return _G.FBLDB or {} end
+-- disk. And a late-loading declarer's file can hand us a global that
+-- never saw Merge - DB() resolves the live global AND guarantees the
+-- defaults on whatever table it hands out.
+local merged = setmetatable({}, { __mode = "k" })
+local function DB()
+	local db = _G.FBLDB
+	if type(db) ~= "table" then db = {} _G.FBLDB = db end
+	if not merged[db] then Merge(db, DEFAULTS) merged[db] = true end
+	return db
+end
+F.DB = DB
 
 -- the standalone addon, when loaded, owns sync/votes/merge - delegate
 local function ext() return _G.ForeverBlackListed end

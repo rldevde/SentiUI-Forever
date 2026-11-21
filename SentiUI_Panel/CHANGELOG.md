@@ -1,5 +1,10 @@
 # SentiUI Panel
 
+## 0.5.15
+
+- Fixed 'attempt to index field sync (a nil value)' on incoming FBL channel messages: a saved-variables file of another FBLDB declarer can hand us a global that never saw the defaults merge - DB() now guarantees merged defaults on every table it resolves, so .sync and friends always exist.
+
+
 ## 0.5.14
 
 - The shared blacklist now actually reaches other players: the importer routes through the sync owner's store (the standalone's ImportJSON when it is loaded, our live FBLDB otherwise) and runs non-quiet, so the list revision bumps and live-share rebroadcasts the fresh entries on the FBL channel. The probe now checks the sync store too, not just the saved global.

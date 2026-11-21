@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.15",
+		changes = {
+			"Fixed 'attempt to index field sync (a nil value)' on incoming FBL channel messages: a saved-variables file of another FBLDB declarer can hand us a global that never saw the defaults merge - DB() now guarantees merged defaults on every table it resolves, so .sync and friends always exist.",
+		},
+		changesDE = {
+			"Fix fuer 'attempt to index field sync (a nil value)' bei eingehenden FBL-Kanalnachrichten: Eine Saved-Variables-Datei eines anderen FBLDB-Deklarierenden kann uns ein Global liefern, das nie den Defaults-Merge gesehen hat - DB() garantiert jetzt gemergte Defaults auf jeder Tabelle, die es aufloest, .sync & Co. existieren also immer.",
+		},
+	},
+
+	{
 		version = "0.5.14",
 		changes = {
 			"The shared blacklist now actually reaches other players: the importer routes through the sync owner's store (the standalone's ImportJSON when it is loaded, our live FBLDB otherwise) and runs non-quiet, so the list revision bumps and live-share rebroadcasts the fresh entries on the FBL channel. The probe now checks the sync store too, not just the saved global.",
