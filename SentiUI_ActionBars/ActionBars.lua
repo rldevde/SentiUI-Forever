@@ -75,24 +75,10 @@ local function SetFont(fs, size, flags)
 end
 ns.SetFont = SetFont
 
--- compat for Extras.lua: a labelled pcall that names the api when the
--- client refuses it once per call site
-local apiFailed = {}
-local function Call(label, fn, ...)
-	local ok, a, b, c, d, e, f, g, h, i2 = pcall(fn, ...)
-	if not ok and not apiFailed[label] then
-		apiFailed[label] = true
-		S.Print(format("|cffff5555blocked api |cffffcc00%s|r: %s",
-			label, tostring(a):sub(1, 140)))
-		if S.BugHint then S.BugHint() end
-	end
-	return ok, a, b, c, d, e, f, g, h, i2
-end
-ns.Call = Call
-local function Sec(label, fn, ...)
-	return Call(label, fn, ...)
-end
-ns.Sec = Sec
+-- centralised in the core: S.Call is the labelled pcall that names the
+-- api + call site (file.lua:line) once when the client refuses it
+ns.Call = S.Call
+ns.Sec = S.Call
 
 -- template detachment ---------------------------------------------------------
 -- ActionBarButtonEventsFrame.frames is an indexed list (nil in place: a

@@ -8,7 +8,7 @@
 ## Category-deDE: Sentinel
 ## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
 ## Author: xRL-Dev.de
-## Version: 0.3.10
+## Version: 0.3.11
 ## DefaultState: enabled
 ## SavedVariables: SentiUIDB
 ## AddonCompartmentFunc: SentiUI_OnAddonCompartmentClick

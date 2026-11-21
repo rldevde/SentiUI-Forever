@@ -50,6 +50,56 @@ function S.SafeCall(context, fn, ...)
 	return err
 end
 
+-- engine-call wrappers ----------------------------------------------------
+-- Central so every module (and every future one) reports the same way: a
+-- failed or blocked call names its call site file.lua:line once, instead
+-- of dying silently inside pcall.
+local apiFailed = {}
+local function ApiSite(level)
+	if not (debug and debug.getinfo) then return "?" end
+	local i = debug.getinfo(level, "Sl")
+	return i and (tostring(i.short_src) .. ":" .. tostring(i.currentline)) or "?"
+end
+
+-- S.Call(label, fn, ...) - labelled pcall for engine calls whose failure
+-- should be visible: prints label + call site + error once per site.
+-- Returns ok, results... like pcall.
+function S.Call(label, fn, ...)
+	local ok, a, b, c, d, e, f, g, h, i = pcall(fn, ...)
+	if ok then return ok, a, b, c, d, e, f, g, h, i end
+	local where = ApiSite(2)
+	if not apiFailed[where] then
+		apiFailed[where] = true
+		S.Print(string.format("|cffff5555blocked api |cffffcc00%s|r @ %s: %s",
+			tostring(label), where, tostring(a):sub(1, 140)))
+		S.BugHint()
+	end
+end
+
+-- S.SecureAPI(fn, ...) - for calls that may be protected or restricted
+-- (window toggles, item APIs, roster refreshes). Runs them in the
+-- engine's securecall lane when present, plain pcall otherwise; a hard
+-- failure names its call site once instead of an anonymous UNKNOWN().
+-- NOTE: securecall does not untaint on this client - real protection
+-- against tainted bookkeeping is forwarding hardware clicks to native
+-- buttons (secure /click), not wrapping the call.
+function S.SecureAPI(fn, ...)
+	if type(fn) ~= "function" then return end
+	if type(securecall) == "function" then
+		local ok, res = pcall(securecall, fn, ...)
+		if ok then return res end
+	else
+		local ok, res = pcall(fn, ...)
+		if ok then return res end
+	end
+	local where = ApiSite(2)
+	if not apiFailed[where] then
+		apiFailed[where] = true
+		S.Print("|cffffcc33blocked call|r @ " .. where)
+		S.BugHint()
+	end
+end
+
 -- shown once per session after the first reported problem so error bursts
 -- do not repeat it
 local bugHintShown

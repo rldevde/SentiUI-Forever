@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.12",
+		changes = {
+			"SecureAPI now delegates to the shared core wrapper: blocked or failed engine calls print their call site (file.lua:line) once, the same reporting every module gets.",
+		},
+		changesDE = {
+			"SecureAPI delegiert jetzt an den gemeinsamen Core-Wrapper: Blockierte oder fehlgeschlagene Engine-Calls melden ihre Aufrufstelle (datei.lua:zeile) einmal - dasselbe Reporting, das jedes Modul bekommt.",
+		},
+	},
+
+	{
 		version = "0.5.11",
 		changes = {
 			"Interface-dispatch audit: plugin buttons got a secure-click overlay - bags, friends, guild, character, talents and calendar now forward a real click to the Blizzard micro buttons instead of calling Toggle* functions from addon code (securecall does not untaint on this client; the calls wrote window bookkeeping tainted). Reputation/itemlevel land on the matching Character-module page; durability uses the module API when it is loaded.",

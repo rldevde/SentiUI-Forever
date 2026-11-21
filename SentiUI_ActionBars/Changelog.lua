@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.10",
+		changes = {
+			"The labelled Call/Sec wrappers now delegate to the shared core wrapper (S.Call): blocked engine calls print the api name AND the call site (file.lua:line) once.",
+		},
+		changesDE = {
+			"Die gelabelten Call/Sec-Wrapper delegieren jetzt an den gemeinsamen Core-Wrapper (S.Call): Blockierte Engine-Calls melden API-Namen UND Aufrufstelle (datei.lua:zeile) einmal.",
+		},
+	},
+
+	{
 		version = "0.3.9",
 		changes = {
 			"Fixed the action-button press point covering only the slot's center: ActionBarButtonTemplate ships an inset hit rect (the artwork ring is not clickable), while our slot look fills the whole button - the hit rect is reset to the full frame now.",

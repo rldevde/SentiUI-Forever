@@ -1,5 +1,10 @@
 # SentiUI Action Bars
 
+## 0.3.10
+
+- The labelled Call/Sec wrappers now delegate to the shared core wrapper (S.Call): blocked engine calls print the api name AND the call site (file.lua:line) once.
+
+
 ## 0.3.9
 
 - Fixed the action-button press point covering only the slot's center: ActionBarButtonTemplate ships an inset hit rect (the artwork ring is not clickable), while our slot look fills the whole button - the hit rect is reset to the full frame now.

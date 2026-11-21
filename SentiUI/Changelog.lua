@@ -25,6 +25,16 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.3.11",
+		changes = {
+			"Central call-site reporting: S.Call (labelled pcall) and S.SecureAPI (securecall lane) live in the core now - every current and future module gets 'file.lua:line' reporting for failed or blocked engine calls for free. Module wrappers delegate to it.",
+		},
+		changesDE = {
+			"Zentrales Call-Site-Reporting: S.Call (gelabeltes pcall) und S.SecureAPI (securecall-Lane) liegen jetzt im Core - jedes aktuelle und zukuenftige Modul bekommt 'datei.lua:zeile'-Meldungen fuer fehlgeschlagene oder blockierte Engine-Calls automatisch. Die Modul-Wrapper delegieren darauf.",
+		},
+	},
+
+	{
 		version = "0.3.10",
 		changes = {
 			"Forbidden-action reports now name the call site: ADDON_ACTION_BLOCKED/FORBIDDEN fires synchronously inside the blocked call, so the handler reads debugstack and prints the first SentiUI frame (file.lua:line) next to the blamed addon - an UNKNOWN() blame is no longer anonymous.",

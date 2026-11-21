@@ -126,27 +126,9 @@ function ns.HardAPI(name, fn, ...)
 	return nil
 end
 
-local secureFailed = {}
-function ns.SecureAPI(fn, ...)
-	if type(fn) ~= "function" then return end
-	if securecall then
-		local ok, res = pcall(securecall, fn, ...)
-		if ok then return res end
-	else
-		local ok, res = pcall(fn, ...)
-		if ok then return res end
-	end
-	-- the engine logs this as UNKNOWN() and blames the addon; name the
-	-- actual call site once so the offending call can be identified
-	if debug and debug.getinfo then
-		local i = debug.getinfo(2, "Sl")
-		local where = i and (tostring(i.short_src) .. ":" .. tostring(i.currentline)) or "?"
-		if not secureFailed[where] then
-			secureFailed[where] = true
-			S.Print("|cffffcc33" .. L["blocked call"] .. "|r " .. where)
-		end
-	end
-end
+-- centralised in the core: every module shares the same wrapper with
+-- call-site reporting (file.lua:line) for blocked/failed engine calls
+ns.SecureAPI = S.SecureAPI
 
 -- tooltip helpers --------------------------------------------------------------
 function ns.TipHead(tip, text)
