@@ -1221,7 +1221,12 @@ function Core.Enable(mod)
 		local foci, seen = {}, {}
 		local f = EnumerateFrames()
 		while f do
-			if not seen[f] and f:IsMouseEnabled() and f:IsMouseOver() then
+			-- IsMouseOver/IsMouseEnabled can return SECRET booleans for
+			-- some game frames (aura buttons) - testing one throws
+			local okE, en = pcall(f.IsMouseEnabled, f)
+			local okO, ov = pcall(f.IsMouseOver, f)
+			local secret = S.IsSecret and (S.IsSecret(en) or S.IsSecret(ov))
+			if okE and okO and not secret and en and ov and not seen[f] then
 				seen[f] = true
 				foci[#foci + 1] = f
 			end
@@ -1264,17 +1269,18 @@ function Core.Enable(mod)
 			local n = call("GetName")
 			if type(n) == "string" and n:find("^SentiUIActionBar%d+Button%d+$")
 				and type(f.GetLeft) == "function" then
-				local l, b = f:GetLeft(), f:GetBottom()
-				S.Print(format("   hit rect: %.0f..%.0f x %.0f..%.0f",
-					l or -1, b or -1,
-					(l or 0) + (f:GetWidth() or 0), (b or 0) + (f:GetHeight() or 0)))
-				local ic = f.icon
-				if type(ic) == "table" and type(ic.GetLeft) == "function" then
-					S.Print(format("   icon rect: %.0f..%.0f x %.0f..%.0f",
-						ic:GetLeft() or -1, ic:GetBottom() or -1,
-						(ic:GetLeft() or 0) + (ic:GetWidth() or 0),
-						(ic:GetBottom() or 0) + (ic:GetHeight() or 0)))
-				end
+				pcall(function()
+					local l, b = f:GetLeft(), f:GetBottom()
+					S.Print(format("   hit rect: %.0f..%.0f x %.0f..%.0f",
+						l, b, l + f:GetWidth(), b + f:GetHeight()))
+					local ic = f.icon
+					if type(ic) == "table" and type(ic.GetLeft) == "function" then
+						S.Print(format("   icon rect: %.0f..%.0f x %.0f..%.0f",
+							ic:GetLeft(), ic:GetBottom(),
+							ic:GetLeft() + ic:GetWidth(),
+							ic:GetBottom() + ic:GetHeight()))
+					end
+				end)
 			end
 		end
 	end
