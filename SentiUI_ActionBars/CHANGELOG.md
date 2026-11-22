@@ -1,5 +1,9 @@
 # SentiUI Action Bars
 
+## 0.3.12 - 2026-11-22
+
+- Fix extension bar slots only clicking on a thin lower rim: the template's TextOverlayContainer rides at frame level 500 with its mouse enabled and covered the whole button, and the client's global FX/widget model scenes at high strata swallowed clicks where they overlap the bars. The container's mouse is dropped per button; the FX/widget model scenes lose theirs on a 2s sweep (they respawn late).
+
 ## 0.3.11 - 2026-11-22
 
 - Holder attach keeps ExtraAbilityContainer and friends in place by a 0.5s drift poll instead of SetParent/SetPoint post-hooks - the hooks ran inside the client's layout dispatch and tainted whatever protected work followed.

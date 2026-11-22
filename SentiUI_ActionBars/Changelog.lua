@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.12",
+		date = "2026-11-22",
+		changes = {
+			"Fix extension bar slots only clicking on a thin lower rim: the template's TextOverlayContainer rides at frame level 500 with its mouse enabled and covered the whole button, and the client's global FX/widget model scenes at high strata swallowed clicks where they overlap the bars. The container's mouse is dropped per button; the FX/widget model scenes lose theirs on a 2s sweep (they respawn late).",
+		},
+		changesDE = {
+			"Fix: Slots der Zusatzleisten liessen sich nur an einem schmalen unteren Rand klicken - der TextOverlayContainer des Templates liegt auf Frame-Level 500 mit aktiver Maus ueber dem ganzen Button, und die globalen FX-/Widget-ModelScenes des Clients auf hohen Strata schluckten Klicks, wo sie die Leisten ueberlagern. Die Maus des Containers wird je Button abgestellt; die FX-/Widget-ModelScenes verlieren ihre im 2s-Sweep (sie spawnen spaet neu).",
+		},
+	},
+	{
 		version = "0.3.11",
 		date = "2026-11-22",
 		changes = {

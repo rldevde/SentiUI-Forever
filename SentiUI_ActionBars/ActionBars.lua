@@ -669,6 +669,13 @@ local function MakeButton(holder, def, i)
 	-- the template's Update repaints with the secret-unsafe SetCooldown;
 	-- our painters do the work instead
 	btn.Update = function(self) Queue(self) end
+	-- the template's TextOverlayContainer sits at frame level 500 and on
+	-- this client keeps its mouse enabled - it covers the whole button and
+	-- swallows every click except the few pixels it leaves uncovered
+	local toc = btn.TextOverlayContainer
+	if type(toc) == "table" and type(toc.EnableMouse) == "function" then
+		toc:EnableMouse(false)
+	end
 	btn:SetID(0)
 	btn:SetAttribute("senti-index", i)
 	btn:SetAttribute("action", TwinSlot(def.twinPrefix, i) or (i + (page - 1) * 12))
@@ -1147,6 +1154,41 @@ function Core.Enable(mod)
 	S.SafeCall("extras", function()
 		if ns.Extras then ns.Extras.Enable(mod) end
 	end)
+
+	-- the client's global FX model scenes and the widget containers' model
+	-- scenes spawn at high strata with their mouse enabled - wherever they
+	-- overlap the bars they swallow the clicks (only an uncovered rim of
+	-- each slot stays clickable). Display-only frames: drop their mouse and
+	-- keep re-applying, they get recreated late.
+	local function UnblockMouse()
+		for _, n in ipairs({
+			"GlobalFXDialogModelScene", "GlobalFXFullScreenDialogModelScene",
+			"GlobalFXMediumModelScene", "GlobalFXBackgroundModelScene",
+			"GlobalFXLowModelScene", "GlobalFXWorldModelScene",
+		}) do
+			local f = _G[n]
+			if type(f) == "table" and type(f.EnableMouse) == "function" then
+				f:EnableMouse(false)
+			end
+		end
+		for _, n in ipairs({
+			"UIWidgetBelowMinimapContainerFrame", "UIWidgetTopCenterContainerFrame",
+			"UIWidgetPowerBarContainerFrame", "ObjectiveTrackerUIWidgetContainer",
+			"ContainerFrameContainer",
+		}) do
+			local f = _G[n]
+			if type(f) == "table" and type(f.GetChildren) == "function" then
+				for _, c in ipairs({ f:GetChildren() }) do
+					if type(c) == "table" and type(c.GetObjectType) == "function"
+						and c:GetObjectType() == "ModelScene"
+						and type(c.EnableMouse) == "function" then
+						c:EnableMouse(false)
+					end
+				end
+			end
+		end
+	end
+	C_Timer.NewTicker(2, function() pcall(UnblockMouse) end)
 
 	-- mouseover fade ticks; painting itself is event-driven
 	C_Timer.NewTicker(0.05, function() pcall(BarFade) end)
