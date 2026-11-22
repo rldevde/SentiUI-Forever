@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.10",
+		changes = {
+			"Chat copy window: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.",
+		},
+		changesDE = {
+			"Das Fenster haengt an der Kampf-Verzoegerung: Oeffnen im Kampf wird mit Chat-Notiz nach dem Kampf nachgeholt, ein offenes Fenster versteckt sich bei Kampfbeginn und kehrt danach zurueck.",
+		},
+	},
+
+	{
 		version = "0.2.9",
 		changes = {
 			"Escape-forbidden-call fix: OnEscapePressed handlers on the URL popup and copy-chat window ran inside the Escape dispatch - both close natively via hideOnEscape/UISpecialFrames now.",

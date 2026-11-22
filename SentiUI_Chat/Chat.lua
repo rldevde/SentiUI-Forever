@@ -327,6 +327,7 @@ end
 function Core.CopyChat(frame)
 	if not Core.copyFrame then
 		local f = CreateFrame("Frame", "SentiUIChatCopy", UIParent, "BackdropTemplate")
+		if S.CombatDeferWindow then S:CombatDeferWindow(f) end
 		f:SetSize(640, 340)
 		f:SetPoint("CENTER")
 		f:SetFrameStrata("DIALOG")

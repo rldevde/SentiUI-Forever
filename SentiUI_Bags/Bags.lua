@@ -208,6 +208,7 @@ function Core.MakeWindow(key, opts)
 	-- container frames, the state poll then closes ours with them.
 	local fname = "SentiUIBagsFrame_" .. key
 	w.frame = CreateFrame("Frame", fname, UIParent, "BackdropTemplate")
+	if S.CombatDeferWindow then S:CombatDeferWindow(w.frame) end
 	w.frame:SetSize(220, 120)
 	S.Template(w.frame, "panel")
 	w.frame:SetFrameStrata("DIALOG")

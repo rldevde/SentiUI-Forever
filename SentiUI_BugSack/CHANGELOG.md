@@ -1,5 +1,9 @@
 # Changelog — SentiUI BugSack
 
+## 0.1.6
+
+- BugSack window: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.
+
 ## 0.1.5
 
 - Blocked/forbidden action events are no longer stored as 'simple' entries: the grabber captures the full stack trace now, so the BugSack window shows which file and line triggered the blocked call.

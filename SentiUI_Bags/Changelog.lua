@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.6",
+		changes = {
+			"Bag and bank windows: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.",
+		},
+		changesDE = {
+			"Das Fenster haengt an der Kampf-Verzoegerung: Oeffnen im Kampf wird mit Chat-Notiz nach dem Kampf nachgeholt, ein offenes Fenster versteckt sich bei Kampfbeginn und kehrt danach zurueck.",
+		},
+	},
+
+	{
 		version = "0.4.5",
 		changes = {
 			"Removed the leftover bag diagnostics (trace buffer, /sbagtrace) now that the mirror is stable. Bank and merchant open/close work (window swap, auto-repair, auto-sell) now runs a frame outside the client dispatch - those dispatches carry secret values and item APIs called inside them can fail.",

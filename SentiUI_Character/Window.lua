@@ -21,6 +21,7 @@ end
 function W.Build()
 	if W.frame then return end
 	local f = CreateFrame("Frame", "SentiUICharacter", UIParent)
+	if S.CombatDeferWindow then S:CombatDeferWindow(f) end
 	W.frame = f
 	f:SetSize(880, 580)
 	f:SetPoint("CENTER", UIParent, "CENTER", -40, 20)

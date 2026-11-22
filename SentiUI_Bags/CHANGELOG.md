@@ -1,5 +1,9 @@
 # SentiUI Bags
 
+## 0.4.6
+
+- Bag and bank windows: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.
+
 ## 0.4.5
 
 - Removed the leftover bag diagnostics (trace buffer, /sbagtrace) now that the mirror is stable. Bank and merchant open/close work (window swap, auto-repair, auto-sell) now runs a frame outside the client dispatch - those dispatches carry secret values and item APIs called inside them can fail.

@@ -473,6 +473,7 @@ end
 local function BuildHub()
 	if hub then return hub end
 	local f = CreateFrame("Frame", "SentiUIMessengerHub", UIParent, "BackdropTemplate")
+	if S.CombatDeferWindow then S:CombatDeferWindow(f) end
 	f:SetSize(720, 500)
 	f:SetPoint("CENTER")
 	f:SetFrameStrata("DIALOG")
@@ -643,6 +644,7 @@ end
 local function BuildCard()
 	if card then return card end
 	local f = CreateFrame("Frame", "SentiUIMessengerCard", UIParent, "BackdropTemplate")
+	if S.CombatDeferWindow then S:CombatDeferWindow(f) end
 	f:SetSize(280, 360)
 	f:SetFrameStrata("DIALOG")
 	f:SetToplevel(true)
@@ -824,6 +826,7 @@ local copyWin
 local function BuildCopy()
 	if copyWin then return copyWin end
 	local f = CreateFrame("Frame", "SentiUIMessengerCopy", UIParent, "BackdropTemplate")
+	if S.CombatDeferWindow then S:CombatDeferWindow(f) end
 	f:SetSize(480, 360)
 	f:SetPoint("CENTER", 0, 60)
 	f:SetFrameStrata("DIALOG")

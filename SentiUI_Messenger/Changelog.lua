@@ -3,6 +3,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.6",
+		changes = {
+			"Messenger windows: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.",
+		},
+		changesDE = {
+			"Das Fenster haengt an der Kampf-Verzoegerung: Oeffnen im Kampf wird mit Chat-Notiz nach dem Kampf nachgeholt, ein offenes Fenster versteckt sich bei Kampfbeginn und kehrt danach zurueck.",
+		},
+	},
+
+	{
 		version = "0.3.5",
 		changes = {
 			"Escape-forbidden-call fix: the copy window's OnEscapePressed ran inside the Escape dispatch - the window is in UISpecialFrames, so Escape closes it natively.",

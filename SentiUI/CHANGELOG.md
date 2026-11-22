@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.15
+
+- Combat deferral, full coverage: ShowUIPanel, HideUIPanel and ToggleFrame join the queued path, so micro-menu buttons and every other open path defer in combat too (deduped per frame - a double ToggleFrame would undo itself). Every suite window is now flagged for combat deferral: BugSack, Character, Messenger hub/card/copy, bags+bank and the chat copy window join settings, blacklist, training and journal - they defer their open, hide on combat start and return after.
+
 ## 0.3.14
 
 - Combat window deferral: opening a managed window mid-combat dies to ADDON_ACTION_FORBIDDEN on the client's protected FrameShow, so Blizzard key toggles (character C, spellbook K, talents N, quests L, map, friends, guild, pvp, calendar, help, group finder...) now queue the open for after combat with a chat note - and fire only when the window is still closed. Flagged own windows behave the same via S:CombatDeferWindow: Show() in combat defers with a note, an open window hides on combat start and returns after. Flagged so far: settings, panel blacklist, training, journal.

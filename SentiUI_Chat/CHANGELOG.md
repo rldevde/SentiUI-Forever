@@ -1,5 +1,9 @@
 # SentiUI Chat
 
+## 0.2.10
+
+- Chat copy window: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.
+
 ## 0.2.9
 
 - Escape-forbidden-call fix: `OnEscapePressed` handlers on the URL popup and copy-chat window ran inside the Escape dispatch - both close natively via `hideOnEscape`/`UISpecialFrames` now.

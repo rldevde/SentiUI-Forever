@@ -3,6 +3,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.11",
+		changes = {
+			"Character window: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.",
+		},
+		changesDE = {
+			"Das Fenster haengt an der Kampf-Verzoegerung: Oeffnen im Kampf wird mit Chat-Notiz nach dem Kampf nachgeholt, ein offenes Fenster versteckt sich bei Kampfbeginn und kehrt danach zurueck.",
+		},
+	},
+
+	{
 		version = "0.2.10",
 		changes = {
 			"Exposed the module API (Open/Close/Toggle per page) on the registered module so sibling addons can open exact window pages without calling the game's Toggle* bookkeeping functions.",

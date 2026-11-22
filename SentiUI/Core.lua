@@ -371,6 +371,38 @@ local function toggleStillClosed(d)
 	return true
 end
 
+local pendingKeys = {}
+
+-- generic panel opens/closes that bypass the named toggles (micro menu,
+-- /click paths, other addons): ShowUIPanel defers unless the frame is
+-- already open, HideUIPanel unless already closed, ToggleFrame replays
+-- verbatim. Same (function, frame) queues once - a double ToggleFrame
+-- would undo itself.
+local PANEL_DEFS = {
+	{ fn = "ShowUIPanel", mode = "show" },
+	{ fn = "HideUIPanel", mode = "hide" },
+	{ fn = "ToggleFrame", mode = "toggle" },
+}
+
+local function queuePanelCall(orig, f, mode, label, ...)
+	local key = tostring(orig) .. "|" .. tostring(f)
+	if pendingKeys[key] then return end
+	pendingKeys[key] = true
+	local args = { n = select("#", ...), ... }
+	pendingToggles[#pendingToggles + 1] = {
+		key = key,
+		run = function() return orig(f, (unpack or table.unpack)(args, 1, args.n)) end,
+		skip = function()
+			local ok, s = pcall(f.IsShown, f)
+			s = ok and s == true
+			if mode == "show" then return s end
+			if mode == "hide" then return not s end
+			return false
+		end,
+	}
+	noteDeferred(label)
+end
+
 S.RegisterEvent("PLAYER_LOGIN", function()
 	for _, d in ipairs(TOGGLE_DEFS) do
 		local orig = _G[d.fn]
@@ -380,12 +412,30 @@ S.RegisterEvent("PLAYER_LOGIN", function()
 				if combatLock() then
 					if not d.queued then
 						d.queued = true
-						pendingToggles[#pendingToggles + 1] = d
+						pendingToggles[#pendingToggles + 1] = {
+							def = d,
+							run = function() return orig(...) end,
+							skip = function() return not toggleStillClosed(d) end,
+						}
 						noteDeferred(d.label)
 					end
 					return
 				end
 				return orig(...)
+			end
+		end
+	end
+	for _, d in ipairs(PANEL_DEFS) do
+		local orig, mode = _G[d.fn], d.mode
+		if type(orig) == "function" then
+			_G[d.fn] = function(f, ...)
+				if combatLock() and type(f) == "table" then
+					local ok, n = pcall(f.GetName, f)
+					queuePanelCall(orig, f, mode,
+						ok and type(n) == "string" and n or d.fn, ...)
+					return
+				end
+				return orig(f, ...)
 			end
 		end
 	end
@@ -419,10 +469,12 @@ S.RegisterEvent("PLAYER_REGEN_ENABLED", function()
 	-- deferred Blizzard window opens
 	local tq = pendingToggles
 	pendingToggles = {}
+	pendingKeys = {}
 	for i = 1, #tq do
-		local d = tq[i]
-		d.queued = nil
-		if toggleStillClosed(d) then S.SafeCall("toggle:" .. d.fn, d.orig) end
+		local e = tq[i]
+		if e.def then e.def.queued = nil end
+		local ok, skip = pcall(e.skip)
+		if not (ok and skip) then S.SafeCall("deferOpen", e.run) end
 	end
 end)
 
