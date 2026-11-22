@@ -1,5 +1,9 @@
 # SentiUI Chat
 
+## 0.2.13 - 2026-11-22
+
+- Fix the edit box losing its style: NineSlice was alpha'd before SetBackdrop - the backdrop draws through NineSlice, so the raised fill/border never rendered (transparent bar with gold focus brackets). The watchdog now also retries styling for late-created edit boxes and re-hides the header chrome every tick.
+
 ## 0.2.12 - 2026-11-22
 
 - All post-hooks on Blizzard layout and chat functions are gone (UIParent_ManageFramePositions, FCF_*, ChatEdit_UpdateHeader, tab clicks): they ran inside input/panel dispatches and tainted them - the probable source of blocked SendChatMessage and secret-compare errors when windows opened. One 0.25s watchdog now re-docks the chat, restyles new frames, re-colors tabs and edit box borders and re-anchors the edit box.

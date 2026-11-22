@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.13",
+		date = "2026-11-22",
+		changes = {
+			"Fix the edit box losing its style: NineSlice was alpha'd before SetBackdrop - the backdrop draws through NineSlice, so the raised fill/border never rendered (transparent bar with gold focus brackets). The watchdog now also retries styling for late-created edit boxes and re-hides the header chrome every tick.",
+		},
+		changesDE = {
+			"Editbox-Style repariert: NineSlice wurde vor SetBackdrop auf Alpha 0 gesetzt - das Backdrop zeichnet ueber die NineSlice, also wurden Fuellung und Rahmen nie gerendert (durchscheinender Balken mit goldenen Fokus-Winkeln). Der Watchdog holt das Styling fuer spaet erzeugte Editboxen nach und versteckt den Header-Chrome jeden Tick erneut.",
+		},
+	},
+	{
 		version = "0.2.12",
 		date = "2026-11-22",
 		changes = {

@@ -435,18 +435,30 @@ local function FindEditBox(frame)
 	return eb
 end
 
+-- Blizzard re-shows the header/focus chrome on every UpdateHeader pass -
+-- the watchdog re-hides it each tick, this is the one-time part
+local function HideEditBoxChrome(eb, name)
+	for _, k in ipairs({ "Left", "Mid", "Right", "FocusLeft", "FocusMid", "FocusRight" }) do
+		local t = (name and _G[name .. "EditBox" .. k]) or eb[k]
+		if t then t:SetAlpha(0) end
+	end
+end
+
 function Core.StyleEditBox(frame)
 	local name = frame.GetName and frame:GetName()
 	local eb = FindEditBox(frame)
 	if not eb or eb.suiStyled then return end
 	eb.suiStyled = true
-	for _, k in ipairs({ "Left", "Mid", "Right", "FocusLeft", "FocusMid", "FocusRight" }) do
-		local t = (name and _G[name .. "EditBox" .. k]) or eb[k]
-		if t then t:SetAlpha(0) end
-	end
-	if eb.NineSlice then eb.NineSlice:SetAlpha(0) end
+	HideEditBoxChrome(eb, name)
 	if not eb.SetBackdrop and BackdropTemplateMixin then Mixin(eb, BackdropTemplateMixin) end
-	S.Template(eb, "raised")
+	if eb.SetBackdrop then
+		S.Template(eb, "raised")
+		-- SetBackdrop draws through NineSlice: it must stay visible or the
+		-- whole fill/border disappears and the bar looks transparent
+		if eb.NineSlice then eb.NineSlice:SetAlpha(1) end
+	elseif eb.NineSlice then
+		eb.NineSlice:SetAlpha(0)
+	end
 	if eb.SetAltArrowKeyMode then eb:SetAltArrowKeyMode(false) end
 	-- no OnShow/OnEditFocusGained hooks and no ChatEdit_UpdateHeader
 	-- hook: both fire inside the Enter/click dispatch right before
@@ -1026,6 +1038,10 @@ function Core.Enable(mod)
 						if f:IsShown() then shown = shown + 1 end
 						local eb = FindEditBox(f)
 						if eb then
+							if not eb.suiStyled then
+								S.SafeCall("chat:ebstyle", Core.StyleEditBox, f)
+							end
+							HideEditBoxChrome(eb, f.GetName and f:GetName())
 							ApplyEditBoxColor(eb)
 							if Core.leftPanel and eb:IsShown() then
 								local ok, _, relTo = pcall(eb.GetPoint, eb, 1)
