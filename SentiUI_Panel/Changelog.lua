@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.21",
+		changes = {
+			"Event-bus de-taint: the client fires window-data events (durability, equipment/ilvl, spells/talents, friends/guild, quests, tradeskill/AH, mail, bags, money/xp/honor, tracking) INSIDE the window-open or input dispatch - a handler running there taints the dispatch and the client's secret status-bar compare right after fails with 'execution tainted by SentiUI_Panel' (the 16x TextStatusBar error on pressing C). Those events are now polled on a 1.5s ticker; arg-carrying events (UNIT_*, TIME_PLAYED_MSG, layer protocol) stay event-driven.",
+		},
+		changesDE = {
+			"Event-Bus ent-taintet: Der Client feuert Fensterdaten-Events (Haltbarkeit, Ausruestung/Itemlevel, Zauber/Talente, Freunde/Gilde, Quests, Beruf/AH, Post, Taschen, Geld/XP/Ehre, Tracking) INNERHALB des Fenster-Oeffnungs- oder Input-Dispatch - ein dort laufender Handler taintet den Dispatch und der Secret-Statusbar-Vergleich des Clients danach schlaegt fehl ('execution tainted by SentiUI_Panel' - der 16x-TextStatusBar-Fehler beim Druecken von C). Diese Events werden jetzt auf einem 1,5s-Ticker gepollt; arg-tragende Events (UNIT_*, TIME_PLAYED_MSG, Layer-Protokoll) bleiben eventbasiert.",
+		},
+	},
+
+	{
 		version = "0.5.20",
 		changes = {
 			"Blacklist window joins the combat deferral: opening it mid-combat queues for after the fight with a chat note, and an open window hides on combat start and returns after (core S:CombatDeferWindow).",

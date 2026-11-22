@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.21
+
+- Event-bus de-taint: the client fires window-data events (durability, equipment/ilvl, spells/talents, friends/guild, quests, tradeskill/AH, mail, bags, money/xp/honor, tracking) INSIDE the window-open or input dispatch - a handler running there taints the dispatch and the client's secret status-bar compare right after fails with 'execution tainted by SentiUI_Panel' (the 16x TextStatusBar error on pressing C). Those events are now polled on a 1.5s ticker; arg-carrying events (UNIT_*, TIME_PLAYED_MSG, layer protocol) stay event-driven.
+
 ## 0.5.20
 
 - Blacklist window joins the combat deferral: opening it mid-combat queues for after the fight with a chat note, and an open window hides on combat start and returns after (core S:CombatDeferWindow).

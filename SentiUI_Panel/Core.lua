@@ -413,7 +413,58 @@ bus:SetScript("OnEvent", function(_, event, ...)
 	for i = 1, #list do S.SafeCall("panel:" .. event, list[i], event, ...) end
 end)
 
+-- Events the client fires INSIDE a window-open or input dispatch (character
+-- sheet, spellbook, guild/friends, questlog, tradeskill, AH, mail, bags,
+-- loot/money, minimap tracking). Our handler running there taints the
+-- dispatch - the client's secret compares/protected calls right after get
+-- "execution tainted by 'SentiUI_Panel'". These events are polled on a
+-- 1.5s ticker instead - the handlers only repaint plugin text anyway, and
+-- PLAYER_ENTERING_WORLD stays event-driven for the initial fill.
+local POLL_EVENTS = {
+	UPDATE_INVENTORY_DURABILITY = true, PLAYER_EQUIPMENT_CHANGED = true,
+	PLAYER_AVG_ITEM_LEVEL_UPDATE = true,
+	SPELLS_CHANGED = true, PLAYER_SPECIALIZATION_CHANGED = true,
+	ACTIVE_TALENT_GROUP_CHANGED = true, PLAYER_PVP_RANK_CHANGED = true,
+	FRIENDLIST_UPDATE = true, BN_FRIEND_INFO_CHANGED = true,
+	GUILD_ROSTER_UPDATE = true, PLAYER_GUILD_UPDATE = true,
+	UPDATE_FACTION = true,
+	QUEST_LOG_UPDATE = true, QUEST_ACCEPTED = true, QUEST_REMOVED = true,
+	UPDATE_PENDING_MAIL = true, MAIL_INBOX_UPDATE = true,
+	TRADE_SKILL_SHOW = true, TRADE_SKILL_CLOSE = true,
+	NEW_RECIPE_LEARNED = true,
+	AUCTION_HOUSE_SHOW = true, AUCTION_HOUSE_CLOSED = true,
+	UPDATE_INSTANCE_INFO = true,
+	BAG_UPDATE = true, BAG_UPDATE_DELAYED = true,
+	UNIT_INVENTORY_CHANGED = true, BAG_UPDATE_COOLDOWN = true,
+	PLAYER_MONEY = true, PLAYER_XP_UPDATE = true, UPDATE_EXHAUSTION = true,
+	HONOR_XP_UPDATE = true, HEARTHSTONE_BOUND = true,
+	MINIMAP_UPDATE_TRACKING = true,
+}
+local pollBuckets, pollFrame
+
 function ns.RegisterBusEvent(event, fn)
+	if POLL_EVENTS[event] then
+		local list = pollBuckets and pollBuckets[event]
+		if not list then
+			list = {}
+			pollBuckets = pollBuckets or {}
+			pollBuckets[event] = list
+		end
+		list[#list + 1] = fn
+		if not pollFrame then
+			pollFrame = CreateFrame("Frame")
+			local t = 0
+			pollFrame:SetScript("OnUpdate", function(_, dt)
+				t = t + dt
+				if t < 1.5 then return end
+				t = 0
+				for ev, l in pairs(pollBuckets) do
+					for i = 1, #l do S.SafeCall("poll:" .. ev, l[i], ev) end
+				end
+			end)
+		end
+		return
+	end
 	local list = buckets[event]
 	if not list then
 		list = {}
