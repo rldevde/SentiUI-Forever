@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.26",
+		date = "2026-11-22",
+		changes = {
+			"New bottom-bar plugin \"AccountInfo\": shows total account gold and character count from the SentiUI_AccountInfo module; click opens its window, the menu lists the richest characters and offers a rescan.",
+		},
+		changesDE = {
+			"Neues Bottom-Bar-Plugin \"AccountInfo\": zeigt Gesamtgold und Charakteranzahl aus dem SentiUI_AccountInfo-Modul; Klick öffnet das Fenster, das Menü listet die reichsten Charaktere und bietet einen Rescan.",
+		},
+	},
+	{
 		version = "0.5.25",
 		date = "2026-11-22",
 		changes = {

@@ -459,3 +459,10 @@ L["Add guild to good list"] = "Gilde zur Good List hinzufügen"
 L["Remove guild from good list"] = "Gilde von der Good List entfernen"
 L["Added %s"] = "%s hinzugefügt"
 L["Removed %s"] = "%s entfernt"
+
+-- AccountInfo plugin
+L["Module not loaded"] = "Modul nicht geladen"
+L["Characters"] = "Charaktere"
+L["Total gold"] = "Gesamtgold"
+L["Click: open window"] = "Klick: Fenster öffnen"
+L["Rescan now"] = "Jetzt neu scannen"

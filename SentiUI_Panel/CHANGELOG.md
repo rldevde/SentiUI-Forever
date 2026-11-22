@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.26 - 2026-11-22
+
+- New bottom-bar plugin "AccountInfo": shows total account gold and character count from the SentiUI_AccountInfo module; click opens its window, the menu lists the richest characters and offers a rescan.
+
 ## 0.5.25 - 2026-11-22
 
 - New 'Professions' plugin (bottom bar): shows the first learned profession with icon, name and rank; a click opens the professions menu listing every learned profession with its skill level (rank/max) - clicking one opens the game's profession window via C_TradeSkillUI.OpenTradeSkill (works from a click, even in combat). Hides itself while no profession is learned.
