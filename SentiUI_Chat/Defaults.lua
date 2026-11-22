@@ -11,6 +11,7 @@ ns.DEFAULTS = {
 	panelTransparency = true,      -- shade fades out fully at the top
 	panelBackdrop = "SHOWBOTH",    -- "SHOWBOTH" | "LEFT" | "RIGHT" | "HIDEBOTH"
 	rightPanelEnable = true,       -- second panel for an undocked "Loot" tab
+	lootChat = true,               -- auto-create a loot-only window in the right panel
 
 	-- fonts
 	fontSize = 12,

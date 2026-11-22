@@ -66,6 +66,8 @@ ns.OPTIONS = {
 							order = { "SHOWBOTH", "LEFT", "RIGHT", "HIDEBOTH" } },
 						{ type = "toggle", key = "rightPanelEnable", label = L["Right panel"],
 							desc = L["A second panel for an undocked Loot chat tab."] },
+						{ type = "toggle", key = "lootChat", label = L["Loot chat window"],
+							desc = L["Creates a Loot chat window with only loot, money and gain messages and docks it in the right panel."] },
 						{ type = "button", label = L["Move frames"], text = L["Unlock"],
 							func = function() SentiUI.Movers.SetUnlocked(true) end },
 					},

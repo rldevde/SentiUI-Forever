@@ -9,6 +9,9 @@ accent-colored tab underlines and a borderless edit box.
 - **Panels** - a movable shade behind the left chat dock and an optional
   right panel for an undocked Loot tab. Width, height, top fade and which
   panels show are configurable.
+- **Loot chat** - a chat window named *Loot* is created automatically and
+  docked in the right panel, stripped down to loot, money and gain
+  messages only. Toggle it under *Chat > Panels > Loot chat window*.
 - **Tabs** - Blizzard tab textures stripped, accent underline under the
   active tab, accent text on the selected frame.
 - **Edit box** - borderless, sits above or below the chat panel and

@@ -674,6 +674,79 @@ function Core.StyleChatFrame(frame)
 	end)
 end
 
+-- loot chat -------------------------------------------------------------------
+-- a dedicated chat window for loot, money and gain messages, docked in the
+-- right panel: created on demand and stripped down to its own message
+-- groups. IsRightChat below already docks every undocked "Loot" window.
+local LOOT_EVENTS = {
+	CHAT_MSG_LOOT = true, CHAT_MSG_MONEY = true, CHAT_MSG_CURRENCY = true,
+	CHAT_MSG_SKILL = true, CHAT_MSG_COMBAT_XP_GAIN = true,
+	CHAT_MSG_COMBAT_FACTION_CHANGE = true, CHAT_MSG_ACHIEVEMENT = true,
+	CHAT_MSG_COMBAT_HONOR_GAIN = true, CHAT_MSG_GUILD_ITEM_LOOTED = true,
+}
+local LOOT_GROUPS = { LOOT = 1, MONEY = 1, CURRENCY = 1, SKILL = 1,
+	ACHIEVEMENT = 1, COMBAT_XP_GAIN = 1, COMBAT_FACTION_CHANGE = 1,
+	COMBAT_HONOR_GAIN = 1, GUILD_ITEM_LOOTED = 1 }
+
+local function LootChatLabel()
+	return _G.LOOT or "Loot"
+end
+
+local function FindLootWindow()
+	for i = 1, (NUM_CHAT_WINDOWS or 10) do
+		local f = _G["ChatFrame" .. i]
+		local tab = _G["ChatFrame" .. i .. "Tab"]
+		local text = tab and (tab.Text or _G[tab:GetName() .. "Text"])
+		local label = text and text:GetText()
+		if f and label and not IsSecret(label)
+			and (label == LootChatLabel() or label == "Loot" or label == "Beute") then
+			return f
+		end
+	end
+end
+
+local function ConfigLootWindow(f)
+	if ChatFrame_RemoveAllMessageGroups then
+		pcall(ChatFrame_RemoveAllMessageGroups, f)
+	end
+	if not (ChatTypeGroup and ChatFrame_AddMessageGroup) then return end
+	for gname, evs in pairs(ChatTypeGroup) do
+		-- named groups always count; unnamed ones only when every event in
+		-- them is a loot event, so nothing unrelated leaks into the window
+		local want = LOOT_GROUPS[gname] and true or false
+		if not want and type(evs) == "table" then
+			want = #evs > 0
+			for _, ev in ipairs(evs) do
+				if not LOOT_EVENTS[ev] then want = false break end
+			end
+		end
+		if want then pcall(ChatFrame_AddMessageGroup, f, gname) end
+	end
+end
+
+function Core.EnsureLootChat()
+	if not (db and db.lootChat) or InCombatLockdown() then return end
+	local f = FindLootWindow()
+	if not f and FCF_OpenNewWindow then
+		pcall(FCF_OpenNewWindow, LootChatLabel())
+		f = FindLootWindow()
+	end
+	if not f then return end
+	if not f.suiLootConfig then
+		f.suiLootConfig = true
+		S.SafeCall("chat:lootcfg", ConfigLootWindow, f)
+	end
+	-- only an undocked window moves into the right panel
+	if f.isDocked and FCF_UnDockFrame then
+		S.SafeCall("chat:undock", FCF_UnDockFrame, f)
+	end
+	if not db.rightPanelEnable then
+		db.rightPanelEnable = true
+		Core.UpdatePanels()
+	end
+	Core.PositionChat()
+end
+
 function Core.IsRightChat(frame)
 	if not db.rightPanelEnable then return false end
 	local fname = frame.GetName and frame:GetName()
@@ -992,6 +1065,9 @@ function Core.SettingChanged(mod, path)
 
 	if path == "classColorMentions" and db.classColorMentions then Core.SetupClassColors() end
 	if path == "keywords" then Core.UpdateKeywords() return end
+	if path == "lootChat" or path == "rightPanelEnable" then
+		S.SafeCall("chat:lootwin", Core.EnsureLootChat)
+	end
 	Core.Update()
 end
 
@@ -1031,6 +1107,9 @@ function Core.Enable(mod)
 	end
 	S.RegisterEvent("PLAYER_ENTERING_WORLD", function()
 		C_Timer.After(1, function() S.SafeCall("chat:pew", Core.PositionChat) end)
+		-- chat windows settle a moment after login; the loot window is
+		-- created and docked once they exist
+		C_Timer.After(2, function() S.SafeCall("chat:lootwin", Core.EnsureLootChat) end)
 	end)
 	-- instant snap-back: whenever Blizzard's own positioning pass re-anchors
 	-- ChatFrame1 (dock updates, managed-frame pushes on level-up banners),

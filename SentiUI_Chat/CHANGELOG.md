@@ -1,5 +1,9 @@
 # SentiUI Chat
 
+## 0.2.17 - 2026-11-22
+
+- New 'Loot chat window' option (on by default): a chat window named Loot is created automatically, stripped to loot, money and gain message groups only, and docked in the right panel - before, nothing ever created that window, so the right panel stayed empty.
+
 ## 0.2.16 - 2026-11-22
 
 - Chat panels and the docked chat now re-run their sizing pass on DISPLAY_SIZE_CHANGED and UI_SCALE_CHANGED - before, a resolution or UI-scale change left the chat at its stale size until a manual resize.

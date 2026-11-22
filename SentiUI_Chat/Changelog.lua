@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.17",
+		date = "2026-11-22",
+		changes = {
+			"New 'Loot chat window' option (on by default): a chat window named Loot is created automatically, stripped to loot, money and gain message groups only, and docked in the right panel - before, nothing ever created that window, so the right panel stayed empty.",
+		},
+		changesDE = {
+			"Neue Option 'Beute-Chatfenster' (an): ein Chatfenster namens Beute wird automatisch erstellt, auf Beute-, Geld- und Gewinn-Meldungsgruppen beschraenkt und im rechten Panel angedockt - vorher legte nichts dieses Fenster an, das rechte Panel blieb leer.",
+		},
+	},
+	{
 		version = "0.2.16",
 		date = "2026-11-22",
 		changes = {
