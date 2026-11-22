@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.8
+
+- Compile fix: a slot-parser loop assigned to its loop variable (LuaJIT const-assign error) - Page.lua failed to load. Uses a local instead.
+
 ## 0.1.7
 
 - Journal window joins the combat deferral: opening it mid-combat queues for after the fight with a chat note, and an open window hides on combat start and returns after (core S:CombatDeferWindow).

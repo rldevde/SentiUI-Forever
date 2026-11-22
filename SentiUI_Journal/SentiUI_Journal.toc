@@ -3,7 +3,7 @@
 ## Title: SentiUI Journal |cffebad33Compendium|r
 ## Notes: Dungeon compendium - bosses, quests, maps and loot.
 ## Author: Senti
-## Version: 0.1.7
+## Version: 0.1.8
 ## X-Category: Interface
 ## RequiredDeps: SentiUI
 ## SavedVariables: SentiUIJournalDB

@@ -932,9 +932,9 @@ end
 function Core.UpdateKeywords()
 	Core.keywords = {}
 	for word in (db.keywords or ""):gmatch("[^,]+") do
-		word = strtrim(word)
-		if word == "%MYNAME%" then word = UnitName("player") or word end
-		if word ~= "" then tinsert(Core.keywords, word) end
+		local w = strtrim(word)
+		if w == "%MYNAME%" then w = UnitName("player") or w end
+		if w ~= "" then tinsert(Core.keywords, w) end
 	end
 end
 

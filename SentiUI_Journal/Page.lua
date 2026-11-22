@@ -88,9 +88,9 @@ local function LocSlot(slot)
 	end
 	local out = {}
 	for part in tostring(slot):gmatch("[^,]+") do
-		part = strtrim(part)
-		out[#out + 1] = (c.slotParts and c.slotParts[part])
-			or (c.replacements and c.replacements[part]) or part
+		local p = strtrim(part)
+		out[#out + 1] = (c.slotParts and c.slotParts[p])
+			or (c.replacements and c.replacements[p]) or p
 	end
 	return table.concat(out, ", ")
 end

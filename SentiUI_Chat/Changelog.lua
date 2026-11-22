@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.11",
+		changes = {
+			"Compile fix: UpdateKeywords assigned to the for-loop variable, which LuaJIT rejects as a const assign - the whole Chat.lua failed to load. Loop variable is now shadowed by a local.",
+		},
+		changesDE = {
+			"Compile-Fix: UpdateKeywords wies der Schleifenvariable zu, was LuaJIT als Const-Assign ablehnt - die ganze Chat.lua lud nicht. Die Schleifenvariable ist jetzt ein lokales Shadowing.",
+		},
+	},
+
+	{
 		version = "0.2.10",
 		changes = {
 			"Chat copy window: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.",

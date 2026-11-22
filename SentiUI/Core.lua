@@ -412,9 +412,12 @@ S.RegisterEvent("PLAYER_LOGIN", function()
 				if combatLock() then
 					if not d.queued then
 						d.queued = true
+						local a = { n = select("#", ...), ... }
 						pendingToggles[#pendingToggles + 1] = {
 							def = d,
-							run = function() return orig(...) end,
+							run = function()
+								return orig((unpack or table.unpack)(a, 1, a.n))
+							end,
 							skip = function() return not toggleStillClosed(d) end,
 						}
 						noteDeferred(d.label)

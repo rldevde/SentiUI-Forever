@@ -25,6 +25,16 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.3.16",
+		changes = {
+			"Compile fix: the combat-deferral entry used '...' inside a non-vararg function - LuaJIT rejects the whole file at load, so the entire core (and with it every module) failed to initialize. LuaJIT now compiles the suite clean; a full compile sweep also caught the same class of bug in Journal, Chat, SentiLayer and My-Social.",
+		},
+		changesDE = {
+			"Compile-Fix: Der Combat-Deferral-Eintrag nutzte '...' in einer Nicht-Vararg-Funktion - LuaJIT lehnt die ganze Datei beim Laden ab, der komplette Core (und damit jedes Modul) startete nicht. LuaJIT kompiliert die Suite jetzt sauber; ein Komplett-Sweep fand denselben Fehlertyp in Journal, Chat, SentiLayer und My-Social.",
+		},
+	},
+
+	{
 		version = "0.3.15",
 		changes = {
 			"Combat deferral, full coverage: ShowUIPanel, HideUIPanel and ToggleFrame join the queued path, so micro-menu buttons and every other open path defer in combat too (deduped per frame - a double ToggleFrame would undo itself). Every suite window is now flagged for combat deferral: BugSack, Character, Messenger hub/card/copy, bags+bank and the chat copy window join settings, blacklist, training and journal - they defer their open, hide on combat start and return after.",

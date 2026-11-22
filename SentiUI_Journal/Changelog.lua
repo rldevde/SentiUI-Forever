@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.8",
+		changes = {
+			"Compile fix: a slot-parser loop assigned to its loop variable (LuaJIT const-assign error) - Page.lua failed to load. Uses a local instead.",
+		},
+		changesDE = {
+			"Compile-Fix: Eine Slot-Parser-Schleife wies ihrer Schleifenvariable zu (LuaJIT-Const-Assign-Fehler) - Page.lua lud nicht. Nutzt jetzt ein Local.",
+		},
+	},
+
+	{
 		version = "0.1.7",
 		changes = {
 			"Journal window joins the combat deferral: opening it mid-combat queues for after the fight with a chat note, and an open window hides on combat start and returns after (core S:CombatDeferWindow).",

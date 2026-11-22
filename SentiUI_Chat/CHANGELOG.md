@@ -1,5 +1,9 @@
 # SentiUI Chat
 
+## 0.2.11
+
+- Compile fix: UpdateKeywords assigned to the for-loop variable, which LuaJIT rejects as a const assign - the whole Chat.lua failed to load. Loop variable is now shadowed by a local.
+
 ## 0.2.10
 
 - Chat copy window: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.
