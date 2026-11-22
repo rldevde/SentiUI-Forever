@@ -611,7 +611,15 @@ function K.Toggle()
 	end
 end
 
--- reopening rebuilds the groups: freshly learned spells move sections
-S.RegisterEvent("SPELLS_CHANGED", function()
+-- reopening rebuilds the groups: freshly learned spells move sections.
+-- SPELLS_CHANGED can fire inside the keybind dispatch that opens the
+-- spellbook (K in combat) - a handler running there taints the client's
+-- protected FrameShow right after, so the event is only registered while
+-- our window is actually shown and needs the refresh
+local spellEv = CreateFrame("Frame")
+spellEv:SetScript("OnEvent", function()
 	if K.frame and K.frame:IsShown() then K.Refresh() end
 end)
+S.WatchShown(function() return K.frame end,
+	function() pcall(spellEv.RegisterEvent, spellEv, "SPELLS_CHANGED") end,
+	function() pcall(spellEv.UnregisterEvent, spellEv, "SPELLS_CHANGED") end)

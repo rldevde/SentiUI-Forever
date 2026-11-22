@@ -1,4 +1,5 @@
 local _, ns = ...
+local S = SentiUI
 
 -- class trainer data core: ns.Training (T) holds the vendored class
 -- tables plus the lookup/categorize helpers. The Data\Training*.lua
@@ -260,12 +261,20 @@ if C_EventUtils and C_EventUtils.IsEventValid
 	and not C_EventUtils.IsEventValid("CRAFT_UPDATE") then
 	-- client without the beast-training craft API: nothing to scan
 elseif GetNumCrafts then
-	-- CRAFT_UPDATE fires inside the craft-window dispatch - the same one
-	-- whose CooldownFrame compares secret numbers when addon Lua ran in it;
-	-- the scan runs a frame later instead
-	S.RegisterEvent("CRAFT_UPDATE", function()
-		C_Timer.After(0, scanPetCraft)
-	end)
+	-- CRAFT_UPDATE fires inside the craft-window dispatch - addon Lua
+	-- running there taints the client's protected FrameShow/secret work
+	-- right after. The scan already defers a frame, and the event is only
+	-- registered while the craft window is actually open, so pressing the
+	-- keybind in combat cannot dispatch our handler at all
+	local craftEv = CreateFrame("Frame")
+	craftEv:SetScript("OnEvent", function() C_Timer.After(0, scanPetCraft) end)
+	if _G.CraftFrame then
+		S.WatchShown(_G.CraftFrame,
+			function() pcall(craftEv.RegisterEvent, craftEv, "CRAFT_UPDATE") end,
+			function() pcall(craftEv.UnregisterEvent, craftEv, "CRAFT_UPDATE") end)
+	else
+		pcall(craftEv.RegisterEvent, craftEv, "CRAFT_UPDATE")
+	end
 end
 
 ------------------------------------------------------------

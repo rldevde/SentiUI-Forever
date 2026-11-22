@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.7",
+		changes = {
+			"Forbidden-call fix for the K keybind in combat: SPELLS_CHANGED and CRAFT_UPDATE can fire inside the keybind/craft-window dispatch that opens the spellbook - a handler executing there taints the client's protected FrameShow call right after. Both events are now only registered while their window is actually open via the polled WatchShown watcher, so the handler cannot run inside the input dispatch at all.",
+		},
+		changesDE = {
+			"Forbidden-Call-Fix fuer die Taste K im Kampf: SPELLS_CHANGED und CRAFT_UPDATE koennen innerhalb des Tasten-/Craft-Dispatch feuern, der das Zauberbuch oeffnet - ein dort laufender Handler taintet den direkt folgenden geschuetzten FrameShow-Aufruf des Clients. Beide Events sind jetzt nur noch registriert, solange ihr Fenster tatsaechlich offen ist (gepollter WatchShown-Waechter) - der Handler kann im Input-Dispatch gar nicht mehr laufen.",
+		},
+	},
+
+	{
 		version = "0.2.6",
 		changes = {
 			"Interface-dispatch audit: the profession scan on CRAFT_UPDATE runs a frame outside the craft-window dispatch - the same dispatch family whose secret cooldown compare broke before.",
