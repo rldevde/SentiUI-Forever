@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.17",
+		date = "2026-11-22",
+		changes = {
+			"Fix the 'forbidden call' spam in combat: the 2s mouse-unblock sweep touched protected children inside parked Blizzard bars (EnableMouse is forbidden mid-fight) and got blamed on SentiUI. The sweep and KillMouseDeep now skip while in combat; the next tick after REGEN catches up.",
+		},
+		changesDE = {
+			"Fix: 'forbidden call'-Spam im Kampf - der 2s-Maus-Sweep beruehrte geschuetzte Kinder in geparkten Blizzard-Leisten (EnableMouse ist im Kampf verboten) und wurde SentiUI angelastet. Der Sweep und KillMouseDeep ueberspringen jetzt den Kampf; der naechste Tick nach REGEN holt auf.",
+		},
+	},
+	{
 		version = "0.3.16",
 		date = "2026-11-22",
 		changes = {

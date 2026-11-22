@@ -1,5 +1,9 @@
 # SentiUI Action Bars
 
+## 0.3.17 - 2026-11-22
+
+- Fix the 'forbidden call' spam in combat: the 2s mouse-unblock sweep touched protected children inside parked Blizzard bars (EnableMouse is forbidden mid-fight) and got blamed on SentiUI. The sweep and KillMouseDeep now skip while in combat; the next tick after REGEN catches up.
+
 ## 0.3.16 - 2026-11-22
 
 - Fix 'hide when empty' bars blinking on fresh characters: the bare SetShown fought the visibility state driver, which re-asserted 'show' and made the bar flicker every check tick. Empty bars now hide by unregistering the visibility driver and re-registering it when a slot gains an action; they also reappear while dragging a spell (ACTIONBAR_SHOWGRID) so they can receive drops.

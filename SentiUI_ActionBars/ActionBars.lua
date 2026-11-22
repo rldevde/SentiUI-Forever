@@ -973,6 +973,9 @@ end
 -- through the whole parked subtree; twins keep theirs (secure click
 -- targets, parked at screen center anyway).
 local function KillMouseDeep(f)
+	-- EnableMouse on a protected child of a parked Blizzard bar is a
+	-- forbidden call during combat lockdown; never run this in combat
+	if InCombatLockdown() then return end
 	if type(f) ~= "table" or f._sentiTwin then return end
 	if type(f.EnableMouse) == "function" then pcall(f.EnableMouse, f, false) end
 	if type(f.GetChildren) == "function" then
@@ -1258,7 +1261,13 @@ function Core.Enable(mod)
 			f = EnumerateFrames(f)
 		end
 	end
-	C_Timer.NewTicker(2, function() pcall(UnblockMouse) end)
+	-- not in combat: EnableMouse on protected Blizzard children (inside
+	-- parked bars / flyouts) is forbidden mid-fight and this sweep touches
+	-- the whole tree - the next tick after REGEN catches up
+	C_Timer.NewTicker(2, function()
+		if InCombatLockdown() then return end
+		pcall(UnblockMouse)
+	end)
 
 	-- /suibars foci: prints the mouse-enabled frames under the cursor so a
 	-- click blocker can be named instead of guessed
