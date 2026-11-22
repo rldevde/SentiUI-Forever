@@ -12,26 +12,32 @@ settings.
   can replace it). Messages, stacks and locals are kept.
 - **`LUA_WARNING`**
 - **`ADDON_ACTION_BLOCKED` / `ADDON_ACTION_FORBIDDEN`** — with the addon
-  name and the forbidden call; floods are throttled (max 10/s) and repeat
-  offenders are only recorded once per session.
+  name and the forbidden call; floods are throttled (max 10/s). Every
+  distinct addon+function pair gets its own entry, repeats only bump the
+  counter.
 
 Repeated messages collapse into one entry with an occurrence counter. The
-store keeps at most 500 errors and tracks a session number so "current
-session" and "previous session" stay meaningful across reloads.
+store keeps at most 500 errors and tracks a session number so the window
+can separate new errors from old ones across reloads.
 
 ## The window
 
 `/sbs` or `/bugsack` toggles it (also: SentiUI settings → BugSack →
 *Open BugSack*). It is a real SentiUI mover — drag it where you want it.
 
-- **Filters:** All / Current session / Previous session, plus a search
-  box that scans message, stack and locals.
-- **List:** errors grouped per addon, collapsible, sorted by count.
-- **Detail pane:** the selected error as plain text — click in,
-  Ctrl+A, Ctrl+C to copy a single report.
-- **Export:** *Export session* / *Export all* opens a select-all box with
-  the whole report formatted for the bug tracker.
-- **Wipe** clears the store (asks for confirmation).
+- **Views:** *Current session* is the default — only fresh errors. Older
+  sessions live in the **Archive** view as collapsible session groups
+  (session → addon → error), keeping the last 25 sessions. A search box
+  scans message, stack and locals across everything.
+- **List:** errors grouped per addon, collapsible, sorted by count; the
+  archive nests a session header above each addon group.
+- **Detail pane:** the selected error as plain text with a session and
+  timestamp meta line — click in, Ctrl+A, Ctrl+C to copy a single report.
+- **Export:** *Export* dumps the current view, *Export all* dumps the
+  whole store — a select-all box covering the whole content area,
+  formatted for the bug tracker.
+- **Wipe all errors** clears the store, **Clear archive** drops only the
+  archived sessions (both ask for confirmation).
 - Prev/next buttons walk the list; Escape closes.
 
 ## Reporting bugs

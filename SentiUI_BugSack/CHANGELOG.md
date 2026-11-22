@@ -1,5 +1,13 @@
 # Changelog — SentiUI BugSack
 
+## 0.2.0 - 2026-11-22
+
+- Reworked: the list now shows only the CURRENT session by default - older sessions live in the Archive view as collapsible session groups (session -> addon -> error) instead of cluttering the side list.
+- The archive keeps the last 25 sessions; older ones are pruned at load. A new Clear archive button empties it without touching the current session.
+- Capture fix: every distinct addon+function blocked call is its own entry now - previously only the FIRST blocked call per addon per session was recorded.
+- Guard against recursive capture so an error inside the grabber can no longer lock up the store.
+- Export overlay covers the whole content area and exports what the current view shows; detail pane now carries a session/timestamp meta line.
+
 ## 0.1.6
 
 - BugSack window: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.

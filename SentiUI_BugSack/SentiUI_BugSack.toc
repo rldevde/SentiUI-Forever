@@ -6,7 +6,7 @@
 ## Category: Sentinel
 ## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
 ## Author: xRL-Dev.de
-## Version: 0.1.6
+## Version: 0.2.0
 ## Dependencies: SentiUI
 ## SavedVariables: SentiUIBugSackDB
 ## LoadSavedVariablesFirst: 1

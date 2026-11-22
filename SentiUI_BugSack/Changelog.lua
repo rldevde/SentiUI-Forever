@@ -4,6 +4,24 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.0",
+		date = "2026-11-22",
+		changes = {
+			"Reworked: the list now shows only the CURRENT session by default - older sessions live in the Archive view as collapsible session groups (session -> addon -> error) instead of cluttering the side list.",
+			"The archive keeps the last 25 sessions; older ones are pruned at load. A new Clear archive button empties it without touching the current session.",
+			"Capture fix: every distinct addon+function blocked call is its own entry now - previously only the FIRST blocked call per addon per session was recorded.",
+			"Guard against recursive capture so an error inside the grabber can no longer lock up the store.",
+			"Export overlay covers the whole content area and exports what the current view shows; detail pane now carries a session/timestamp meta line.",
+		},
+		changesDE = {
+			"Überarbeitet: Die Liste zeigt standardmäßig nur die AKTUELLE Sitzung - ältere Sitzungen liegen einklappbar im Archiv (Sitzung -> Addon -> Fehler) statt die Seitenliste vollzumüllen.",
+			"Das Archiv behält die letzten 25 Sitzungen; ältere werden beim Laden verworfen. Ein neuer Archiv-leeren-Knopf leert es, ohne die aktuelle Sitzung anzufassen.",
+			"Erfassungs-Fix: Jede eindeutige Addon+Funktion-Kombi geblockter Aufrufe bekommt einen eigenen Eintrag - vorher wurde nur der ERSTE geblockte Aufruf pro Addon und Sitzung festgehalten.",
+			"Schutz vor rekursiver Erfassung: Ein Fehler im Grabber selbst kann den Speicher nicht mehr blockieren.",
+			"Das Export-Overlay deckt den kompletten Inhaltsbereich ab und exportiert die gerade sichtbare Ansicht; die Detailansicht zeigt jetzt eine Zeile mit Sitzung und Zeitstempel.",
+		},
+	},
+	{
 		version = "0.1.6",
 		changes = {
 			"BugSack window: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.",

@@ -14,6 +14,7 @@ local GetTime = GetTime
 local print = print
 
 local MAX_ERRORS = 500
+local MAX_SESSIONS = 25 -- archive keeps this many sessions, older drop at load
 local THROTTLE = 10
 
 local Grab = {}
@@ -31,6 +32,11 @@ if type(sv.errors) ~= "table" then sv.errors = {} end
 sv.session = sv.session + 1
 local db = sv.errors
 while #db > MAX_ERRORS do tremove(db, 1) end
+-- archive pruning: entries from sessions older than the keep window drop
+local cutoff = sv.session - MAX_SESSIONS
+for i = #db, 1, -1 do
+	if (db[i].session or 0) < cutoff then tremove(db, i) end
+end
 
 -- module settings, working even before the enable pass or when the module
 -- is disabled (ns.mod only exists after OnEnable runs)
@@ -54,11 +60,53 @@ end
 
 function Grab:GetErrorCount() return #db end
 
-function Grab:Reset()
-	wipe(sv.errors)
-	db = sv.errors
+-- errors from every session except the current one, oldest first
+function Grab:GetArchived()
+	local list = {}
+	for _, e in ipairs(db) do
+		if (e.session or 0) ~= sv.session then list[#list + 1] = e end
+	end
+	return list
+end
+
+-- session ids that still hold errors, newest first (excluding current)
+function Grab:GetSessions()
+	local seen, order = {}, {}
+	for _, e in ipairs(db) do
+		local id = e.session or 0
+		if id ~= sv.session and not seen[id] then
+			seen[id] = true
+			order[#order + 1] = id
+		end
+	end
+	table.sort(order, function(a, b) return a > b end)
+	return order
+end
+
+-- count + timestamp of the first error of a session (for archive headers)
+function Grab:GetSessionInfo(id)
+	local count, first
+	for _, e in ipairs(db) do
+		if e.session == id then
+			count = count + 1
+			if not first or (e.time or 0) < first then first = e.time end
+		end
+	end
+	return count or 0, first
+end
+
+function Grab:Reset(scope)
+	if scope == "archive" then
+		for i = #db, 1, -1 do
+			if (db[i].session or 0) ~= sv.session then tremove(db, i) end
+		end
+		S.Print(L["Archive cleared"])
+	else
+		wipe(sv.errors)
+		db = sv.errors
+		S.Print(L["All bugs wiped"])
+	end
 	if ns.Window then pcall(ns.Window.Refresh) end -- window errors must never feed the grabber loop
-	S.Print(L["All bugs wiped"])
 end
 
 -----------------------------------------------------------------------
@@ -239,10 +287,14 @@ do
 	local msgsAllowed = THROTTLE
 	local msgsAllowedLastTime = GetTime()
 	local lastWarning = 0
+	local capturing -- errors inside our own handler must not recurse
 	local function captureError(errorMessage, isSimple)
+		if capturing then return end
+		capturing = true
 		-- module turned off: hand the error back to whatever handler was
 		-- installed before us so nothing is silently swallowed
 		if Cfg().enabled == false then
+			capturing = nil
 			if ns.originalHandler then
 				return pcall(ns.originalHandler, errorMessage)
 			end
@@ -255,6 +307,7 @@ do
 				print(L["STOPPED - too many errors, capture throttled"])
 				lastWarning = GetTime()
 			end
+			capturing = nil
 			return
 		end
 		if msgsAllowed > THROTTLE then msgsAllowed = THROTTLE end
@@ -264,6 +317,7 @@ do
 		if issecretvalue(errorMessage)
 			or errorMessage:find("SentiUI_BugSack", nil, true) then
 			print("|cffebad33[BugSack]|r", errorMessage)
+			capturing = nil
 			return
 		end
 
@@ -297,22 +351,19 @@ do
 			end
 		end
 		Grab:ErrorCaptured(err, index)
+		capturing = nil
 	end
 
 	local frame = CreateFrame("Frame")
-	local badAddons = {}
 	frame:SetScript("OnEvent", function(_, event, arg1, arg2)
 		if event == "LUA_WARNING" then
 			captureError("LUA_WARNING: " .. tostring(arg2 or arg1 or ""), true)
 		else -- ADDON_ACTION_BLOCKED / ADDON_ACTION_FORBIDDEN
-			local name = arg1 or "<name>"
-			if not badAddons[name] then
-				badAddons[name] = true
-				-- not "simple": the event fires inside the blocked call, so
-				-- the stack pinpoints the call site (file.lua:line)
-				captureError(L["%s blocked from %s: %s"]:format(event, name,
-					arg2 or "<func>"))
-			end
+			-- not "simple": the event fires inside the blocked call, so the
+			-- stack pinpoints the call site. Every distinct addon+function
+			-- pair lands as its own entry - repeats only bump the counter.
+			captureError(L["%s blocked from %s: %s"]:format(event,
+				arg1 or "<name>", arg2 or "<func>"))
 		end
 	end)
 	frame:RegisterEvent("LUA_WARNING")
