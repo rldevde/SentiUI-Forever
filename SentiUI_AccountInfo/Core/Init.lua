@@ -109,6 +109,12 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 end)
 
 function ns:RegisterEvent(event, callback)
+	-- Some client flavours drop events (PLAYERBANKBAGSLOTS_CHANGED etc.);
+	-- registering them throws "unknown event" - validate first.
+	if C_EventUtils and C_EventUtils.IsEventValid
+		and not C_EventUtils.IsEventValid(event) then
+		return
+	end
 	local list = eventCallbacks[event]
 	if not list then
 		list = {}

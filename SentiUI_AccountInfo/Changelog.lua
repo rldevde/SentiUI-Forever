@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "1.5.1",
+		date = "2026-11-22",
+		changes = {
+			"No more 'unknown event' spam at login: RegisterEvent now validates via C_EventUtils.IsEventValid, so events this client dropped (PLAYERBANKBAGSLOTS_CHANGED, PLAYERREAGENTBANKSLOTS_CHANGED) are skipped quietly. Bank data still scans on BANKFRAME_OPENED.",
+		},
+		changesDE = {
+			"Kein 'unknown event'-Spam mehr beim Login: RegisterEvent validiert über C_EventUtils.IsEventValid - Events, die dieser Client nicht kennt (PLAYERBANKBAGSLOTS_CHANGED, PLAYERREAGENTBANKSLOTS_CHANGED), werden still übersprungen. Bankdaten werden weiterhin bei BANKFRAME_OPENED gescannt.",
+		},
+	},
+	{
 		version = "1.5.0",
 		date = "2026-11-22",
 		changes = {
