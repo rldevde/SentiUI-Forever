@@ -3,6 +3,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.9",
+		date = "2026-11-22",
+		changes = {
+			"Fix the close X (hub) and the card header buttons not clicking: the full-width drag strip covered them and won hit-testing. The strips now stop short of the button row.",
+		},
+		changesDE = {
+			"Fix: das X (Hub) und die Kopf-Buttons der Unterhaltungskarte ließen sich nicht klicken - der volle Drag-Streifen lag ueber ihnen und gewann den Hit. Die Streifen enden jetzt vor der Button-Reihe.",
+		},
+	},
+	{
 		version = "0.3.8",
 		date = "2026-11-22",
 		changes = {

@@ -1,5 +1,9 @@
 # SentiUI Messenger
 
+## 0.3.9 - 2026-11-22
+
+- Fix the close X (hub) and the card header buttons not clicking: the full-width drag strip covered them and won hit-testing. The strips now stop short of the button row.
+
 ## 0.3.8 - 2026-11-22
 
 - Fix sent messages appearing twice: sendTo echoes the line right away and the CHAT_MSG_WHISPER_INFORM event then added it a second time - INFORM lines that repeat the just-echoed text are now skipped.

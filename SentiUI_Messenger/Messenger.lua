@@ -501,9 +501,11 @@ local function BuildHub()
 	titleSub = S.Font(f, 10, C.textDim)
 	titleSub:SetPoint("LEFT", title, "RIGHT", 8, 0)
 
+	-- drag strip stops before the close button: on this client the strip
+	-- wins hit-testing over the header corner and the X dies under it
 	local drag = CreateFrame("Frame", nil, f)
 	drag:SetPoint("TOPLEFT")
-	drag:SetPoint("TOPRIGHT")
+	drag:SetPoint("TOPRIGHT", -36, 0)
 	drag:SetHeight(32)
 	drag:EnableMouse(true)
 	drag:RegisterForDrag("LeftButton")
@@ -717,9 +719,11 @@ local function BuildCard()
 	hairline:SetPoint("TOPLEFT", 10, -34)
 	hairline:SetPoint("TOPRIGHT", -10, -34)
 
+	-- drag strip stops before the header buttons (x > C B I): it would
+	-- cover them in hit-testing
 	local drag = CreateFrame("Frame", nil, f)
 	drag:SetPoint("TOPLEFT")
-	drag:SetPoint("TOPRIGHT")
+	drag:SetPoint("TOPRIGHT", -130, 0)
 	drag:SetHeight(34)
 	drag:EnableMouse(true)
 	drag:RegisterForDrag("LeftButton")
