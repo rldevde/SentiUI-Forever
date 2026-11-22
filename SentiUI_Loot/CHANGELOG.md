@@ -1,5 +1,11 @@
 # SentiUI Loot
 
+## 0.2.9 - 2026-11-22
+
+- Loot window stayed closed with leftovers: LOOT_CLOSED hid it blindly. A full bag ends the session with items still inside - the window now re-checks a frame later and stays open while anything remains.
+- Loot window icons could vanish: a secret icon return made SetTexture fail silently. Secret values are skipped and the icon falls back to C_Item.GetItemIconByID.
+- Fast and normal loot side by side: 'Always fast loot' now yields to your autoloot modifier - hold it to loot by hand, and the window gets a 'Loot all' button for manual sessions.
+
 ## 0.2.8 - 2026-11-22
 
 - The loot window now registers its mover at module enable, not on the first loot - before, it had no handle in move mode until you had looted once. The handle also only shows while the own loot window is enabled.

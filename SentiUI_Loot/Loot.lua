@@ -4,6 +4,7 @@
 local _, ns = ...
 local S = SentiUI
 local L = ns.L
+local W = S.Widgets
 local IsSecret = S.IsSecret
 
 local _G = _G
@@ -25,6 +26,11 @@ local function OnLootReady(_, autoloot)
 	local loot = db.fastLootAlways or autoloot
 		or (GetCVarBool and GetCVarBool("autoLootDefault"))
 	if not loot then return end
+	-- a held autoloot modifier drops back to the normal window, even in
+	-- "always" mode - the user picks the slots himself then
+	if db.fastLootAlways and IsModifiedClick and IsModifiedClick("AUTOLOOTTOGGLE") then
+		return
+	end
 	for i = (GetNumLootItems and GetNumLootItems() or 0), 1, -1 do
 		S.SafeCall("loot:slot", LootSlot, i)
 	end
@@ -515,16 +521,28 @@ local function SlotData(i)
 	if GetLootSlotInfo then
 		local ok, a, b, c, d, _, _, g = pcall(GetLootSlotInfo, i)
 		if ok then
-			icon, name, qty = a, b, c
+			-- any return can be secret on this client; a secret icon would
+			-- make SetTexture fail silently and the row shows nothing
+			if not IsSecret(a) then icon = a end
+			if not IsSecret(b) then name = b end
+			qty = c
 			if type(d) == "number" then quality = d end
 			quest = g
 		end
 	end
 	local link = GetLootSlotLink and GetLootSlotLink(i)
-	if link and GetItemInfo then
-		local q = select(3, GetItemInfo(link))
-		if type(q) == "number" then quality = q end
-		if not icon then icon = select(10, GetItemInfo(link)) end
+	if link then
+		if GetItemInfo then
+			local q = select(3, GetItemInfo(link))
+			if type(q) == "number" then quality = q end
+		end
+		if not icon and C_Item and C_Item.GetItemIconByID then
+			local ok, v = pcall(C_Item.GetItemIconByID, link)
+			if ok and not IsSecret(v) then icon = v end
+		end
+		if not icon and GetItemInfo then
+			icon = select(10, GetItemInfo(link))
+		end
 	end
 	return icon, name, qty, quality, quest, link
 end
@@ -604,6 +622,15 @@ local function BuildLootWindow()
 		pcall(CloseLoot)
 		lootWin:Hide()
 	end)
+	-- manual counterpart to fast loot: one click empties the window
+	local all = W.Button(lootWin, L["Loot all"], 76, 18)
+	all:SetPoint("BOTTOMRIGHT", -8, 6)
+	all:SetScript("OnClick", function()
+		for i = (GetNumLootItems and GetNumLootItems() or 0), 1, -1 do
+			S.SafeCall("loot:slot", LootSlot, i)
+		end
+	end)
+	lootWin.lootAll = all
 	-- the mover registers at build time so move mode knows the window even
 	-- before the first loot; the handle itself only shows while the own
 	-- loot window is enabled
@@ -623,7 +650,8 @@ local function UpdateLootWindow()
 		lootWin:Hide()
 		return
 	end
-	lootWin:SetHeight(34 + math.min(n, LOOT_ROWS_MAX) * LOOT_ROW_H + 8)
+	lootWin:SetHeight(34 + math.min(n, LOOT_ROWS_MAX) * LOOT_ROW_H + 8
+		+ (lootWin.lootAll and 26 or 0))
 	lootWin:Show()
 	for i = 1, math.min(n, LOOT_ROWS_MAX) do
 		local r = LootRow(i)
@@ -921,7 +949,12 @@ function Core.Enable(mod)
 		S.RegisterEvent(ev, QueueLootUpdate)
 	end
 	S.RegisterEvent("LOOT_CLOSED", function()
-		if lootWin and lootWin:IsShown() then lootWin:Hide() end
+		-- a full bag closes the loot session with items still in it; the
+		-- count is only settled a frame later. Re-run the window update:
+		-- leftovers keep it open, an empty corpse lets it close
+		C_Timer.After(0, function()
+			if db then S.SafeCall("loot:closed", UpdateLootWindow) end
+		end)
 	end)
 
 	-- the game's loot frame must stay out of the way while ours is

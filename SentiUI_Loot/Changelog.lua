@@ -2,6 +2,20 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.9",
+		date = "2026-11-22",
+		changes = {
+			"Loot window stayed closed with leftovers: LOOT_CLOSED hid it blindly. A full bag ends the session with items still inside - the window now re-checks a frame later and stays open while anything remains.",
+			"Loot window icons could vanish: a secret icon return made SetTexture fail silently. Secret values are skipped and the icon falls back to C_Item.GetItemIconByID.",
+			"Fast and normal loot side by side: 'Always fast loot' now yields to your autoloot modifier - hold it to loot by hand, and the window gets a 'Loot all' button for manual sessions.",
+		},
+		changesDE = {
+			"Beutefenster blieb bei Restbeute zu: LOOT_CLOSED versteckte es blind. Eine volle Tasche beendet den Vorgang mit Items im Fenster - es prueft jetzt einen Frame spaeter erneut und bleibt offen, solange etwas uebrig ist.",
+			"Beutefenster-Icons konnten verschwinden: ein geheimer Icon-Rueckgabewert liess SetTexture still fehlschlagen. Geheime Werte werden uebersprungen und das Icon faellt auf C_Item.GetItemIconByID zurueck.",
+			"Schnell- und Normalpluendern nebeneinander: 'Immer schnell pluendern' weicht jetzt dem Autoloot-Modifier - gedrueckt halten lootet von Hand, und das Fenster bekommt einen 'Alles pluendern'-Knopf.",
+		},
+	},
+	{
 		version = "0.2.8",
 		date = "2026-11-22",
 		changes = {

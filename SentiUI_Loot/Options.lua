@@ -24,7 +24,7 @@ ns.OPTIONS = {
 					items = {
 						{ type = "toggle", key = "fastLoot", label = L["Enable fast loot"] },
 						{ type = "toggle", key = "fastLootAlways", label = L["Always fast loot"],
-							desc = L["Loot instantly even without the autoloot modifier or cvar."] },
+							desc = L["Loot instantly even without the autoloot cvar. Holding your autoloot modifier loots normally instead."] },
 					},
 				},
 				{
