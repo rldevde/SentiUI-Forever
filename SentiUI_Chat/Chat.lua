@@ -705,14 +705,11 @@ local function FindLootWindow()
 	end
 end
 
-local function ConfigLootWindow(f)
-	if ChatFrame_RemoveAllMessageGroups then
-		pcall(ChatFrame_RemoveAllMessageGroups, f)
-	end
-	if not (ChatTypeGroup and ChatFrame_AddMessageGroup) then return end
+local function ForEachLootGroup(fn)
+	if not ChatTypeGroup then return end
 	for gname, evs in pairs(ChatTypeGroup) do
 		-- named groups always count; unnamed ones only when every event in
-		-- them is a loot event, so nothing unrelated leaks into the window
+		-- them is a loot event, so nothing unrelated gets touched
 		local want = LOOT_GROUPS[gname] and true or false
 		if not want and type(evs) == "table" then
 			want = #evs > 0
@@ -720,12 +717,37 @@ local function ConfigLootWindow(f)
 				if not LOOT_EVENTS[ev] then want = false break end
 			end
 		end
-		if want then pcall(ChatFrame_AddMessageGroup, f, gname) end
+		if want then fn(gname) end
+	end
+end
+
+local function ConfigLootWindow(f)
+	if ChatFrame_RemoveAllMessageGroups then
+		pcall(ChatFrame_RemoveAllMessageGroups, f)
+	end
+	if not ChatFrame_AddMessageGroup then return end
+	ForEachLootGroup(function(gname)
+		pcall(ChatFrame_AddMessageGroup, f, gname)
+	end)
+end
+
+-- the whole point of the split: loot lines belong to the loot window
+-- only, so every other chat window loses those message groups
+local function StripLootFromOthers(keep)
+	if not ChatFrame_RemoveMessageGroup then return end
+	for i = 1, (NUM_CHAT_WINDOWS or 10) do
+		local f = _G["ChatFrame" .. i]
+		if f and f ~= keep then
+			ForEachLootGroup(function(gname)
+				pcall(ChatFrame_RemoveMessageGroup, f, gname)
+			end)
+		end
 	end
 end
 
 function Core.EnsureLootChat()
-	if not (db and db.lootChat) or InCombatLockdown() then return end
+	if not (db and db.lootChat) then return end
+	if InCombatLockdown() then return S.RunOutOfCombat(Core.EnsureLootChat) end
 	local f = FindLootWindow()
 	if not f and FCF_OpenNewWindow then
 		pcall(FCF_OpenNewWindow, LootChatLabel())
@@ -736,6 +758,7 @@ function Core.EnsureLootChat()
 		f.suiLootConfig = true
 		S.SafeCall("chat:lootcfg", ConfigLootWindow, f)
 	end
+	S.SafeCall("chat:lootstrip", StripLootFromOthers, f)
 	-- only an undocked window moves into the right panel
 	if f.isDocked and FCF_UnDockFrame then
 		S.SafeCall("chat:undock", FCF_UnDockFrame, f)

@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.18",
+		date = "2026-11-22",
+		changes = {
+			"Loot lines now stay in the Loot window: every other chat window loses the loot, money and gain message groups - before, the same lines showed in the general chat and the Loot window at once.",
+		},
+		changesDE = {
+			"Beutezeilen bleiben jetzt im Beute-Fenster: Jedes andere Chatfenster verliert die Beute-, Geld- und Gewinn-Meldungsgruppen - vorher erschienen dieselben Zeilen im allgemeinen Chat und im Beute-Fenster zugleich.",
+		},
+	},
+	{
 		version = "0.2.17",
 		date = "2026-11-22",
 		changes = {

@@ -1,5 +1,9 @@
 # SentiUI Chat
 
+## 0.2.18 - 2026-11-22
+
+- Loot lines now stay in the Loot window: every other chat window loses the loot, money and gain message groups - before, the same lines showed in the general chat and the Loot window at once.
+
 ## 0.2.17 - 2026-11-22
 
 - New 'Loot chat window' option (on by default): a chat window named Loot is created automatically, stripped to loot, money and gain message groups only, and docked in the right panel - before, nothing ever created that window, so the right panel stayed empty.
