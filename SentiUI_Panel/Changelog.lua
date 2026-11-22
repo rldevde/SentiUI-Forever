@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.25",
+		date = "2026-11-22",
+		changes = {
+			"New 'Professions' plugin (bottom bar): shows the first learned profession with icon, name and rank; a click opens the professions menu listing every learned profession with its skill level (rank/max) - clicking one opens the game's profession window via C_TradeSkillUI.OpenTradeSkill (works from a click, even in combat). Hides itself while no profession is learned.",
+		},
+		changesDE = {
+			"Neues 'Berufe'-Plugin (untere Leiste): zeigt den ersten gelernten Beruf mit Symbol, Name und Fertigkeit; ein Klick oeffnet das Berufs-Menue mit allen gelernten Berufen samt Fertigkeitsstufe (Rang/Max) - ein Klick darauf oeffnet das Berufsfenster des Spiels ueber C_TradeSkillUI.OpenTradeSkill (geht per Klick, sogar im Kampf). Versteckt sich, solange kein Beruf gelernt ist.",
+		},
+	},
+	{
 		version = "0.5.24",
 		date = "2026-11-22",
 		changes = {

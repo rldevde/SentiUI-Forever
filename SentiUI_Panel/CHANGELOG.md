@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.25 - 2026-11-22
+
+- New 'Professions' plugin (bottom bar): shows the first learned profession with icon, name and rank; a click opens the professions menu listing every learned profession with its skill level (rank/max) - clicking one opens the game's profession window via C_TradeSkillUI.OpenTradeSkill (works from a click, even in combat). Hides itself while no profession is learned.
+
 ## 0.5.24 - 2026-11-22
 
 - Embedded ForeverBlackListed dialogs (note edit, removal request, sync accept) converted to the shared own dialog instead of StaticPopupDialogs entries; all panel windows now close on Escape via S.EscClosable. Both changes remove addon-written entries from game tables that the Escape dispatch reads in Lua - the source of the 'ADDON_ACTION_FORBIDDEN SpellStopCasting' blame.

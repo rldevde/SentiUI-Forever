@@ -19,7 +19,7 @@ SentiUI core.
   hide, plugin-specific actions)
 - Shift+drag a plugin: reorder inside a zone or move between bars
 
-## Plugins (31)
+## Plugins (32)
 
 Clock · Location/coords · Performance (fps/ms + addon memory) ·
 Played · Session (kills/gold/xp per hour) · Speed · Volume ·
@@ -28,7 +28,9 @@ Reputation (with watch-faction menu) · Spec · Item level ·
 Durability (merchant click = repair/sell junk) · Ammo · Soul shards ·
 Pet happiness · Timed buffs · PvP rank · Hearthstone · Gold
 (per-character totals) · Bags · Mail · Friends · Guild · Quests ·
-Saved raids · Auctions · Profession cooldowns · Kills · Layer
+Saved raids · Auctions · Profession cooldowns · Professions
+(click = menu with every learned profession + skill level, clicking
+one opens the profession window) · Kills · Layer
 (creature-GUID shard read, SentiLayer letters, click = open / swap) ·
 SentiUI brand
 
