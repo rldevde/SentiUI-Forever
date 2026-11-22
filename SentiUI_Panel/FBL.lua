@@ -2291,3 +2291,367 @@ function F.ToggleWindow()
 	local f = Window()
 	if f:IsShown() then f:Hide() else f:Show() F.RefreshWindow() end
 end
+
+
+-- unit right-click menus (ported from the standalone's Tooltip.lua) --------
+-- Adds "Add to Blacklist / good list / guild" entries to Blizzard unit
+-- menus on every backend this client exposes (Menu.ModifyMenu plus the
+-- classic UnitPopup). Skipped when the real ForeverBlackListed is
+-- installed - it registers the same entries itself.
+local MENU_TAGS = {
+	"MENU_UNIT_FRIEND",
+	"MENU_UNIT_TARGET",
+	"MENU_UNIT_PLAYER",
+	"MENU_UNIT_ENEMY_PLAYER",
+	"MENU_UNIT_PARTY",
+	"MENU_UNIT_RAID_PLAYER",
+	"MENU_UNIT_CHAT_ROSTER",
+	"MENU_UNIT_COMMUNITIES_GUILD_MEMBER",
+	"MENU_UNIT_COMMUNITIES_MEMBER",
+}
+local menuDone, menuClassic, modFired = false, false, false
+
+local function GetUnitNameRealm(unit)
+	local name, realm
+	if GetUnitName then
+		local ok, n, r = pcall(GetUnitName, unit)
+		if ok then name, realm = n, r end
+	end
+	if IsSecret(name) then name = nil end
+	if IsSecret(realm) then realm = nil end
+	return name, realm
+end
+
+local function IsPlayerUnit(unit)
+	if type(unit) ~= "string" or IsSecret(unit) then return false end
+	local ok, exists = pcall(UnitExists, unit)
+	if not ok or not exists or IsSecret(exists) then return false end
+	local okS, isSelf = pcall(UnitIsUnit, unit, "player")
+	if okS and isSelf then return false end
+	local okP, isPlayer = pcall(UnitIsPlayer, unit)
+	return okP and isPlayer and not IsSecret(isPlayer) or false
+end
+
+-- contextData fields can be secret values on this client - reading,
+-- comparing or even truth-testing them throws, which silently kills the
+-- menu entry. Normalize them to nil up front so every path stays plain.
+local function Plain(v)
+	if IsSecret(v) then return nil end
+	return v
+end
+
+-- resolves the right-clicked player: "First Last-Realm" target string +
+-- guild, from a menu contextData table (unit or name+server fields)
+local function MenuTarget(contextData)
+	local name, guild
+	local unit = Plain(contextData.unit)
+	if unit and IsPlayerUnit(unit) then
+		local nm, rlm = GetUnitNameRealm(unit)
+		name = rlm and nm and (nm .. "-" .. rlm) or nm
+		if GetGuildInfo then
+			local ok, g = pcall(GetGuildInfo, unit)
+			if ok and g and g ~= "" and not IsSecret(g) then guild = g end
+		end
+	else
+		local nm = Plain(contextData.name)
+		if type(nm) == "string" and nm ~= "" then
+			name = F.CleanName(nm)
+		end
+		local server = Plain(contextData.server)
+		if name and type(server) == "string" and server ~= "" then
+			name = name .. "-" .. server
+		end
+	end
+	return name, guild
+end
+
+-- shared toggle action for the description buttons and the fallback menu
+local function ToggleAction(kind, target, list, gname)
+	local nm, rlm = F.SplitNameRealm(target)
+	local e = F.FindEntry(kind, target)
+	if e and e.list == list then
+		F.RemoveEntry(e)
+		S.Print(format(L["Removed %s"], e.name))
+	elseif e then
+		if gname and not e.guild then e.guild = gname end
+		e.realm = rlm or e.realm
+		F.SetList(e, list)
+		S.Print(format(L["Added %s"], e.name) .. " (" .. (list == "good" and L["Good list"] or L["Blacklist"]) .. ")")
+		if F.RefreshWindow then F.RefreshWindow() end
+	else
+		F.PromptAdd(nm or target, kind, list, gname, rlm)
+	end
+end
+
+-- builds our entries onto a root description. Uses the Queue* variants
+-- when present so the same code works both inside a ModifyMenu callback
+-- (build time) and injected onto an already-open menu (rendered after
+-- the open menu is asked to invalidate).
+local function BuildMenuButtons(rootDescription, contextData)
+	local function Btn(text, fn)
+		if type(rootDescription.QueueButton) == "function" then
+			return rootDescription:QueueButton(text, fn)
+		end
+		return rootDescription:CreateButton(text, fn)
+	end
+	local function Div()
+		if type(rootDescription.QueueDivider) == "function" then
+			return rootDescription:QueueDivider()
+		end
+		return rootDescription:CreateDivider()
+	end
+	local function Title(text)
+		if type(rootDescription.QueueTitle) == "function" then
+			return rootDescription:QueueTitle(text)
+		end
+		return rootDescription:CreateTitle(text)
+	end
+
+	local name, guild = MenuTarget(contextData)
+	if not name then return end
+
+	if type(rootDescription.ClearQueuedDescriptions) == "function" then
+		rootDescription:ClearQueuedDescriptions()
+	end
+	Div()
+	Title("ForeverBlackListed")
+
+	local function Toggle(kind, target, list, addText, removeText, gname)
+		Btn(
+			(function()
+				local e = F.FindEntry(kind, target)
+				return (e and e.list == list) and removeText or addText
+			end)(),
+			function() ToggleAction(kind, target, list, gname) end)
+	end
+
+	Toggle("player", name, "black", L["Add to Blacklist"], L["Remove from Blacklist"], guild)
+	Toggle("player", name, "good", L["Add to good list"], L["Remove from good list"], guild)
+
+	-- "Blacklist in group ..." opens our own cursor menu (this client's
+	-- Menu API does not render nested descriptions as submenus)
+	local function GroupMenu(kind, target)
+		local label = kind == "guild" and L["Guild to blacklist in group ..."] or L["Blacklist in group ..."]
+		Btn(label, function()
+			local items = {}
+			for _, g in ipairs(F.Groups()) do
+				local gid, gname = g.id, g.name
+				tinsert(items, { text = gname, onClick = function()
+					local nm, rlm = F.SplitNameRealm(target)
+					local e = F.FindEntry(kind, nm)
+					if e then
+						e.realm = rlm or e.realm
+						if kind == "player" and guild and not e.guild then e.guild = guild end
+						F.SetGroup(e, gid)
+						F.SetList(e, "black")
+						S.Print(format(L["Added %s"], e.name) .. " (" .. gname .. ")")
+						if F.RefreshWindow then F.RefreshWindow() end
+					else
+						F.PromptAdd(nm, kind, "black", kind == "player" and guild or nil, rlm, gid)
+					end
+				end })
+			end
+			ns.OpenMenu(nil, items)
+		end)
+	end
+	GroupMenu("player", name)
+	if guild and F.CleanName(guild) then
+		Toggle("guild", guild, "black", L["Add guild to blacklist"], L["Remove guild from blacklist"])
+		Toggle("guild", guild, "good", L["Add guild to good list"], L["Remove guild from good list"])
+		GroupMenu("guild", guild)
+	end
+end
+
+local function AddMenuEntry(_, rootDescription, contextData)
+	modFired = true
+	if not (contextData and F.db) then return end
+	BuildMenuButtons(rootDescription, contextData)
+end
+
+-- compact fallback menu: our own OpenMenu docked under Blizzard's,
+-- used when the ModifyMenu modifier never fires on this client
+local function FallbackItems(ctx)
+	local name, guild = MenuTarget(ctx)
+	if not name then return nil end
+	local items = { { text = "ForeverBlackListed", isTitle = true } }
+	local function TI(kind, target, list, addText, removeText, gname)
+		local e = F.FindEntry(kind, target)
+		tinsert(items, {
+			text = (e and e.list == list) and removeText or addText,
+			onClick = function() ToggleAction(kind, target, list, gname) end,
+		})
+	end
+	TI("player", name, "black", L["Add to Blacklist"], L["Remove from Blacklist"], guild)
+	TI("player", name, "good", L["Add to good list"], L["Remove from good list"], guild)
+	if guild and F.CleanName(guild) then
+		TI("guild", guild, "black", L["Add guild to blacklist"], L["Remove guild from blacklist"])
+		TI("guild", guild, "good", L["Add guild to good list"], L["Remove guild from good list"])
+	end
+	return items
+end
+
+local function ClassicToggle(kind, target, list)
+	local nm, rlm = F.SplitNameRealm(target)
+	local e = F.FindEntry(kind, target)
+	if e and e.list == list then
+		F.RemoveEntry(e)
+		S.Print(format(L["Removed %s"], e.name))
+	elseif e then
+		F.SetList(e, list)
+		e.realm = rlm or e.realm
+		S.Print(format(L["Added %s"], e.name) .. " (" .. (list == "good" and L["Good list"] or L["Blacklist"]) .. ")")
+		if F.RefreshWindow then F.RefreshWindow() end
+	else
+		F.PromptAdd(nm or target, kind, list, nil, rlm)
+	end
+end
+
+local function RegisterClassicMenu()
+	if menuClassic or not (UnitPopupButtons and UnitPopupMenus) then return end
+	UnitPopupButtons["FBL_BLACK"] = { text = L["Add to Blacklist"], dist = 0 }
+	UnitPopupButtons["FBL_GOOD"] = { text = L["Add to good list"], dist = 0 }
+	for _, which in ipairs({ "FRIEND", "CHAT_ROSTER", "TARGET", "PLAYER", "PARTY", "RAID_PLAYER", "ENEMY_PLAYER" }) do
+		local menu = UnitPopupMenus[which]
+		if type(menu) == "table" then
+			tinsert(menu, "FBL_BLACK")
+			tinsert(menu, "FBL_GOOD")
+		end
+	end
+	if hooksecurefunc then
+		hooksecurefunc("UnitPopup_OnClick", function(btn)
+			local which = btn and btn.value
+			if (which ~= "FBL_BLACK" and which ~= "FBL_GOOD") or not F.db then return end
+			local dd = UIDROPDOWNMENU_OPEN_MENU or UIDROPDOWNMENU_INIT_MENU
+			if not dd then return end
+			local name, guild
+			local unit = dd.unit
+			if unit and IsPlayerUnit(unit) then
+				local nm, rlm = GetUnitNameRealm(unit)
+				name = rlm and nm and (nm .. "-" .. rlm) or nm
+				if GetGuildInfo then
+					local ok, g = pcall(GetGuildInfo, unit)
+					if ok and g and g ~= "" and not IsSecret(g) then guild = g end
+				end
+			elseif dd.name then
+				name = F.CleanName(dd.name)
+				if dd.server and dd.server ~= "" then
+					name = name .. "-" .. dd.server
+				end
+			end
+			if not name then return end
+			ClassicToggle("player", name, which == "FBL_GOOD" and "good" or "black")
+		end)
+	end
+	menuClassic = true
+end
+
+local function RegisterMenu()
+	if menuDone and menuClassic then return end
+	-- this client can expose Menu.ModifyMenu while some right-click menus
+	-- still render through the classic UnitPopup (which also loads lazily
+	-- with Blizzard_UnitPopup) - register into both, each once, so our
+	-- entries show regardless of which backend draws the menu
+	if not menuDone and Menu and Menu.ModifyMenu then
+		for _, tag in ipairs(MENU_TAGS) do
+			Menu.ModifyMenu(tag, AddMenuEntry)
+		end
+		menuDone = true
+	end
+	RegisterClassicMenu()
+end
+
+-- ground truth hook: whichever global actually opens unit menus on this
+-- client retries registration. OpenContextMenu is the context-menu
+-- opener (what right-clicks use), OpenMenu covers the rest.
+local openHooked = false
+local function HookMenuOpen()
+	if openHooked or not hooksecurefunc then return end
+	local hooked = false
+	if type(UnitPopup_OpenMenu) == "function" then
+		hooksecurefunc("UnitPopup_OpenMenu", function() RegisterMenu() end)
+		hooked = true
+	end
+	if type(UnitPopupManager) == "table"
+		and type(UnitPopupManager.OpenMenu) == "function" then
+		hooksecurefunc(UnitPopupManager, "OpenMenu", function() RegisterMenu() end)
+		hooked = true
+	end
+	if type(UnitPopup_ShowMenu) == "function" then
+		hooksecurefunc("UnitPopup_ShowMenu", function() RegisterMenu() end)
+		hooked = true
+	end
+	if Menu and type(Menu.GetManager) == "function" then
+		local ok, mgr = pcall(Menu.GetManager)
+		if ok and type(mgr) == "table" then
+			local function OnManagerOpen(self, ownerRegion, description)
+				RegisterMenu()
+				-- direct injection for ports that never consult the
+				-- ModifyMenu registry: append onto the root description
+				-- of the just-opened menu and ask it to rebuild. And as a
+				-- guaranteed-visible fallback our own mini menu docks
+				-- under Blizzard's via ns.OpenMenu.
+				if modFired then return end
+				local ctx
+				if type(description) == "table" then
+					ctx = Plain(description.contextData)
+					if not ctx and type(description.GetContextData) == "function" then
+						local okC, c = pcall(description.GetContextData, description)
+						if okC then ctx = Plain(c) end
+					end
+				end
+				if not ctx and type(ownerRegion) == "table" then
+					-- unit frames carry the unit on the frame itself
+					local u = Plain(ownerRegion.unit)
+					if u then ctx = { unit = u } end
+				end
+				if type(ctx) ~= "table" or not F.db then return end
+				if type(description) == "table" then
+					if type(description.ClearQueuedDescriptions) == "function" then
+						description:ClearQueuedDescriptions()
+					end
+					local okB = pcall(BuildMenuButtons, description, ctx)
+					if okB then
+						local okO, open = pcall(self.GetOpenMenu, self)
+						if okO and open
+							and type(open.InvalidateFullItemList) == "function" then
+							pcall(open.InvalidateFullItemList, open)
+						end
+					end
+				end
+				local okO, open = pcall(self.GetOpenMenu, self)
+				if okO and open and ns.OpenMenu then
+					ns.OpenMenu(open, function() return FallbackItems(ctx) end)
+				end
+			end
+			if type(mgr.OpenMenu) == "function" then
+				hooksecurefunc(mgr, "OpenMenu", OnManagerOpen)
+				hooked = true
+			end
+			if type(mgr.OpenContextMenu) == "function" then
+				hooksecurefunc(mgr, "OpenContextMenu", OnManagerOpen)
+				hooked = true
+			end
+		end
+	end
+	openHooked = hooked
+end
+
+local function TryMenuSetup()
+	-- the standalone addon registers these entries itself
+	local x = ext()
+	if x and x.db then return end
+	RegisterMenu()
+	HookMenuOpen()
+end
+
+local menuEv = CreateFrame("Frame")
+menuEv:RegisterEvent("PLAYER_LOGIN")
+menuEv:RegisterEvent("ADDON_LOADED")
+menuEv:RegisterEvent("PLAYER_ENTERING_WORLD")
+menuEv:SetScript("OnEvent", function(_, event, arg1)
+	if event == "ADDON_LOADED" and arg1 ~= "Blizzard_UnitPopup"
+		and arg1 ~= "Blizzard_Menu" then
+		return
+	end
+	TryMenuSetup()
+end)

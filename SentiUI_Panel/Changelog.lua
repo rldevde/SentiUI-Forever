@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.23",
+		date = "2026-11-22",
+		changes = {
+			"Player right-click menus now carry the same ForeverBlackListed entries the standalone adds: blacklist, good list, guild entries and a group picker - on Menu.ModifyMenu, classic UnitPopup and a docked fallback, so they show whichever backend draws the menu. Skipped when the standalone addon is installed (it registers them itself).",
+		},
+		changesDE = {
+			"Spieler-Rechtsklickmenüs tragen jetzt dieselben ForeverBlackListed-Einträge wie das Standalone: Blacklist, Good List, Gilden-Einträge und Gruppenauswahl - über Menu.ModifyMenu, klassisches UnitPopup und ein angedocktes Fallback, egal welches Backend das Menü zeichnet. Übersprungen, wenn das Standalone installiert ist (es registriert sie selbst).",
+		},
+	},
+	{
 		version = "0.5.22",
 		changes = {
 			"UNIT vital events join the poll: UNIT_HEALTH/POWER/AURA/HAPPINESS/PET handlers shared the unit-frame update dispatch with Blizzard's secret health-bar compares ('execution tainted by SentiUI_Panel' in HealthBar/UnitFrame) - the vitals/buffs/pet plugins now refresh on the 1.5s ticker with a synthesized 'player' unit arg so their filters still pass. Also fixed: extdb() (the standalone FBL db when ForeverBlackListed is loaded) never ran through our defaults guarantee - callers indexing db.sync crashed again; it now guarantees .sync the same way DB() does.",
