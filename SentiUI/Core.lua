@@ -244,11 +244,11 @@ function S.SecureReload(host, postClick)
 	pcall(sb.SetAttribute, sb, "type1", "macro")
 	pcall(sb.SetAttribute, sb, "macrotext", "/reload")
 	pcall(sb.SetAttribute, sb, "macrotext1", "/reload")
-	-- keep the template's secure click handler; a plain OnClick would stop
-	-- the macro attribute from firing at all
-	if SecureActionButton_OnClick then
-		sb:SetScript("OnClick", SecureActionButton_OnClick)
-	end
+	-- LeftButtonUp clicks only fire when the engine is not in key-down mode.
+	pcall(sb.SetAttribute, sb, "useOnKeyDown", false)
+	-- IMPORTANT: no SetScript("OnClick", ...) here - replacing the template's
+	-- own secure handler with an insecurely stored function makes the whole
+	-- click dispatch insecure and RunMacroText gets flagged FORBIDDEN.
 	if host.GetFrameLevel then
 		sb:SetFrameLevel((host:GetFrameLevel() or 1) + 5)
 	end

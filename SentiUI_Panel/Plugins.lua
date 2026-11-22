@@ -179,11 +179,8 @@ local function Spawn(def)
 			sb:SetAttribute("type1", "macro")
 			sb:SetAttribute("macrotext1", "/click " .. secureTarget)
 		end
-		-- keep the template's secure click handler; a plain OnClick
-		-- SetScript would stop the attribute action from firing
-		if SecureActionButton_OnClick then
-			sb:SetScript("OnClick", SecureActionButton_OnClick)
-		end
+		-- no SetScript("OnClick") - the template's own secure handler must
+		-- run, an insecurely stored override flags the action FORBIDDEN
 		sb:SetFrameLevel(b:GetFrameLevel() + 1)
 		sb:SetScript("OnEnter", function()
 			local h = b:GetScript("OnEnter")

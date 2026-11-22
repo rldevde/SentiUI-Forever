@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.12 - 2026-11-22
+
+- Minimap menu secure rows (Reload, /click micro forwards) no longer replace the template OnClick - hardware clicks now run the macro through the client's own secure dispatch instead of flagged addon code.
+
 ## 0.3.11 - 2026-11-22
 
 - The minimap menu's 'Reload' entry is now a real secure macro row (/reload through the engine's macro path) - calling C_UI.Reload from addon code is a blocked call on this client.

@@ -1,5 +1,9 @@
 # SentiUI Action Bars
 
+## 0.3.18 - 2026-11-22
+
+- Talent alert pill: same secure-click fix - the /click forward keeps the template's own OnClick handler so the macro runs untainted.
+
 ## 0.3.17 - 2026-11-22
 
 - Fix the 'forbidden call' spam in combat: the 2s mouse-unblock sweep touched protected children inside parked Blizzard bars (EnableMouse is forbidden mid-fight) and got blamed on SentiUI. The sweep and KillMouseDeep now skip while in combat; the next tick after REGEN catches up.

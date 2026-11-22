@@ -494,9 +494,10 @@ local function buildMenu()
 					and pcall(r.SetAttribute, r, "macrotext1", e[3])
 					or false
 			end
-			if secured and SecureActionButton_OnClick then
-				-- keep the template's secure handler so the macro fires
-				r:SetScript("OnClick", SecureActionButton_OnClick)
+			if secured then
+				-- no SetScript("OnClick") - the template's own handler must
+				-- run, a stored override makes the dispatch insecure and the
+				-- macro call gets flagged FORBIDDEN
 				r:SetScript("PostClick", function() suiMenu:Hide() menu:Hide() end)
 			else
 				r:SetScript("PostClick", nil)
@@ -554,11 +555,9 @@ local function buildMenu()
 				menu.insecure = true -- lockdown blocked the secure wiring
 			end
 			if secured then
-				-- keep the template's SecureActionButton_OnClick - clearing
-				-- it would stop the macro attribute from firing at all
-				if SecureActionButton_OnClick then
-					b:SetScript("OnClick", SecureActionButton_OnClick)
-				end
+				-- no SetScript("OnClick") - the template's own handler must
+				-- run, a stored override makes the dispatch insecure and the
+				-- macro call gets flagged FORBIDDEN
 				b:SetScript("PostClick", function() menu:Hide() end)
 			else
 				b:SetScript("PostClick", nil)

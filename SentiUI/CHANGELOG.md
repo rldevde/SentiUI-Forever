@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.22 - 2026-11-22
+
+- Secure button clicks were still tainted: SecureReload and the panel/minimap secure rows replaced the template's OnClick via SetScript, which makes the whole click dispatch insecure - RunMacroText then gets flagged ADDON_ACTION_FORBIDDEN. The template's own handler now runs untouched everywhere (reload overlay, options button, confirm dialog, minimap submenu, panel plugin overlays, talent pill).
+
 ## 0.3.21 - 2026-11-22
 
 - Reload fix everywhere: C_UI.Reload/ReloadUI is a protected call on this client (ADDON_ACTION_BLOCKED: Reload()). New S.SecureReload helper lays an invisible SecureActionButton running the secure /reload macro over the real button - used by the installer's Finish step, the options 'Reload the interface' button, the options reload-confirm dialog (secureAccept) and the minimap menu's Reload entry.

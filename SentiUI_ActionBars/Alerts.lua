@@ -81,9 +81,8 @@ local function EnsurePill()
 	if type(target) == "table" and type(target.GetName) == "function" then
 		pill:SetAttribute("type1", "macro")
 		pill:SetAttribute("macrotext1", "/click " .. target:GetName())
-		if SecureActionButton_OnClick then
-			pill:SetScript("OnClick", SecureActionButton_OnClick)
-		end
+		-- no SetScript("OnClick") - the template's own handler must run,
+		-- an insecurely stored override flags RunMacroText as FORBIDDEN
 	else
 		pill:SetScript("OnClick", function()
 			if InCombatLockdown() then return end

@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.28 - 2026-11-22
+
+- Plugin secure overlays (item/macro targets) no longer replace the template OnClick - clicks run through the client's secure dispatch.
+
 ## 0.5.27 - 2026-11-22
 
 - The bottom bar starts much leaner now: only brand, gold, bags, clock, mail, layer, friends, guild, performance, professions and account info are visible on a fresh profile. Location, spec, item level, XP, durability, trainers, compendium and blacklist default to hidden - each is one toggle away under SentiUI > Panel > Plugins. Existing configs keep their choices.

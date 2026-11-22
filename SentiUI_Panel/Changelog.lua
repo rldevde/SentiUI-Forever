@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.28",
+		date = "2026-11-22",
+		changes = {
+			"Plugin secure overlays (item/macro targets) no longer replace the template OnClick - clicks run through the client's secure dispatch.",
+		},
+		changesDE = {
+			"Secure-Overlays der Plugins (Item-/Makro-Ziele) ersetzen das Template-OnClick nicht mehr - Klicks laufen über den sicheren Dispatch des Clients.",
+		},
+	},
+	{
 		version = "0.5.27",
 		date = "2026-11-22",
 		changes = {

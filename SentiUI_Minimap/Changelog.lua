@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.12",
+		date = "2026-11-22",
+		changes = {
+			"Minimap menu secure rows (Reload, /click micro forwards) no longer replace the template OnClick - hardware clicks now run the macro through the client's own secure dispatch instead of flagged addon code.",
+		},
+		changesDE = {
+			"Die Secure-Zeilen des Minimap-Menüs (Reload, /click-Mikro-Weiterleitungen) ersetzen das Template-OnClick nicht mehr - Hardware-Klicks laufen jetzt über den eigenen sicheren Dispatch des Clients statt über markierten Addon-Code.",
+		},
+	},
+	{
 		version = "0.3.11",
 		date = "2026-11-22",
 		changes = {

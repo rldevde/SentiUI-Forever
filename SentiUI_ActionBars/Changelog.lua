@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.18",
+		date = "2026-11-22",
+		changes = {
+			"Talent alert pill: same secure-click fix - the /click forward keeps the template's own OnClick handler so the macro runs untainted.",
+		},
+		changesDE = {
+			"Talent-Hinweis-Pill: gleicher Secure-Klick-Fix - die /click-Weiterleitung behält den eigenen OnClick-Handler des Templates, damit das Makro ungetaintet läuft.",
+		},
+	},
+	{
 		version = "0.3.17",
 		date = "2026-11-22",
 		changes = {
