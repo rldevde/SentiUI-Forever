@@ -618,6 +618,15 @@ local function StyleButton(btn, name)
 	S.Template(btn, "inset")
 end
 
+-- kill the mouse on the template's overlay container; may be called
+-- repeatedly (the container can be created lazily after the button)
+local function FixButtonChrome(btn)
+	local toc = btn.TextOverlayContainer
+	if type(toc) == "table" and type(toc.EnableMouse) == "function" then
+		toc:EnableMouse(false)
+	end
+end
+
 -- the game's hidden twin knows its true action slot on this client
 -- (132-slot map: BottomLeft = 85-96 etc.); read it instead of guessing
 local function TwinSlot(prefix, i)
@@ -671,11 +680,9 @@ local function MakeButton(holder, def, i)
 	btn.Update = function(self) Queue(self) end
 	-- the template's TextOverlayContainer sits at frame level 500 and on
 	-- this client keeps its mouse enabled - it covers the whole button and
-	-- swallows every click except the few pixels it leaves uncovered
-	local toc = btn.TextOverlayContainer
-	if type(toc) == "table" and type(toc.EnableMouse) == "function" then
-		toc:EnableMouse(false)
-	end
+	-- swallows every click except the few pixels it leaves uncovered.
+	-- It may also appear only lazily, so the 2s sweep below re-checks.
+	FixButtonChrome(btn)
 	btn:SetID(0)
 	btn:SetAttribute("senti-index", i)
 	btn:SetAttribute("action", TwinSlot(def.twinPrefix, i) or (i + (page - 1) * 12))
@@ -1195,6 +1202,8 @@ function Core.Enable(mod)
 				end
 			end
 		end
+		-- the template's overlay container can spawn lazily per button
+		for _, btn in ipairs(allButtons) do FixButtonChrome(btn) end
 	end
 	C_Timer.NewTicker(2, function() pcall(UnblockMouse) end)
 

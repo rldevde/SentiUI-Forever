@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.14",
+		date = "2026-11-22",
+		changes = {
+			"TextOverlayContainer can be created lazily after the button - its mouse now gets disabled in the 2s sweep too, not only at button creation.",
+		},
+		changesDE = {
+			"TextOverlayContainer kann erst lazy nach dem Button entstehen - seine Maus wird jetzt auch im 2s-Sweep abgestellt, nicht nur bei der Button-Erzeugung.",
+		},
+	},
+	{
 		version = "0.3.13",
 		date = "2026-11-22",
 		changes = {

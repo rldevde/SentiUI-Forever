@@ -1,5 +1,9 @@
 # SentiUI Action Bars
 
+## 0.3.14 - 2026-11-22
+
+- TextOverlayContainer can be created lazily after the button - its mouse now gets disabled in the 2s sweep too, not only at button creation.
+
 ## 0.3.13 - 2026-11-22
 
 - Follow-up click fix: the widget CONTAINER frames themselves (UIWidgetBelowMinimap/TopCenter/PowerBar, ObjectiveTrackerUIWidget, ContainerFrame) also lose their mouse - they are pure layout frames; children keep their own hit flags. New /suibars foci prints the mouse-enabled frames under the cursor so any remaining click blocker names itself.
