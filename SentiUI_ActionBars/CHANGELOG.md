@@ -1,5 +1,9 @@
 # SentiUI Action Bars
 
+## 0.3.15 - 2026-11-22
+
+- Real click blocker found via /suibars foci: parked Blizzard bars keep CHILD frames at their old rects with mouse enabled (an unnamed MultiBarBottomLeft child at MEDIUM/level 1001 sat over the extra bar). Parked subtrees and the status-tracking containers now lose their mouse recursively; secure twin buttons keep theirs (click targets). Unnamed fullscreen ModelScenes lose the mouse in the sweep.
+
 ## 0.3.14 - 2026-11-22
 
 - TextOverlayContainer can be created lazily after the button - its mouse now gets disabled in the 2s sweep too, not only at button creation.

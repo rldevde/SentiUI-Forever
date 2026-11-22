@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.15",
+		date = "2026-11-22",
+		changes = {
+			"Real click blocker found via /suibars foci: parked Blizzard bars keep CHILD frames at their old rects with mouse enabled (an unnamed MultiBarBottomLeft child at MEDIUM/level 1001 sat over the extra bar). Parked subtrees and the status-tracking containers now lose their mouse recursively; secure twin buttons keep theirs (click targets). Unnamed fullscreen ModelScenes lose the mouse in the sweep.",
+		},
+		changesDE = {
+			"Echter Klick-Blocker via /suibars foci gefunden: geparkte Blizzard-Leisten behalten KIND-Frames an alter Position mit aktiver Maus (ein namenloses MultiBarBottomLeft-Kind auf MEDIUM/Level 1001 lag ueber der Zusatzleiste). Geparkte Teilbaeume und Status-Tracking-Container verlieren jetzt rekursiv ihre Maus; die sicheren Twin-Buttons behalten ihre (Klick-Ziele). Namenlose Vollbild-ModelScenes verlieren die Maus im Sweep.",
+		},
+	},
+	{
 		version = "0.3.14",
 		date = "2026-11-22",
 		changes = {

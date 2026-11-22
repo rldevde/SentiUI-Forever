@@ -959,7 +959,24 @@ local function ParkTwins()
 				b:ClearAllPoints()
 				b:SetPoint("CENTER", p, "CENTER")
 			end
+			-- flag so the mouse killer skips it: it is the secure
+			-- clickbutton target of our own bar button
+			if type(b) == "table" then b._sentiTwin = true end
 		end
+	end
+end
+
+-- frames parked under the hidden holder stay invisible, but on this
+-- client their CHILDREN keep their old rects and their mouse - an
+-- unnamed MultiBarBottomLeft child at MEDIUM/1001 sat exactly over our
+-- extra bar and swallowed every click except a thin rim. Kill the mouse
+-- through the whole parked subtree; twins keep theirs (secure click
+-- targets, parked at screen center anyway).
+local function KillMouseDeep(f)
+	if type(f) ~= "table" or f._sentiTwin then return end
+	if type(f.EnableMouse) == "function" then pcall(f.EnableMouse, f, false) end
+	if type(f.GetChildren) == "function" then
+		for _, c in ipairs({ f:GetChildren() }) do KillMouseDeep(c) end
 	end
 end
 
@@ -973,28 +990,32 @@ local function RecheckPark()
 				pcall(bar.UnregisterAllEvents, bar)
 			end
 			ns.ParkBar(bar)
+			KillMouseDeep(bar)
 		end
 	end
 	local main = _G.MainActionBar
 	if type(main) == "table" then
 		ns.ParkBar(main)
 		if type(main.EnableMouse) == "function" then main:EnableMouse(false) end
+		KillMouseDeep(main)
 	end
 	for _, name in ipairs(PARK_LIST) do
 		local frame = _G[name]
 		if name:find("StatusTrackingBar") then
 			-- never reparent these: layout passes (e.g. a minimap zoom)
 			-- call manager methods that expect their real parent - they
-			-- stay put, events off, alpha 0, mouse off
+			-- stay put, events off, alpha 0, mouse off (the WHOLE subtree:
+			-- children kept their own mouse and ate bar clicks)
 			if type(frame) == "table" then
 				if type(frame.UnregisterAllEvents) == "function" then
 					pcall(frame.UnregisterAllEvents, frame)
 				end
 				if type(frame.SetAlpha) == "function" then frame:SetAlpha(0) end
-				if type(frame.EnableMouse) == "function" then frame:EnableMouse(false) end
+				KillMouseDeep(frame)
 			end
 		else
 			ns.ParkBar(frame)
+			KillMouseDeep(frame)
 		end
 	end
 	UnlistTwins()
@@ -1204,6 +1225,18 @@ function Core.Enable(mod)
 		end
 		-- the template's overlay container can spawn lazily per button
 		for _, btn in ipairs(allButtons) do FixButtonChrome(btn) end
+		-- children of parked bars can be created late too
+		if parked then KillMouseDeep(parked) end
+		-- unnamed fullscreen ModelScenes (FX layers) never need a mouse
+		local f = EnumerateFrames()
+		while f do
+			if type(f.GetObjectType) == "function"
+				and f:GetObjectType() == "ModelScene"
+				and type(f.EnableMouse) == "function" then
+				pcall(f.EnableMouse, f, false)
+			end
+			f = EnumerateFrames(f)
+		end
 	end
 	C_Timer.NewTicker(2, function() pcall(UnblockMouse) end)
 
