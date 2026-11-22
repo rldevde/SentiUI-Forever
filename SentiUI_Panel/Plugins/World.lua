@@ -705,6 +705,7 @@ ns.RegisterPlugin({
 	label = L["Trainers"],
 	icon = "Interface\\Icons\\INV_Misc_Book_09",
 	bar = "bottom", zone = "LEFT", order = 61,
+	shown = false,
 	events = { "PLAYER_ENTERING_WORLD", "SPELLS_CHANGED", "PLAYER_LEVEL_UP" },
 	update = function()
 		if not SentiUITraining then return "" end
@@ -731,6 +732,7 @@ ns.RegisterPlugin({
 	label = L["Compendium"],
 	icon = "Interface\\Icons\\INV_Misc_Book_11",
 	bar = "bottom", zone = "LEFT", order = 62,
+	shown = false,
 	events = { "PLAYER_ENTERING_WORLD" },
 	update = function()
 		if not SentiUIJournal then return "" end
@@ -757,6 +759,7 @@ ns.RegisterPlugin({
 	label = L["Blacklist"],
 	icon = "Interface\\Icons\\Ability_Creature_Cursed_04",
 	bar = "bottom", zone = "LEFT", order = 63,
+	shown = false,
 	events = { "PLAYER_ENTERING_WORLD" },
 	update = function()
 		if not ns.FBL then return "" end

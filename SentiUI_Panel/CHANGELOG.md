@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.27 - 2026-11-22
+
+- The bottom bar starts much leaner now: only brand, gold, bags, clock, mail, layer, friends, guild, performance, professions and account info are visible on a fresh profile. Location, spec, item level, XP, durability, trainers, compendium and blacklist default to hidden - each is one toggle away under SentiUI > Panel > Plugins. Existing configs keep their choices.
+
 ## 0.5.26 - 2026-11-22
 
 - New bottom-bar plugin "AccountInfo": shows total account gold and character count from the SentiUI_AccountInfo module; click opens its window, the menu lists the richest characters and offers a rescan.

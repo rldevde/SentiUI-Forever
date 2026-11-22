@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.27",
+		date = "2026-11-22",
+		changes = {
+			"The bottom bar starts leaner: only brand, gold, bags, clock, mail, layer, friends, guild, performance, professions and account info show on a fresh profile; location, spec, item level, XP, durability, trainers, compendium and blacklist default to hidden (re-enable under Panel > Plugins). Existing configs are untouched.",
+		},
+		changesDE = {
+			"Die untere Leiste startet schlanker: auf einem neuen Profil sind nur Brand, Gold, Taschen, Uhr, Post, Layer, Freunde, Gilde, Performance, Berufe und AccountInfo sichtbar; Location, Spec, Itemlevel, XP, Haltbarkeit, Lehrer, Kompendium und Blacklist sind standardmäßig versteckt (wieder aktivierbar unter Panel > Plugins). Bestehende Konfigurationen bleiben unverändert.",
+		},
+	},
+	{
 		version = "0.5.26",
 		date = "2026-11-22",
 		changes = {

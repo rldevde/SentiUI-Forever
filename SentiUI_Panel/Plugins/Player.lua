@@ -79,6 +79,7 @@ ns.RegisterPlugin({
 	label = L["XP"],
 	icon = "Interface\\Icons\\XP_Icon",
 	bar = "bottom", zone = "RIGHT", order = 40,
+	shown = false,
 	events = { "PLAYER_XP_UPDATE", "PLAYER_LEVEL_UP", "UPDATE_EXHAUSTION", "PLAYER_ENTERING_WORLD" },
 	update = function(def)
 		local cur, max = Plain(UnitXP("player")), Plain(UnitXPMax("player"))
@@ -256,6 +257,7 @@ ns.RegisterPlugin({
 	label = L["Spec"],
 	icon = "Interface\\Icons\\INV_Misc_Book_11",
 	bar = "bottom", zone = "RIGHT", order = 20,
+	shown = false,
 	events = { "PLAYER_SPECIALIZATION_CHANGED", "ACTIVE_TALENT_GROUP_CHANGED", "PLAYER_ENTERING_WORLD" },
 	update = function()
 		local name = SpecName()
@@ -296,6 +298,7 @@ ns.RegisterPlugin({
 	label = L["Item level"],
 	icon = "Interface\\Icons\\INV_Chest_Chain_05",
 	bar = "bottom", zone = "RIGHT", order = 30,
+	shown = false,
 	events = { "PLAYER_EQUIPMENT_CHANGED", "PLAYER_ENTERING_WORLD", "PLAYER_AVG_ITEM_LEVEL_UPDATE" },
 	update = function()
 		local eq = Levels()
@@ -354,6 +357,7 @@ ns.RegisterPlugin({
 	label = L["Durability"],
 	icon = "Interface\\Icons\\Trade_BlackSmithing",
 	bar = "bottom", zone = "LEFT", order = 40,
+	shown = false,
 	events = { "UPDATE_INVENTORY_DURABILITY", "PLAYER_ENTERING_WORLD" },
 	update = function(def)
 		local low, avg = Durability()

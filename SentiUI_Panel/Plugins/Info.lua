@@ -100,6 +100,7 @@ ns.RegisterPlugin({
 	label = L["Location"],
 	icon = "Interface\\Icons\\INV_Misc_Map_01",
 	bar = "bottom", zone = "LEFT", order = 10,
+	shown = false,
 	events = { "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA",
 		"PLAYER_UPDATE_RESTING", "PLAYER_ENTERING_WORLD" },
 	update = function(def)
