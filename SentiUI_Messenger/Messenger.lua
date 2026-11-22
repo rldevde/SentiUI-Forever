@@ -220,6 +220,14 @@ local function onWhisper(event, msg, sender, _, _, _, _, _, _, _, _, _, guid, pr
 	if bn then c.bnName = name end
 	learn(c, guid)
 	local me = event:find("_INFORM") ~= nil
+	-- sendTo already echoed our own line; the INFORM event would add it
+	-- a second time
+	if me then
+		local last = c.msgs[#c.msgs]
+		if last and last.me and last.text == msg and (time() - (last.t or 0)) < 5 then
+			return
+		end
+	end
 	add(c, msg, me)
 	if not me then
 		lastFrom = c.key

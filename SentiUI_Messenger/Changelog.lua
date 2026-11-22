@@ -3,6 +3,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.8",
+		date = "2026-11-22",
+		changes = {
+			"Fix sent messages appearing twice: sendTo echoes the line right away and the CHAT_MSG_WHISPER_INFORM event then added it a second time - INFORM lines that repeat the just-echoed text are now skipped.",
+		},
+		changesDE = {
+			"Fix: gesendete Nachrichten kamen doppelt - sendTo echot die Zeile sofort und das CHAT_MSG_WHISPER_INFORM-Event hat sie ein zweites Mal eingetragen; INFORM-Zeilen, die den gerade gechoten Text wiederholen, werden jetzt uebersprungen.",
+		},
+	},
+	{
 		version = "0.3.7",
 		date = "2026-11-22",
 		changes = {

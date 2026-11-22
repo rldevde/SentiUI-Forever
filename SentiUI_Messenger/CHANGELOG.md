@@ -1,5 +1,9 @@
 # SentiUI Messenger
 
+## 0.3.8 - 2026-11-22
+
+- Fix sent messages appearing twice: sendTo echoes the line right away and the CHAT_MSG_WHISPER_INFORM event then added it a second time - INFORM lines that repeat the just-echoed text are now skipped.
+
 ## 0.3.7 - 2026-11-22
 
 - Conversation windows now close on Escape via the shared S.EscClosable helper instead of UISpecialFrames entries - addon-written entries in that game table taint the Escape dispatch.
