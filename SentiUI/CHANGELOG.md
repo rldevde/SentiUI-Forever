@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.17 - 2026-11-22
+
+- Forbidden-call reports now name the event the blocked call really ran inside; the dispatcher used to overwrite it with the blocked event itself.
+- A blocked call raised while reporting another one stays silent in chat; BugSack still records it.
+- When every stack frame is core machinery, the report names the real call line instead of the dispatcher line.
+
 ## 0.3.16
 
 - Compile fix: the combat-deferral entry used '...' inside a non-vararg function - LuaJIT rejects the whole file at load, so the entire core (and with it every module) failed to initialize. LuaJIT now compiles the suite clean; a full compile sweep also caught the same class of bug in Journal, Chat, SentiLayer and My-Social.

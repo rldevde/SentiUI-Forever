@@ -144,16 +144,17 @@ end
 local eventFrame = CreateFrame("Frame")
 local eventHandlers = {}
 
--- name of the event currently being dispatched - the forbidden-call
--- handler below reads it to say WHICH event ran inside the blocked call
-local activeEvent
+-- stack of events currently being dispatched - the forbidden-call
+-- handler below reads the entry below the top to say WHICH event ran
+-- when the blocked call hit (the top is the blocked event itself)
+local eventStack = {}
 
 eventFrame:SetScript("OnEvent", function(_, event, ...)
 	local list = eventHandlers[event]
 	if not list then return end
-	activeEvent = event
+	eventStack[#eventStack + 1] = event
 	for i = 1, #list do S.SafeCall("event:" .. event, list[i], event, ...) end
-	activeEvent = nil
+	eventStack[#eventStack] = nil
 end)
 
 -- Returns false for an event this client doesn't have, so callers can list
@@ -261,6 +262,12 @@ end
 -- event args are (addonName, functionName); the function name can be
 -- "UNKNOWN()" on this client
 local function forbidden(_, addon, func)
+	-- the event whose dispatch was running when the block hit sits one
+	-- frame below this forbidden event on the stack; a forbidden event
+	-- inside our own forbidden dispatch is report noise (the handler's
+	-- Lua tainted it) - BugSack still logs it, the chat stays quiet
+	local during = eventStack[#eventStack - 1]
+	if during == "ADDON_ACTION_BLOCKED" or during == "ADDON_ACTION_FORBIDDEN" then return end
 	-- the event fires synchronously inside the blocked call, so the Lua
 	-- stack still holds our call site - find the first SentiUI frame and
 	-- name it (file.lua:line) so the culprit needs no guessing
@@ -270,17 +277,21 @@ local function forbidden(_, addon, func)
 		local secret = type(issecretvalue) == "function"
 			and issecretvalue(stack)
 		if ok and type(stack) == "string" and not secret then
-			local skippedTop, firstLua
+			local skippedTop, firstLua, deepLua
 			for src, line in stack:gmatch("([%w%._%-%/\\]+%.lua):(%d+)") do
 				if skippedTop then
 					if not firstLua then firstLua = src .. ":" .. line end
 					-- core internals are dispatch machinery (this handler,
 					-- OnEvent, SafeCall/S.Call wrappers) - the culprit is
-					-- the module frame below them
-					if src:find("SentiUI", 1, true)
-						and not src:find("SentiUI[/\\]Core%.lua") then
-						where = src .. ":" .. line
-						break
+					-- the module frame below them; the DEEPEST SentiUI
+					-- frame is the real call site when only core frames
+					-- remain (e.g. the combat queue replaying a panel)
+					if src:find("SentiUI", 1, true) then
+						deepLua = src .. ":" .. line
+						if not src:find("SentiUI[/\\]Core%.lua") then
+							where = src .. ":" .. line
+							break
+						end
 					end
 				else
 					-- the topmost Lua frame is this handler itself
@@ -288,12 +299,12 @@ local function forbidden(_, addon, func)
 					skippedTop = true
 				end
 			end
-			where = where or firstLua
+			where = where or deepLua or firstLua
 		end
 	end
 	S.Print(string.format("|cffff5555forbidden call: %s  (the client blames: %s)%s%s|r",
 		tostring(func or "?"), tostring(addon or "unknown"),
-		activeEvent and ("  |cffffcc33during " .. activeEvent .. "|r") or "",
+		during and ("  |cffffcc33during " .. during .. "|r") or "",
 		where and ("  |cffffcc33@ " .. where .. "|r") or ""))
 	S.BugHint()
 end

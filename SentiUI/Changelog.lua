@@ -25,6 +25,20 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.3.17",
+		date = "2026-11-22",
+		changes = {
+			"Forbidden-call reports name the event the blocked call really ran inside (the dispatcher used to overwrite it with the blocked event itself).",
+			"A blocked call raised while reporting another one stays silent in chat; BugSack still records it.",
+			"When every stack frame is core machinery the report now names the real call line instead of the dispatcher line.",
+		},
+		changesDE = {
+			"Verbotene-Aufruf-Meldungen nennen jetzt das Event, in dem der geblockte Aufruf wirklich lief (der Dispatcher überschrieb es vorher mit dem Block-Event selbst).",
+			"Ein geblockter Aufruf, der während des Meldens eines anderen entsteht, bleibt im Chat still; BugSack zeichnet ihn weiterhin auf.",
+			"Besteht der Stack nur aus Kern-Code, nennt der Report jetzt die echte Aufrufzeile statt der Dispatcher-Zeile.",
+		},
+	},
+	{
 		version = "0.3.16",
 		changes = {
 			"Compile fix: the combat-deferral entry used '...' inside a non-vararg function - LuaJIT rejects the whole file at load, so the entire core (and with it every module) failed to initialize. LuaJIT now compiles the suite clean; a full compile sweep also caught the same class of bug in Journal, Chat, SentiLayer and My-Social.",
