@@ -21,6 +21,10 @@ accent-colored tab underlines and a borderless edit box.
 - **Extras** - spam throttle, link hover tooltips, a
   copy-chat button and window per frame, scroll-to-bottom arrow, optional
   chat history that survives a reload.
+- **Emotes** - typed smileys (`:)`, `;)`, `xD`, `<3`, `o.O`, `:3`, `;P`
+  …) and Discord-style `:name:` codes render as inline icons; a `:)`
+  chip in the tab strip opens a 60-icon picker. Codes only convert with
+  real boundaries, so timestamps like `04:39` and names never tear.
 
 ## Moving
 

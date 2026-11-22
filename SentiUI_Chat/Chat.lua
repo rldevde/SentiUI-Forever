@@ -156,18 +156,37 @@ local EMOTES = {}
 for _, n in ipairs(EMOTE_ORDER) do EMOTES[n] = true end
 
 -- typed smiley codes map onto palette icons so everything shares one style
-local SMILE_ORDER = { ":-)", ";-)", ":-D", ":-(", ":-P", ":-p", ":)", ";)", ":D", ":(", ":P", ":p", "<3", "o.O", "O.o", "^^" }
+local SMILE_ORDER = { ":-)", ";-)", ":-D", ":-(", ":-P", ":-p", ";-P", ";-p",
+	":')", ":'(", ">:(", ":)", ";)", ":D", ":(", ":P", ":p", ";P", ";p",
+	":o", ":O", "D:", ";D", ":3", ":|", ":/", ":*", "xD", "XD", "<3", "o.O", "O.o", "^^" }
 local SMILE_MAP = {
 	[":)"] = "smile", [":-)"] = "smile", [";)"] = "wink", [";-)"] = "wink",
-	[":D"] = "grin", [":-D"] = "grin", ["^^"] = "joy",
-	[":("] = "sad", [":-("] = "sad",
+	[":D"] = "grin", [";D"] = "grin", [":-D"] = "grin", ["^^"] = "joy",
+	["xD"] = "joy", ["XD"] = "joy",
+	[":("] = "sad", [":-("] = "sad", ["D:"] = "grimace",
+	[":'("] = "crying", [":')"] = "sweatsmile", [">:("] = "angry",
 	[":P"] = "tongue", [":-P"] = "tongue", [":p"] = "tongue", [":-p"] = "tongue",
-	["<3"] = "heart", ["o.O"] = "surprised", ["O.o"] = "surprised",
+	[";P"] = "tongue", [";-P"] = "tongue", [";p"] = "tongue", [";-p"] = "tongue",
+	["<3"] = "heart", [":3"] = "hearteyes", [":*"] = "blowkiss",
+	["o.O"] = "surprised", ["O.o"] = "surprised", [":o"] = "surprised", [":O"] = "surprised",
+	[":|"] = "thinking", [":/"] = "confused",
 }
 local function Smileys(text)
 	for _, pat in ipairs(SMILE_ORDER) do
-		text = text:gsub(pat:gsub("%W", "%%%0"),
-			"|T" .. EMOTE_DIR .. SMILE_MAP[pat] .. ".tga:14:14|t")
+		local icon = "|T" .. EMOTE_DIR .. SMILE_MAP[pat] .. ".tga:14:14|t"
+		local esc = pat:gsub("%W", "%%%0")
+		-- boundaries: word-starting smileys (xD, o.O) need a hard word edge
+		-- or "xDenis" tears; punct-starting ones only must not touch a
+		-- digit/colon so ":3" inside "04:39" and ":o" in "12:oo" stay put,
+		-- while a smiley glued to a word ("moment;)") still converts
+		local lead = pat:match("^%w") and "([^%w:])" or "([^%d:])"
+		for _ = 1, 2 do
+			text = text:gsub(lead .. esc .. "([^%w:])",
+				function(a, b) return a .. icon .. b end)
+		end
+		text = text:gsub(lead .. esc .. "$", function(a) return a .. icon end)
+		text = text:gsub("^" .. esc .. "([^%w:])", function(b) return icon .. b end)
+		text = text:gsub("^" .. esc .. "$", icon)
 	end
 	-- :name: codes - returning nil keeps unknown codes as plain text
 	return (text:gsub(":([%w_]+):", function(n)
@@ -196,10 +215,10 @@ function Core.FilterMessage(text)
 	-- this client formats differently (|Hplayer:..:1|[Name]) - before, a
 	-- ":P" inside "player:Prinz Nexo" turned into an icon and tore the
 	-- whole link apart.
-	local masks
+	local masks, mask
 	if db.url or db.smilies then
 		masks = {}
-		local function mask(l) masks[#masks + 1] = l return "\1" .. #masks .. "\2" end
+		mask = function(l) masks[#masks + 1] = l return "\1" .. #masks .. "\2" end
 		text = gsub(text, "(|H.-|h[^|]-|h)", mask)
 		text = gsub(text, "(|H.-|h)", mask)
 	end
@@ -216,6 +235,11 @@ function Core.FilterMessage(text)
 			local l = LinkBare(url, tld)
 			return l == url and (sp .. url) or (sp .. l)
 		end)
+	end
+	if db.smilies and mask then
+		-- the url pass just created fresh |Hurl links - mask them too or a
+		-- smiley code inside the url label tears the link markup apart
+		text = gsub(text, "(|H.-|h[^|]-|h)", mask)
 	end
 	if db.smilies then text = Smileys(text) end
 	-- plain-text quest references "[19] Name (questID)" get wrapped into real

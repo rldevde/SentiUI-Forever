@@ -1,5 +1,10 @@
 # SentiUI Chat
 
+## 0.2.15 - 2026-11-22
+
+- Smiley pass fixes: codes now need real boundaries, so ':3' inside a '04:39' timestamp and 'xD'/'o.O' inside names no longer tear into icons - while a smiley glued to a word ('moment;)') still converts. New codes: xD, XD, D:, ;D, ;P, :o, :3, :|, :/, :*, >:(, :'(, :').
+- URL fix: links created by the url pass were unmasked when the smiley pass ran - a smiley code inside a linkified url tore the |H markup. Fresh |Hurl links are masked before smileys now.
+
 ## 0.2.14 - 2026-11-22
 
 - URL copy dialog, chat copy window and emote picker now use the own dialog/Escape handling instead of StaticPopupDialogs and UISpecialFrames.

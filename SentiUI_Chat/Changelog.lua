@@ -2,6 +2,18 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.15",
+		date = "2026-11-22",
+		changes = {
+			"Smiley pass fixes: codes now need real boundaries, so ':3' inside a '04:39' timestamp and 'xD'/'o.O' inside names no longer tear into icons - while a smiley glued to a word ('moment;)') still converts. New codes: xD, XD, D:, ;D, ;P, :o, :3, :|, :/, :*, >:(, :'(, :').",
+			"URL fix: links created by the url pass were unmasked when the smiley pass ran - a smiley code inside a linkified url tore the |H markup. Fresh |Hurl links are masked before smileys now.",
+		},
+		changesDE = {
+			"Smiley-Pass-Fixes: Codes brauchen jetzt echte Grenzen, sodass ':3' in einem '04:39'-Zeitstempel und 'xD'/'o.O' in Namen nicht mehr zu Icons reissen - ein angeklebter Smiley ('moment;)') konvertiert trotzdem. Neue Codes: xD, XD, D:, ;D, ;P, :o, :3, :|, :/, :*, >:(, :'(, :').",
+			"URL-Fix: vom URL-Pass erzeugte Links waren beim Smiley-Pass unmaskiert - ein Smiley-Code in einer linkifizierten URL riss das |H-Markup auf. Frische |Hurl-Links werden jetzt vor den Smileys maskiert.",
+		},
+	},
+	{
 		version = "0.2.14",
 		date = "2026-11-22",
 		changes = {
