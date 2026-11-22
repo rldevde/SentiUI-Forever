@@ -109,22 +109,21 @@ function W.Build()
 	W.statsHost = stats
 
 	-- stat rows scroll inside the panel; a tall group list never paints
-	-- past the frame edge
-	local ssf = CreateFrame("ScrollFrame", nil, stats,
-		"UIPanelScrollFrameTemplate")
+	-- past the frame edge. Own thin bar - no Blizzard template chrome.
+	local ssf, schild = S.Widgets.Scroll(stats)
 	ssf:SetPoint("TOPLEFT", 2, -2)
-	ssf:SetPoint("BOTTOMRIGHT", -20, 2)
-	local schild = CreateFrame("Frame", nil, ssf)
-	schild:SetSize(1, 1)
-	ssf:SetScrollChild(schild)
+	ssf:SetPoint("BOTTOMRIGHT", -10, 2)
 	W.statsRows = schild
 	W.statsScroll = ssf
-	-- wheel scroll on the whole panel, not just the narrow slider
+	local rawSetHeight = schild.SetHeight
+	schild.SetHeight = function(s, h)
+		rawSetHeight(s, h)
+		if ssf.UpdateBar then ssf.UpdateBar() end
+	end
+	-- wheel scroll on the whole panel, not just the narrow bar
 	stats:EnableMouseWheel(true)
 	stats:SetScript("OnMouseWheel", function(_, delta)
-		local cur = ssf:GetVerticalScroll() or 0
-		local max = math.max(0, (schild:GetHeight() or 0) - (ssf:GetHeight() or 0))
-		ssf:SetVerticalScroll(math.max(0, math.min(max, cur - delta * 28)))
+		ssf:Scroll((ssf.offset or 0) - delta * 28)
 	end)
 
 	-- footer --------------------------------------------------------------
@@ -180,14 +179,15 @@ function W.BuildTabs()
 	for i, id in ipairs(W.pageOrder) do
 		local b = W.tabBtns[i]
 		if not b then
-			b = CreateFrame("Button", nil, tabs)
+			b = CreateFrame("Button", nil, tabs, "BackdropTemplate")
 			b:SetHeight(22)
+			S.Template(b, "inset")
 			b.txt = S.Font(b, 11)
 			b.txt:SetPoint("CENTER")
-			b.line = b:CreateTexture(nil, "ARTWORK")
-			b.line:SetHeight(2)
-			b.line:SetPoint("BOTTOMLEFT", 2, 0)
-			b.line:SetPoint("BOTTOMRIGHT", -2, 0)
+			b:SetScript("OnEnter", function(bb) S.SetBorderLit(bb, true) end)
+			b:SetScript("OnLeave", function(bb)
+				S.SetBorderLit(bb, bb.pageId == W.currentPage)
+			end)
 			W.tabBtns[i] = b
 		end
 		b.pageId = id
@@ -213,8 +213,8 @@ function W.ShowPage(id)
 		local on = b.pageId == id
 		b.txt:SetTextColor(on and C.accent.r or C.textDim.r,
 			on and C.accent.g or C.textDim.g, on and C.accent.b or C.textDim.b)
-		b.line:SetColorTexture(on and C.accent.r or 1, on and C.accent.g or 1,
-			on and C.accent.b or 1, on and 0.8 or 0.08)
+		S.Template(b, on and "raised" or "inset")
+		S.SetBorderLit(b, on)
 	end
 	local def = ns.Pages.defs[id]
 	if def and def.Refresh and W.pageFrames[id]:IsShown() then

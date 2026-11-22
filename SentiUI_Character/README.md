@@ -9,11 +9,11 @@ ours is open and returns when the module is disabled (reload required).
 
 - **Gear columns** — classic layout: head…wrist on the left, hands…trinkets
   on the right, main hand / off hand / ranged / ammo along the bottom.
-- **Per-slot info** — item icon with a colored quality ring, item name in
+- **Per-slot info** — item icon in a flat box whose border shows the item quality color, item name in
   quality color, item level under the name or as a corner badge on the icon,
   and a durability percentage.
 - **Repair warning** — slots at or below the configured durability
-  threshold get a red ring.
+  threshold get a red border.
 - **3D model** — your character in the middle; drag with the left mouse
   button to rotate.
 - **Stat groups** — Attributes, Melee, Defense and Resistances as

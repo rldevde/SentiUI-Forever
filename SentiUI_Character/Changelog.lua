@@ -3,6 +3,20 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.12",
+		date = "2026-11-22",
+		changes = {
+			"Gear slots now draw a flat inset box with a 1px border colored by item quality - the UI-Quickslot2 ring that rendered as a clunky square frame is gone. Durability warnings still tint the border red.",
+			"All page scrollbars use the thin Sentinel bar (was: the stock Blizzard template strips). Mouse-wheel scrolling now works on every list page, not just the stats panel.",
+			"Tab strip reworked: real inset/raised chips with a lit border for the active page and hover feedback instead of bare text with a hairline.",
+		},
+		changesDE = {
+			"Ausruestungs-Slots zeichnen jetzt eine flache Inset-Box mit 1px-Rahmen in der Qualitaetsfarbe - der UI-Quickslot2-Ring, der als klobiger Kasten renderte, ist weg. Haltbarkeits-Warnungen faerben den Rahmen weiterhin rot.",
+			"Alle Seiten-Scrollbars nutzen die duenne Sentinel-Leiste (vorher: die Blizzard-Template-Streifen). Mausrad-Scrollen funktioniert jetzt auf jeder Listenseite, nicht nur im Statistik-Panel.",
+			"Tab-Leiste ueberarbeitet: echte Inset/Raised-Chips mit leuchtendem Rahmen fuer die aktive Seite und Hover-Feedback statt nacktem Text mit Haarlinie.",
+		},
+	},
+	{
 		version = "0.2.11",
 		changes = {
 			"Character window: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.",

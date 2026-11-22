@@ -4,6 +4,7 @@ local _, ns = ...
 local S = SentiUI
 local C = S.colors
 local L = ns.L
+local BLANK = S.media.blank
 
 ns.Slots = {}
 local Sl = ns.Slots
@@ -89,16 +90,22 @@ local function MakeSlot(parent, slot, side)
 	b:SetSize(ROW, ROW)
 	b.slot = slot
 
-	b.icon = b:CreateTexture(nil, "BACKGROUND")
-	b.icon:SetPoint(side == "left" and "LEFT" or "RIGHT", 0, 0)
-	b.icon:SetSize(ICON, ICON)
-	b.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	-- flat inset box, quality/durability shows as a 1px border color -
+	-- no UI-Quickslot2 ring, it renders as a clunky square frame
+	b.box = CreateFrame("Frame", nil, b, "BackdropTemplate")
+	b.box:SetPoint(side == "left" and "LEFT" or "RIGHT", 0, 0)
+	b.box:SetSize(ICON + 4, ICON + 4)
+	b.box:SetBackdrop({
+		bgFile = BLANK, edgeFile = BLANK, edgeSize = 1,
+		insets = { left = 1, right = 1, top = 1, bottom = 1 },
+	})
+	b.box:SetBackdropColor(0.06, 0.07, 0.10, 0.9)
+	b.box:SetBackdropBorderColor(C.border.r, C.border.g, C.border.b, 1)
 
-	b.ring = b:CreateTexture(nil, "BORDER")
-	b.ring:SetPoint("CENTER", b.icon, "CENTER")
-	b.ring:SetSize(ICON + 4, ICON + 4)
-	b.ring:SetTexture("Interface\\Buttons\\UI-Quickslot2")
-	b.ring:Hide()
+	b.icon = b.box:CreateTexture(nil, "ARTWORK")
+	b.icon:SetPoint("TOPLEFT", 2, -2)
+	b.icon:SetPoint("BOTTOMRIGHT", -2, 2)
+	b.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 
 	if side ~= "bottom" then
 		b.name = S.Font(b, 10)
@@ -106,9 +113,9 @@ local function MakeSlot(parent, slot, side)
 		b.name:SetJustifyH(side == "left" and "LEFT" or "RIGHT")
 		b.name:SetWordWrap(false)
 		if side == "left" then
-			b.name:SetPoint("LEFT", b.icon, "RIGHT", 6, 6)
+			b.name:SetPoint("LEFT", b.box, "RIGHT", 6, 6)
 		else
-			b.name:SetPoint("RIGHT", b.icon, "LEFT", -6, 6)
+			b.name:SetPoint("RIGHT", b.box, "LEFT", -6, 6)
 		end
 		b.sub = S.Font(b, 9, C.textDim)
 		b.sub:SetWidth(160)
@@ -231,8 +238,7 @@ local function RefreshOne(b)
 		SetVC(b.icon, 1, 1, 1)
 		local r, g, bl = QualityColor(link)
 		if not (r and g and bl) then r, g, bl = 1, 1, 1 end
-		SetVC(b.ring, r, g, bl)
-		b.ring:Show()
+		b.box:SetBackdropBorderColor(r, g, bl, 1)
 
 		-- name + ilvl lines
 		if b.name then
@@ -276,13 +282,13 @@ local function RefreshOne(b)
 		-- durability warning ring
 		local cur, mx = Durability(b.slot)
 		if mx and mx > 0 and cur and cur / mx <= (db.repairAt or 0.25) then
-			SetVC(b.ring, 0.95, 0.25, 0.2)
+			b.box:SetBackdropBorderColor(0.95, 0.25, 0.2, 1)
 		end
 	else
 		b.icon:SetTexture(EMPTY_TEX[b.slot] or "Interface\\Paperdoll\\UI-PaperDoll-Slot-Bag")
 		b.icon:SetDesaturated(true)
 		SetVC(b.icon, 0.6, 0.6, 0.6)
-		b.ring:Hide()
+		b.box:SetBackdropBorderColor(C.border.r, C.border.g, C.border.b, 1)
 		b.ilvl:Hide()
 		if b.name then b.name:Hide() end
 		if b.sub then b.sub:Hide() end

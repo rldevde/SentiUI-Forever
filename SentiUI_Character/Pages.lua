@@ -22,14 +22,17 @@ end
 -- A scroll child filled with pooled rows (label left, value/bar right).
 
 local function MakeList(parent)
-	local sf = CreateFrame("ScrollFrame", nil, parent, "UIPanelScrollFrameTemplate")
+	local sf, child = S.Widgets.Scroll(parent)
 	sf:SetPoint("TOPLEFT", 4, -4)
-	sf:SetPoint("BOTTOMRIGHT", -24, 4)
-	local child = CreateFrame("Frame", nil, sf)
-	child:SetSize(1, 1)
-	sf:SetScrollChild(child)
+	sf:SetPoint("BOTTOMRIGHT", -10, 4)
 	sf.child = child
 	sf.rows = {}
+	-- refresh the thin bar whenever the list content height changes
+	local rawSetHeight = child.SetHeight
+	child.SetHeight = function(s, h)
+		rawSetHeight(s, h)
+		if sf.UpdateBar then sf.UpdateBar() end
+	end
 	return sf
 end
 

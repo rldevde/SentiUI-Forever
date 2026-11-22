@@ -1,5 +1,11 @@
 # Changelog — SentiUI_Character
 
+## 0.2.12 - 2026-11-22
+
+- Gear slots now draw a flat inset box with a 1px border colored by item quality - the UI-Quickslot2 ring that rendered as a clunky square frame is gone. Durability warnings still tint the border red.
+- All page scrollbars use the thin Sentinel bar (was: the stock Blizzard template strips). Mouse-wheel scrolling now works on every list page, not just the stats panel.
+- Tab strip reworked: real inset/raised chips with a lit border for the active page and hover feedback instead of bare text with a hairline.
+
 ## 0.2.11
 
 - Character window: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.
