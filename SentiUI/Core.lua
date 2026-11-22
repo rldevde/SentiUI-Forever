@@ -264,12 +264,18 @@ local function forbidden(_, addon, func)
 		local secret = type(issecretvalue) == "function"
 			and issecretvalue(stack)
 		if ok and type(stack) == "string" and not secret then
-			local firstLua
+			local skippedTop, firstLua
 			for src, line in stack:gmatch("([%w%._%-%/\\]+%.lua):(%d+)") do
-				if not firstLua then firstLua = src .. ":" .. line end
-				if src:find("SentiUI", 1, true) then
-					where = src .. ":" .. line
-					break
+				if skippedTop then
+					if not firstLua then firstLua = src .. ":" .. line end
+					if src:find("SentiUI", 1, true) then
+						where = src .. ":" .. line
+						break
+					end
+				else
+					-- the topmost Lua frame is this handler itself
+					-- (it called debugstack) - the culprit sits below it
+					skippedTop = true
 				end
 			end
 			where = where or firstLua

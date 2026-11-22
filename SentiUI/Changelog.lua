@@ -25,6 +25,16 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.3.12",
+		changes = {
+			"Forbidden-action site reporting fixed: the handler's own frame was the first Lua frame on the debug stack, so reports always pointed at Core.lua instead of the real culprit. The topmost frame is now skipped and the next SentiUI frame below the event dispatch is named - the next ADDON_ACTION_FORBIDDEN report shows the actual file.lua:line that ran inside the protected dispatch.",
+		},
+		changesDE = {
+			"Forbidden-Meldung zeigt jetzt die echte Stelle: Der eigene Handler-Frame stand als erstes Lua-Frame im Debug-Stack, daher zeigten Meldungen immer auf Core.lua statt auf den wirklichen Ausloeser. Der oberste Frame wird jetzt uebersprungen und das naechste SentiUI-Frame unter dem Event-Dispatch genannt - die naechste ADDON_ACTION_FORBIDDEN-Meldung zeigt die echte datei.lua:zeile, die im geschuetzten Dispatch lief.",
+		},
+	},
+
+	{
 		version = "0.3.11",
 		changes = {
 			"Central call-site reporting: S.Call (labelled pcall) and S.SecureAPI (securecall lane) live in the core now - every current and future module gets 'file.lua:line' reporting for failed or blocked engine calls for free. Module wrappers delegate to it.",
