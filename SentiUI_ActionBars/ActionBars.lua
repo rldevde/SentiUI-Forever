@@ -1206,7 +1206,21 @@ function Core.Enable(mod)
 			S.Print("|cffffff00/suibars foci|r - " .. L["list the frames eating clicks under the cursor"])
 			return
 		end
-		local foci = GetMouseFoci and { GetMouseFoci() } or {}
+		local foci
+		if GetMouseFoci then
+			foci = { GetMouseFoci() }
+		else
+			-- fallback: walk every frame, keep mouse-enabled ones under the
+			-- cursor (same result GetMouseFoci would give)
+			foci = {}
+			local f = EnumerateFrames()
+			while f do
+				if f:IsMouseEnabled() and f:IsMouseOver() then
+					foci[#foci + 1] = f
+				end
+				f = EnumerateFrames(f)
+			end
+		end
 		if #foci == 0 then
 			S.Print(L["no mouse-enabled frame under the cursor"])
 			return
