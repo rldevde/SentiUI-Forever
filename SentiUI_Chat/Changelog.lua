@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.16",
+		date = "2026-11-22",
+		changes = {
+			"Chat panels and the docked chat now re-run their sizing pass on DISPLAY_SIZE_CHANGED and UI_SCALE_CHANGED - before, a resolution or UI-scale change left the chat at its stale size until a manual resize.",
+		},
+		changesDE = {
+			"Chat-Panels und das angedockte Chatfenster fuehren ihren Groessen-Pass jetzt bei DISPLAY_SIZE_CHANGED und UI_SCALE_CHANGED erneut aus - vorher blieb der Chat nach einer Aufloesungs- oder Skalierungsaenderung in seiner alten Groesse bis zum manuellen Nachziehen.",
+		},
+	},
+	{
 		version = "0.2.15",
 		date = "2026-11-22",
 		changes = {

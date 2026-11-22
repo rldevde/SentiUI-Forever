@@ -1018,6 +1018,17 @@ function Core.Enable(mod)
 	S.SafeCall("chat:position", Core.PositionChat)
 	S.RegisterEvent("UPDATE_CHAT_WINDOWS", Core.PositionChat)
 	S.RegisterEvent("UPDATE_FLOATING_CHAT_WINDOWS", Core.PositionChat)
+	-- resolution / ui-scale changes leave the chat frame and panels at
+	-- stale sizes until a manual resize: re-run the panel sizing and the
+	-- chat docking pass when they fire
+	for _, ev in ipairs({ "DISPLAY_SIZE_CHANGED", "UI_SCALE_CHANGED" }) do
+		S.RegisterEvent(ev, function()
+			S.SafeCall("chat:" .. ev, function()
+				Core.UpdatePanels()
+				Core.PositionChat()
+			end)
+		end)
+	end
 	S.RegisterEvent("PLAYER_ENTERING_WORLD", function()
 		C_Timer.After(1, function() S.SafeCall("chat:pew", Core.PositionChat) end)
 	end)

@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.11",
+		date = "2026-11-22",
+		changes = {
+			"The minimap menu's 'Reload' entry is now a real secure macro row (/reload through the engine's macro path) - calling C_UI.Reload from addon code is a blocked call on this client.",
+		},
+		changesDE = {
+			"Der 'Reload'-Eintrag im Minimap-Menue ist jetzt eine echte gesicherte Makro-Zeile (/reload ueber den Makro-Pfad der Engine) - C_UI.Reload aus Addon-Code ist auf diesem Client ein blockierter Aufruf.",
+		},
+	},
+	{
 		version = "0.3.10",
 		date = "2026-11-22",
 		changes = {

@@ -47,7 +47,7 @@ Options.RegisterPage({
 					desc = "The first-run wizard, again from step one.",
 					func = function() S.Installer.Show() end },
 				{ type = "button", label = "Reload the interface", text = "Reload",
-					func = function() (C_UI and C_UI.Reload or ReloadUI)() end },
+					secureReload = true },
 			},
 		},
 		{

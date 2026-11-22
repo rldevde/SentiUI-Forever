@@ -10,7 +10,7 @@ local W = S.Widgets
 local Inst = {}
 S.Installer = Inst
 
-local frame, titleText, bodyText, counter, backBtn, nextBtn, stepHost
+local frame, titleText, bodyText, counter, backBtn, nextBtn, stepHost, reloadOverlay
 local stepIndex = 1
 local stepFrames = {} -- lazily built content frame per step
 
@@ -40,6 +40,7 @@ local function showStep(i)
 	counter:SetText(stepIndex .. " / " .. n)
 	backBtn:SetEnabled(stepIndex > 1)
 	nextBtn:SetText((stepIndex == n and L["Finish & reload"] or L["Next"]) or "")
+	if reloadOverlay then reloadOverlay:SetShown(stepIndex == n) end
 
 	-- per-step interactive content
 	for _, f in pairs(stepFrames) do if f then f:Hide() end end
@@ -104,13 +105,20 @@ local function build()
 		if stepIndex < #Inst.steps then
 			showStep(stepIndex + 1)
 		else
+			-- the secure overlay normally eats this click and runs /reload;
+			-- reaching this means it could not be built (combat) - finish
+			-- without the reload instead of a blocked call
 			markDone()
 			frame:Hide()
-			-- the last step's changes (ui scale) only take clean effect after
-			-- a reload, so the Finish button performs it
-			if C_UI and C_UI.Reload then C_UI.Reload() end
 		end
 	end)
+	-- C_UI.Reload is a protected call on this client: the real reload runs
+	-- through a secure macro overlay, visible only on the last step
+	reloadOverlay = S.SecureReload(nextBtn, function()
+		markDone()
+		frame:Hide()
+	end)
+	if reloadOverlay then reloadOverlay:Hide() end
 end
 
 function Inst.Show()

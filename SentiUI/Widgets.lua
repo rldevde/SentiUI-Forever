@@ -498,9 +498,13 @@ local function GetDialog()
 end
 
 -- opts: text, okText, cancelText, hideCancel, editText (shows an input box),
--- onAccept(textOrNil), onCancel, focusEdit, readOnly
+-- onAccept(textOrNil), onCancel, focusEdit, readOnly,
+-- secureAccept = "/reload" (or any macro): the ok button runs the macro
+-- through a secure overlay instead of addon code - needed for protected
+-- calls like reloads
 function S.Dialog(opts)
 	local d = GetDialog()
+	if d.secOverlay then d.secOverlay:Hide() end
 	d.msg:SetText(opts.text or "")
 	local hasEdit = opts.editText ~= nil
 	d.edit:SetText(opts.editText or "")
@@ -524,6 +528,16 @@ function S.Dialog(opts)
 		d.cancel:SetText(opts.cancelText or CANCEL or "Cancel")
 		d.ok:ClearAllPoints()
 		d.ok:SetPoint("BOTTOMRIGHT", d, "BOTTOM", -4, 12)
+	end
+	if opts.secureAccept == "/reload" then
+		if not d.secOverlay then
+			d.secOverlay = S.SecureReload(d.ok, function()
+				local text = d.edit.holder:IsShown() and d.edit:GetText() or nil
+				d:Hide()
+				if d.onAccept then S.SafeCall("dialog:accept", d.onAccept, text) end
+			end)
+		end
+		if d.secOverlay then d.secOverlay:Show() end
 	end
 	d:SetHeight(opts.editText ~= nil and 150 or 110)
 	d:Show()

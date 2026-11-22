@@ -175,9 +175,11 @@ function Options.Get(page, item)
 end
 
 local function askReload()
+	-- the ok button carries a secure /reload macro overlay: C_UI.Reload
+	-- from addon code is a blocked call on this client
 	S.Confirm(L["This change needs a reload to take effect. Reload now?"],
-		function() (C_UI and C_UI.Reload or ReloadUI)() end,
-		{ okText = L["Reload"], cancelText = L["Later"] })
+		nil,
+		{ okText = L["Reload"], cancelText = L["Later"], secureAccept = "/reload" })
 end
 Options.AskReload = askReload
 

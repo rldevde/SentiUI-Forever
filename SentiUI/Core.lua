@@ -229,6 +229,37 @@ function S.EscClosable(f)
 	end)
 end
 
+-- secure reload overlay -------------------------------------------------------
+-- C_UI.Reload/ReloadUI from addon code is a protected call on this client
+-- (ADDON_ACTION_BLOCKED: Reload()). An invisible SecureActionButton laid over
+-- the real button runs "/reload" through the engine's secure macro path
+-- instead - the same trick the panel's /click forwards use. Returns nil in
+-- combat (attributes cannot be set there).
+function S.SecureReload(host, postClick)
+	if type(host) ~= "table" or InCombatLockdown() then return nil end
+	local sb = CreateFrame("Button", nil, host, "SecureActionButtonTemplate")
+	sb:SetAllPoints()
+	sb:RegisterForClicks("LeftButtonUp", "LeftButtonDown")
+	pcall(sb.SetAttribute, sb, "type", "macro")
+	pcall(sb.SetAttribute, sb, "type1", "macro")
+	pcall(sb.SetAttribute, sb, "macrotext", "/reload")
+	pcall(sb.SetAttribute, sb, "macrotext1", "/reload")
+	-- keep the template's secure click handler; a plain OnClick would stop
+	-- the macro attribute from firing at all
+	if SecureActionButton_OnClick then
+		sb:SetScript("OnClick", SecureActionButton_OnClick)
+	end
+	if host.GetFrameLevel then
+		sb:SetFrameLevel((host:GetFrameLevel() or 1) + 5)
+	end
+	if type(postClick) == "function" then
+		sb:SetScript("PostClick", function(_, button)
+			if button == "LeftButton" then postClick() end
+		end)
+	end
+	return sb
+end
+
 -- visibility watcher --------------------------------------------------------
 -- An OnHide/OnShow script on a special window - or an event registration for
 -- window-open events like TRADE_SKILL_SHOW/BANKFRAME_OPENED - runs insecure

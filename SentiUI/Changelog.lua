@@ -25,6 +25,16 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.3.21",
+		date = "2026-11-22",
+		changes = {
+			"Reload fix everywhere: C_UI.Reload/ReloadUI is a protected call on this client (ADDON_ACTION_BLOCKED: Reload()). New S.SecureReload helper lays an invisible SecureActionButton running the secure /reload macro over the real button - used by the installer's Finish step, the options 'Reload the interface' button, the options reload-confirm dialog (secureAccept) and the minimap menu's Reload entry.",
+		},
+		changesDE = {
+			"Reload-Fix ueberall: C_UI.Reload/ReloadUI ist auf diesem Client ein geschuetzter Aufruf (ADDON_ACTION_BLOCKED: Reload()). Neuer S.SecureReload-Helfer legt einen unsichtbaren SecureActionButton mit dem gesicherten /reload-Makro ueber den echten Button - genutzt vom Fertig-Schritt des Installers, dem 'Interface neu laden'-Knopf in den Optionen, dem Neuladen-Bestaetigungsdialog (secureAccept) und dem Reload-Eintrag im Minimap-Menue.",
+		},
+	},
+	{
 		version = "0.3.20",
 		date = "2026-11-22",
 		changes = {

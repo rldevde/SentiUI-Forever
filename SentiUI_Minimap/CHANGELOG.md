@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.11 - 2026-11-22
+
+- The minimap menu's 'Reload' entry is now a real secure macro row (/reload through the engine's macro path) - calling C_UI.Reload from addon code is a blocked call on this client.
+
 ## 0.3.10 - 2026-11-22
 
 - The minimap menu now closes on Escape via the shared S.EscClosable helper instead of a UISpecialFrames entry - addon-written entries in that game table taint the Escape dispatch.

@@ -158,6 +158,16 @@ function builders.button(row, page, item)
 			S.SafeCall("button:" .. tostring(item.label or "?"), item.func)
 		end
 	end)
+	if item.secureReload then
+		-- the secure /reload macro overlay eats the click (C_UI.Reload is a
+		-- blocked call from addon code on this client)
+		if not row.secureOverlay then
+			row.secureOverlay = S.SecureReload(b)
+		end
+		if row.secureOverlay then row.secureOverlay:Show() end
+	elseif row.secureOverlay then
+		row.secureOverlay:Hide()
+	end
 	b:Show()
 end
 

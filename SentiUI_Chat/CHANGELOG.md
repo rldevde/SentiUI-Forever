@@ -1,5 +1,9 @@
 # SentiUI Chat
 
+## 0.2.16 - 2026-11-22
+
+- Chat panels and the docked chat now re-run their sizing pass on DISPLAY_SIZE_CHANGED and UI_SCALE_CHANGED - before, a resolution or UI-scale change left the chat at its stale size until a manual resize.
+
 ## 0.2.15 - 2026-11-22
 
 - Smiley pass fixes: codes now need real boundaries, so ':3' inside a '04:39' timestamp and 'xD'/'o.O' inside names no longer tear into icons - while a smiley glued to a word ('moment;)') still converts. New codes: xD, XD, D:, ;D, ;P, :o, :3, :|, :/, :*, >:(, :'(, :').

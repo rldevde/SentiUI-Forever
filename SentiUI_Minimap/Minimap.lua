@@ -441,7 +441,9 @@ local SUI_ENTRIES = {
 	{ "Settings", function() S.OptionsPanel.Toggle() end },
 	{ "Move frames", function() S.Movers.Toggle() end },
 	{ "Run installer", function() S.Installer.Show() end },
-	{ "Reload", function() (C_UI and C_UI.Reload or ReloadUI)() end },
+	-- third field = secure macro text: the row becomes a real macro
+	-- button, because C_UI.Reload from addon code is a blocked call
+	{ "Reload", nil, "/reload" },
 }
 
 local function buildMenu()
@@ -484,15 +486,32 @@ local function buildMenu()
 		for i, e in ipairs(SUI_ENTRIES) do
 			local r = suiMenu.rows[i] or makeRow(suiMenu, i)
 			r.text:SetText(L[e[1]])
-			r:SetScript("OnClick", function()
-				suiMenu:Hide() menu:Hide()
-				S.SafeCall("MinimapMenu:" .. e[1], function()
-					-- panel toggles must run untainted: Blizzard's own
-					-- handlers compare secret values (status bar text)
-					if type(securecall) == "function" then return securecall(e[2]) end
-					return e[2]()
+			local secured = false
+			if e[3] and not InCombatLockdown() then
+				secured = pcall(r.SetAttribute, r, "type", "macro")
+					and pcall(r.SetAttribute, r, "type1", "macro")
+					and pcall(r.SetAttribute, r, "macrotext", e[3])
+					and pcall(r.SetAttribute, r, "macrotext1", e[3])
+					or false
+			end
+			if secured and SecureActionButton_OnClick then
+				-- keep the template's secure handler so the macro fires
+				r:SetScript("OnClick", SecureActionButton_OnClick)
+				r:SetScript("PostClick", function() suiMenu:Hide() menu:Hide() end)
+			else
+				r:SetScript("PostClick", nil)
+				r:SetScript("OnClick", function()
+					suiMenu:Hide() menu:Hide()
+					if e[2] then
+						S.SafeCall("MinimapMenu:" .. e[1], function()
+							-- panel toggles must run untainted: Blizzard's own
+							-- handlers compare secret values (status bar text)
+							if type(securecall) == "function" then return securecall(e[2]) end
+							return e[2]()
+						end)
+					end
 				end)
-			end)
+			end
 			r:ClearAllPoints()
 			r:SetPoint("TOPLEFT", suiMenu, "TOPLEFT", 4, -(4 + (i - 1) * 18))
 			r:SetPoint("TOPRIGHT", suiMenu, "TOPRIGHT", -4, -(4 + (i - 1) * 18))
