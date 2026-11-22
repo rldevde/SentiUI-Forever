@@ -144,10 +144,16 @@ end
 local eventFrame = CreateFrame("Frame")
 local eventHandlers = {}
 
+-- name of the event currently being dispatched - the forbidden-call
+-- handler below reads it to say WHICH event ran inside the blocked call
+local activeEvent
+
 eventFrame:SetScript("OnEvent", function(_, event, ...)
 	local list = eventHandlers[event]
 	if not list then return end
+	activeEvent = event
 	for i = 1, #list do S.SafeCall("event:" .. event, list[i], event, ...) end
+	activeEvent = nil
 end)
 
 -- Returns false for an event this client doesn't have, so callers can list
@@ -268,7 +274,11 @@ local function forbidden(_, addon, func)
 			for src, line in stack:gmatch("([%w%._%-%/\\]+%.lua):(%d+)") do
 				if skippedTop then
 					if not firstLua then firstLua = src .. ":" .. line end
-					if src:find("SentiUI", 1, true) then
+					-- core internals are dispatch machinery (this handler,
+					-- OnEvent, SafeCall/S.Call wrappers) - the culprit is
+					-- the module frame below them
+					if src:find("SentiUI", 1, true)
+						and not src:find("SentiUI[/\\]Core%.lua") then
 						where = src .. ":" .. line
 						break
 					end
@@ -281,9 +291,10 @@ local function forbidden(_, addon, func)
 			where = where or firstLua
 		end
 	end
-	S.Print(string.format("|cffff5555forbidden call: %s  (the client blames: %s)%s|r",
+	S.Print(string.format("|cffff5555forbidden call: %s  (the client blames: %s)%s%s|r",
 		tostring(func or "?"), tostring(addon or "unknown"),
-		where and ("  |cffffcc33@ " .. where) or ""))
+		activeEvent and ("  |cffffcc33during " .. activeEvent .. "|r") or "",
+		where and ("  |cffffcc33@ " .. where .. "|r") or ""))
 	S.BugHint()
 end
 S.RegisterEvent("ADDON_ACTION_FORBIDDEN", forbidden)
