@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.8 - 2026-11-22
+
+- AutoQuest fix: step detection ran only on dialog panel frame names, which never matched on this client - nothing auto-accepted or turned in. The QUEST_*/GOSSIP_* events now set a pending flag the 0.15s poll consumes outside the event dispatch, and the flag re-triggers a step on repeat visits (accept -> gossip -> accept chains).
+- Turn-in order: gossip and greeting selection now pick only COMPLETE active quests (isComplete / IsActiveQuestComplete) before offered quests - an unfinished active no longer stalls the flow. /sqauto lists which dialog panels the client actually has.
+
 ## 0.4.7 - 2026-11-22
 
 - The tracker-choice prompt and the 'reload required?' confirms now use the shared own dialog instead of StaticPopupDialogs; the tracker window closes on Escape via S.EscClosable. Removes addon-written entries from game tables the Escape dispatch reads.

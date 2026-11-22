@@ -65,17 +65,29 @@ local function Complete()
 	if n <= 1 and GetQuestReward then pcall(GetQuestReward, 1) end
 end
 
--- gossip: completable active quests first, then the first offered quest
+-- gossip: completable active quests first, then the first offered quest.
+-- Only an entry flagged isComplete auto-selects - picking an unfinished
+-- active stalls the automation on its progress page.
 local function Gossip()
 	if not On() or not C_GossipInfo then return end
 	if C_GossipInfo.GetActiveQuests and C_GossipInfo.SelectActiveQuest then
 		local ok, list = pcall(C_GossipInfo.GetActiveQuests)
 		if ok and type(list) == "table" and not S.IsSecretTable(list) then
+			local firstActive, anyFlag
 			for i, q in ipairs(list) do
-				if type(q) == "table" and q.isComplete ~= false then
-					pcall(C_GossipInfo.SelectActiveQuest, i)
-					return
+				if type(q) == "table" then
+					if q.isComplete == true then
+						pcall(C_GossipInfo.SelectActiveQuest, i)
+						return
+					end
+					firstActive = firstActive or i
+					if q.isComplete ~= nil then anyFlag = true end
 				end
+			end
+			-- client reports no complete flag at all: legacy behavior
+			if firstActive and not anyFlag then
+				pcall(C_GossipInfo.SelectActiveQuest, firstActive)
+				return
 			end
 		end
 	end
@@ -95,15 +107,28 @@ local function Gossip()
 	end
 end
 
--- older greeting flow for multi-quest NPCs: completable actives first
+-- older greeting flow for multi-quest NPCs: COMPLETE actives first
+-- (turn in before taking new quests), an unfinished one never auto-opens
 local function Greeting()
 	if not On() then return end
 	if type(GetNumActiveQuests) == "function"
 		and type(SelectActiveQuest) == "function" then
 		local ok, n = pcall(GetNumActiveQuests)
 		if ok and type(n) == "number" and n > 0 then
-			pcall(SelectActiveQuest, 1)
-			return
+			if type(IsActiveQuestComplete) == "function" then
+				for i = 1, n do
+					local okC, c = pcall(IsActiveQuestComplete, i)
+					if okC and c == true then
+						pcall(SelectActiveQuest, i)
+						return
+					end
+				end
+				-- actives exist but none complete: fall through to offers
+			else
+				-- no complete flag on this client: legacy behavior
+				pcall(SelectActiveQuest, 1)
+				return
+			end
 		end
 	end
 	if type(GetNumAvailableQuests) == "function"
@@ -163,9 +188,19 @@ end
 
 local stepSeen = {}
 function AutoQuest.Apply()
+	-- dialog events only FLAG a pending step - running the quest APIs inside
+	-- the event dispatch taints the client's secret-safe dialog updates.
+	-- the 0.15s poll below consumes the flag outside that dispatch, and it
+	-- also still watches panel visibility for clients whose events differ.
+	local pending = {}
+	for _, st in ipairs(STEPS) do
+		S.RegisterEvent(st.name, function() pending[st.name] = GetTime() end)
+	end
+	S.RegisterEvent("QUEST_ACCEPT_CONFIRM", function() pending.CONFIRM = GetTime() end)
 	local confirmSeen = false
 	C_Timer.NewTicker(0.15, function()
 		local open = DialogOpen()
+		local now = GetTime()
 		for _, st in ipairs(STEPS) do
 			local on = false
 			if open then
@@ -174,15 +209,32 @@ function AutoQuest.Apply()
 					if p and p:IsShown() then on = true break end
 				end
 			end
-			if on and not stepSeen[st.name] then
+			-- the event flag is a one-shot trigger: it re-runs the step even
+			-- if the same panel is still flagged seen (gossip -> detail ->
+			-- gossip -> detail chains within one dialog session)
+			local runNow = false
+			local pt = pending[st.name]
+			if pt then
+				if now - pt > 3 then
+					pending[st.name] = nil -- fired but no dialog followed
+				elseif now - pt >= 0.1 then
+					on = true
+					runNow = true
+					pending[st.name] = nil
+				end
+			end
+			if runNow or (on and not stepSeen[st.name]) then
 				S.SafeCall("autoQuest:" .. st.name, st.fn)
 			end
 			stepSeen[st.name] = on
 		end
 		if not open then wipe(stepSeen) end
-		local confirm = type(StaticPopup_Visible) == "function"
-			and StaticPopup_Visible("QUEST_ACCEPT_CONFIRM") and true or false
+		local pt = pending.CONFIRM
+		local confirm = (type(StaticPopup_Visible) == "function"
+			and StaticPopup_Visible("QUEST_ACCEPT_CONFIRM") and true)
+			or (pt and now - pt <= 3 and now - pt >= 0.1) or false
 		if confirm and not confirmSeen then
+			if pt then pending.CONFIRM = nil end
 			S.SafeCall("autoQuest:QUEST_ACCEPT_CONFIRM", Confirm)
 		end
 		confirmSeen = confirm
@@ -192,6 +244,14 @@ end
 -- /sqauto: which pieces are live - option state + poll coverage
 SLASH_SENTIUIQUESTAUTO1 = "/sqauto"
 SlashCmdList.SENTIUIQUESTAUTO = function()
+	local found = {}
+	for _, st in ipairs(STEPS) do
+		for _, n in ipairs(st.frames) do
+			if _G[n] then found[#found + 1] = n end
+		end
+	end
 	print("|cffebad33sqauto:|r enabled=" .. tostring(db and db.autoQuest == true)
-		.. "  (dialog poll: 0.15s)")
+		.. "  (dialog poll: 0.15s + event flags)")
+	print("|cffebad33sqauto:|r panels found: "
+		.. (#found > 0 and table.concat(found, ", ") or "|cffff5555none|r"))
 end

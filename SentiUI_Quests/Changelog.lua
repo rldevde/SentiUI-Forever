@@ -4,6 +4,18 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.8",
+		date = "2026-11-22",
+		changes = {
+			"AutoQuest fix: step detection ran only on dialog panel frame names, which never matched on this client - nothing auto-accepted or turned in. The QUEST_*/GOSSIP_* events now set a pending flag the 0.15s poll consumes outside the event dispatch, and the flag re-triggers a step on repeat visits (accept -> gossip -> accept chains).",
+			"Turn-in order: gossip and greeting selection now pick only COMPLETE active quests (isComplete / IsActiveQuestComplete) before offered quests - an unfinished active no longer stalls the flow. /sqauto lists which dialog panels the client actually has.",
+		},
+		changesDE = {
+			"AutoQuest-Fix: die Schritt-Erkennung lief nur ueber Dialog-Panel-Frame-Namen, die auf diesem Client nie passten - nichts nahm automatisch an oder gab ab. Die QUEST_*/GOSSIP_*-Events setzen jetzt ein Flag, das der 0.15s-Poll ausserhalb des Event-Dispatchs abarbeitet; das Flag loest einen Schritt auch bei Wiederholungen aus (Annehmen -> Gossip -> Annehmen-Ketten).",
+			"Abgabe-Reihenfolge: Gossip- und Greeting-Auswahl nehmen jetzt nur ABGESCHLOSSENE aktive Quests (isComplete / IsActiveQuestComplete) vor den angebotenen Quests - eine unfertige aktive Quest blockiert den Ablauf nicht mehr. /sqauto listet, welche Dialog-Panels der Client wirklich hat.",
+		},
+	},
+	{
 		version = "0.4.7",
 		date = "2026-11-22",
 		changes = {

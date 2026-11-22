@@ -78,7 +78,9 @@ Quests options page.
 - `Auto accept / turn in` walks NPC quest dialogs on its own:
   `QUEST_DETAIL` accepts, `QUEST_PROGRESS` completes when finishable,
   `QUEST_COMPLETE` turns in, `GOSSIP_SHOW`/`QUEST_GREETING` pick a
-  completable or offered quest.
+  **complete** active quest first (turn-ins before new accepts), then
+  an offered quest. Steps trigger from the dialog events and a
+  0.15s panel poll — `/sqauto` shows which panels the client has.
 - A choice of rewards is never picked automatically.
 - Hold **SHIFT** to talk to an NPC manually for that interaction.
 
