@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.20
+
+- Blacklist window joins the combat deferral: opening it mid-combat queues for after the fight with a chat note, and an open window hides on combat start and returns after (core S:CombatDeferWindow).
+
 ## 0.5.19
 
 - Blacklist peers strip now shows whether someone's list is complete: a lightweight FBLstat message (rev + entry count, ignored by older clients and the standalone) rides alongside the version ping, so each peer row displays 'rev N  theirs/ours' - green when the peer is caught up, red when behind. Our own stats re-announce shortly after merges and manual imports.

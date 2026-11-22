@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.8",
+		changes = {
+			"Training window joins the combat deferral: opening it mid-combat queues for after the fight with a chat note, and an open window hides on combat start and returns after (core S:CombatDeferWindow).",
+		},
+		changesDE = {
+			"Trainings-Fenster haengt an der Kampf-Verzoegerung Oeffnen im Kampf wird mit Chat-Notiz bis nach dem Kampf zurueckgestellt, ein offenes Fenster versteckt sich bei Kampfbeginn und kommt danach wieder (Core S:CombatDeferWindow).",
+		},
+	},
+
+	{
 		version = "0.2.7",
 		changes = {
 			"Forbidden-call fix for the K keybind in combat: SPELLS_CHANGED and CRAFT_UPDATE can fire inside the keybind/craft-window dispatch that opens the spellbook - a handler executing there taints the client's protected FrameShow call right after. Both events are now only registered while their window is actually open via the polled WatchShown watcher, so the handler cannot run inside the input dispatch at all.",

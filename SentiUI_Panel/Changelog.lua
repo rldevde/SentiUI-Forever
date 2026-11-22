@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.20",
+		changes = {
+			"Blacklist window joins the combat deferral: opening it mid-combat queues for after the fight with a chat note, and an open window hides on combat start and returns after (core S:CombatDeferWindow).",
+		},
+		changesDE = {
+			"Blacklist-Fenster haengt an der Kampf-Verzoegerung Oeffnen im Kampf wird mit Chat-Notiz bis nach dem Kampf zurueckgestellt, ein offenes Fenster versteckt sich bei Kampfbeginn und kommt danach wieder (Core S:CombatDeferWindow).",
+		},
+	},
+
+	{
 		version = "0.5.19",
 		changes = {
 			"Blacklist peers strip now shows whether someone's list is complete: a lightweight FBLstat message (rev + entry count, ignored by older clients and the standalone) rides alongside the version ping, so each peer row displays 'rev N  theirs/ours' - green when the peer is caught up, red when behind. Our own stats re-announce shortly after merges and manual imports.",

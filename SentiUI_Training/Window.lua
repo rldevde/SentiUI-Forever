@@ -122,6 +122,7 @@ function K.Build()
 	end)
 	f:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
 	f:SetClampedToScreen(true)
+	if S.CombatDeferWindow then S:CombatDeferWindow(f) end
 	f:Hide()
 	K.frame = f
 

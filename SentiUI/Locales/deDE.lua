@@ -106,3 +106,4 @@ L["Please report errors at https://dev.xrl-dev.de/bugtracker"] = "Bitte Fehler u
 L["All modules"] = "Alle Module"
 L["Filter"] = "Filter"
 L["Module"] = "Modul"
+L["%s opens after combat"] = "%s öffnet nach dem Kampf"

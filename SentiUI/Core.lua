@@ -300,12 +300,129 @@ end
 S.RegisterEvent("ADDON_ACTION_FORBIDDEN", forbidden)
 S.RegisterEvent("ADDON_ACTION_BLOCKED", forbidden)
 
+-- combat window deferral -----------------------------------------------------
+-- Opening a managed window mid-combat dies as ADDON_ACTION_FORBIDDEN on the
+-- client's FrameShow. Instead of failing, the request queues for
+-- PLAYER_REGEN_ENABLED with a chat note - and a flagged own window closes
+-- when combat starts and comes back after.
+local combatWins, pendingToggles = {}, {}
+
+local function combatLock()
+	if type(InCombatLockdown) == "function" then return InCombatLockdown() end
+	return UnitAffectingCombat and UnitAffectingCombat("player") == true
+end
+
+local function noteDeferred(label)
+	S.Print(string.format(S.L["%s opens after combat"], label))
+end
+
+-- Flag one of our windows: Show() during combat queues the open for after
+-- the fight (one chat note per combat) and a shown window hides when
+-- combat starts, then returns.
+function S:CombatDeferWindow(f)
+	if not f or combatWins[f] then return end
+	local e = {}
+	combatWins[f] = e
+	local rawShow = f.Show
+	f.Show = function(self, ...)
+		if combatLock() then
+			e.pending = true
+			if not e.noted then
+				e.noted = true
+				local ok, n = pcall(f.GetName, f)
+				noteDeferred(ok and type(n) == "string" and n or "window")
+			end
+			return
+		end
+		e.noted = nil
+		return rawShow(self, ...)
+	end
+end
+
+-- Blizzard key toggles (C, K, N ...): the engine's window Show is protected
+-- here, so a mid-combat press dies to ADDON_ACTION_FORBIDDEN. The global
+-- toggle queues the open instead and fires after combat only when the
+-- window is still closed - a manual open in between must not toggle shut.
+local TOGGLE_DEFS = {
+	{ fn = "ToggleCharacter",        label = "Character",    frames = { "CharacterFrame", "PaperDollFrame" } },
+	{ fn = "ToggleSpellBook",        label = "Spellbook",    frames = { "SpellBookFrame", "PlayerSpellsFrame" } },
+	{ fn = "ToggleSkillFrame",       label = "Skills",       frames = { "SkillFrame", "ProfessionsBookFrame" } },
+	{ fn = "ToggleTalentFrame",      label = "Talents",      frames = { "TalentFrame", "PlayerTalentFrame", "ClassTalentFrame" } },
+	{ fn = "ToggleFriendsFrame",     label = "Social",       frames = { "FriendsFrame" } },
+	{ fn = "ToggleGuildFrame",       label = "Guild",        frames = { "GuildFrame", "CommunitiesFrame" } },
+	{ fn = "ToggleAchievementFrame", label = "Achievements", frames = { "AchievementFrame" } },
+	{ fn = "TogglePVPUI",            label = "PvP",          frames = { "PVPUIFrame", "PVPFrame", "HonorFrame" } },
+	{ fn = "TogglePVPFrame",         label = "PvP",          frames = { "PVPUIFrame", "PVPFrame", "HonorFrame" } },
+	{ fn = "ToggleQuestLog",         label = "Quest log",    frames = { "QuestLogFrame" } },
+	{ fn = "ToggleWorldMap",         label = "Map",          frames = { "WorldMapFrame" } },
+	{ fn = "ToggleHelpFrame",        label = "Help",         frames = { "HelpFrame" } },
+	{ fn = "ToggleCalendar",         label = "Calendar",     frames = { "CalendarFrame" } },
+	{ fn = "ToggleLFGParentFrame",   label = "Group finder", frames = { "LFGParentFrame", "PVEFrame", "GroupFinderFrame" } },
+}
+
+local function toggleStillClosed(d)
+	for _, n in ipairs(d.frames) do
+		local fr = _G[n]
+		if fr and fr.IsShown then
+			local ok, s = pcall(fr.IsShown, fr)
+			if ok and s then return false end
+		end
+	end
+	return true
+end
+
+S.RegisterEvent("PLAYER_LOGIN", function()
+	for _, d in ipairs(TOGGLE_DEFS) do
+		local orig = _G[d.fn]
+		if type(orig) == "function" then
+			d.orig = orig
+			_G[d.fn] = function(...)
+				if combatLock() then
+					if not d.queued then
+						d.queued = true
+						pendingToggles[#pendingToggles + 1] = d
+						noteDeferred(d.label)
+					end
+					return
+				end
+				return orig(...)
+			end
+		end
+	end
+end)
+
+S.RegisterEvent("PLAYER_REGEN_DISABLED", function()
+	for f, e in pairs(combatWins) do
+		local ok, shown = pcall(f.IsShown, f)
+		if ok and shown then
+			e.reopen = true
+			pcall(f.Hide, f)
+		end
+	end
+end)
+
 S.RegisterEvent("PLAYER_REGEN_ENABLED", function()
 	local queue = combatQueue
 	combatQueue = {}
 	for i = 1, #queue do
 			-- this client ships the GLOBAL unpack; table.unpack may be missing
 			S.SafeCall("outOfCombat", queue[i].fn, (unpack or table.unpack)(queue[i], 1, queue[i].n))
+	end
+	-- flagged own windows: queued open requests + auto-reopen
+	for f, e in pairs(combatWins) do
+		if e.pending or e.reopen then
+			e.pending, e.reopen, e.noted = nil, nil, nil
+			local ok, shown = pcall(f.IsShown, f)
+			if not (ok and shown) then S.SafeCall("combatWin", f.Show, f) end
+		end
+	end
+	-- deferred Blizzard window opens
+	local tq = pendingToggles
+	pendingToggles = {}
+	for i = 1, #tq do
+		local d = tq[i]
+		d.queued = nil
+		if toggleStillClosed(d) then S.SafeCall("toggle:" .. d.fn, d.orig) end
 	end
 end)
 

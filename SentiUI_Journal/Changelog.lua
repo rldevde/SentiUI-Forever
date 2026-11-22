@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.7",
+		changes = {
+			"Journal window joins the combat deferral: opening it mid-combat queues for after the fight with a chat note, and an open window hides on combat start and returns after (core S:CombatDeferWindow).",
+		},
+		changesDE = {
+			"Journal-Fenster haengt an der Kampf-Verzoegerung Oeffnen im Kampf wird mit Chat-Notiz bis nach dem Kampf zurueckgestellt, ein offenes Fenster versteckt sich bei Kampfbeginn und kommt danach wieder (Core S:CombatDeferWindow).",
+		},
+	},
+
+	{
 		version = "0.1.6",
 		changes = {
 			"Interface-dispatch audit: the map fallback no longer calls ToggleWorldMap via pcall - it goes through the same guarded call path as the protected waypoint APIs.",

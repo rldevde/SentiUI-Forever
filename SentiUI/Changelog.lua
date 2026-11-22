@@ -25,6 +25,16 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.3.14",
+		changes = {
+			"Combat window deferral: opening a managed window mid-combat dies to ADDON_ACTION_FORBIDDEN on the client's protected FrameShow, so Blizzard key toggles (character C, spellbook K, talents N, quests L, map, friends, guild, pvp, calendar, help, group finder...) now queue the open for after combat with a chat note - and fire only when the window is still closed. Flagged own windows behave the same via S:CombatDeferWindow: Show() in combat defers with a note, an open window hides on combat start and returns after. Flagged so far: settings, panel blacklist, training, journal.",
+		},
+		changesDE = {
+			"Kampf-Verzoegerung fuer Fenster: Das Oeffnen verwalteter Fenster im Kampf stirbt am ADDON_ACTION_FORBIDDEN des geschuetzten FrameShow - die Blizzard-Tastentoggles (Charakter C, Zauberbuch K, Talente N, Quests L, Karte, Freunde, Gilde, PvP, Kalender, Hilfe, Gruppensuche...) stellen das Oeffnen jetzt mit einer Chat-Notiz bis nach dem Kampf zurueck - und feuern nur, wenn das Fenster noch zu ist. Geflaggte eigene Fenster verhalten sich per S:CombatDeferWindow genauso: Show() im Kampf verzoegert mit Notiz, ein offenes Fenster versteckt sich bei Kampfbeginn und kommt danach wieder. Geflaggt bisher: Einstellungen, Panel-Blacklist, Training, Journal.",
+		},
+	},
+
+	{
 		version = "0.3.13",
 		changes = {
 			"Forbidden-action reports dig one frame deeper and name the dispatching event: core machinery frames (OnEvent dispatcher, SafeCall/S.Call wrappers) are skipped so the site points at the real module file.lua:line, and the report now includes 'during EVENT_NAME' when a client event was being dispatched inside the blocked call - a tainted event handler is identifiable at a glance.",

@@ -1599,6 +1599,7 @@ end
 local function Window()
 	if win then return win end
 	local f = CreateFrame("Frame", "SentiUIPanelFBLWindow", UIParent, "BackdropTemplate")
+	if S.CombatDeferWindow then S:CombatDeferWindow(f) end
 	f:SetSize(620, 580)
 	f:SetPoint("CENTER")
 	f:SetFrameStrata("DIALOG")

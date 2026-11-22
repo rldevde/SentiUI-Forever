@@ -1,5 +1,9 @@
 # SentiUI Training - Changelog
 
+## 0.2.8
+
+- Training window joins the combat deferral: opening it mid-combat queues for after the fight with a chat note, and an open window hides on combat start and returns after (core S:CombatDeferWindow).
+
 ## 0.2.7
 
 - Forbidden-call fix for the K keybind in combat: SPELLS_CHANGED and CRAFT_UPDATE can fire inside the keybind/craft-window dispatch that opens the spellbook - a handler executing there taints the client's protected FrameShow call right after (ADDON_ACTION_FORBIDDEN, blamed on the suite). Both events are now only registered while their window is actually open via the polled WatchShown watcher, so the handler cannot run inside the input dispatch at all. Also fixed: Service.lua used S.RegisterEvent without a local S (it only worked through a leaked global).

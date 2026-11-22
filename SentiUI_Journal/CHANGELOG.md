@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.7
+
+- Journal window joins the combat deferral: opening it mid-combat queues for after the fight with a chat note, and an open window hides on combat start and returns after (core S:CombatDeferWindow).
+
 ## 0.1.6
 
 - Interface-dispatch audit: the map fallback no longer calls ToggleWorldMap via pcall - it goes through the same guarded call path as the protected waypoint APIs.
