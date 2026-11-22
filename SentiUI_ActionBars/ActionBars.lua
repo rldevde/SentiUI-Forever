@@ -1215,31 +1215,31 @@ function Core.Enable(mod)
 			S.Print("|cffffff00/suibars foci|r - " .. L["list the frames eating clicks under the cursor"])
 			return
 		end
-		local foci
-		if GetMouseFoci then
-			foci = { GetMouseFoci() }
-			-- this client may return one array-table instead of multiple
-			-- values: unwrap entries that are plain tables
-			local flat = {}
-			for _, v in ipairs(foci) do
-				if type(v) == "table" and type(v.GetObjectType) ~= "function"
-					and type(v.GetFrameStrata) ~= "function" then
-					for _, w in pairs(v) do flat[#flat + 1] = w end
-				else
-					flat[#flat + 1] = v
-				end
+		-- EnumerateFrames always: it is the same scan /framestack does.
+		-- GetMouseFoci is only a supplement - on this client it can return
+		-- nothing or a packed table.
+		local foci, seen = {}, {}
+		local f = EnumerateFrames()
+		while f do
+			if not seen[f] and f:IsMouseEnabled() and f:IsMouseOver() then
+				seen[f] = true
+				foci[#foci + 1] = f
 			end
-			foci = flat
-		else
-			-- fallback: walk every frame, keep mouse-enabled ones under the
-			-- cursor (same result GetMouseFoci would give)
-			foci = {}
-			local f = EnumerateFrames()
-			while f do
-				if f:IsMouseEnabled() and f:IsMouseOver() then
-					foci[#foci + 1] = f
+			f = EnumerateFrames(f)
+		end
+		if GetMouseFoci then
+			for _, v in ipairs({ GetMouseFoci() }) do
+				if type(v) == "table" and type(v.GetObjectType) ~= "function" then
+					for _, w in pairs(v) do
+						if type(w) == "table" and not seen[w] then
+							seen[w] = true
+							foci[#foci + 1] = w
+						end
+					end
+				elseif type(v) == "table" and not seen[v] then
+					seen[v] = true
+					foci[#foci + 1] = v
 				end
-				f = EnumerateFrames(f)
 			end
 		end
 		if #foci == 0 then
@@ -1259,6 +1259,23 @@ function Core.Enable(mod)
 			S.Print(format("%s (%s) type=%s strata=%s level=%s parent=%s",
 				call("GetName"), tostring(f), call("GetObjectType"),
 				call("GetFrameStrata"), call("GetFrameLevel"), tostring(pn)))
+			-- for our own buttons also compare the hit rect with the icon's
+			-- rect: they must cover the same pixels
+			local n = call("GetName")
+			if type(n) == "string" and n:find("^SentiUIActionBar%d+Button%d+$")
+				and type(f.GetLeft) == "function" then
+				local l, b = f:GetLeft(), f:GetBottom()
+				S.Print(format("   hit rect: %.0f..%.0f x %.0f..%.0f",
+					l or -1, b or -1,
+					(l or 0) + (f:GetWidth() or 0), (b or 0) + (f:GetHeight() or 0)))
+				local ic = f.icon
+				if type(ic) == "table" and type(ic.GetLeft) == "function" then
+					S.Print(format("   icon rect: %.0f..%.0f x %.0f..%.0f",
+						ic:GetLeft() or -1, ic:GetBottom() or -1,
+						(ic:GetLeft() or 0) + (ic:GetWidth() or 0),
+						(ic:GetBottom() or 0) + (ic:GetHeight() or 0)))
+				end
+			end
 		end
 	end
 
