@@ -1,5 +1,10 @@
 # SentiUI Chat
 
+## 0.2.14 - 2026-11-22
+
+- URL copy dialog, chat copy window and emote picker now use the own dialog/Escape handling instead of StaticPopupDialogs and UISpecialFrames.
+- Removed the 'sticky channels' option: it wrote into ChatTypeInfo, and every addon-written value there taints the Enter dispatch that later calls the protected SendChatMessage. Channel stickiness now follows the client's own defaults.
+
 ## 0.2.13 - 2026-11-22
 
 - Fix the edit box losing its style: NineSlice was alpha'd before SetBackdrop - the backdrop draws through NineSlice, so the raised fill/border never rendered (transparent bar with gold focus brackets). The watchdog now also retries styling for late-created edit boxes and re-hides the header chrome every tick.

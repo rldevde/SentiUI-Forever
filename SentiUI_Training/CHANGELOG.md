@@ -1,5 +1,9 @@
 # SentiUI Training - Changelog
 
+## 0.2.9 - 2026-11-22
+
+- Window now closes on Escape via the shared S.EscClosable helper instead of a UISpecialFrames entry - addon-written entries in that game table taint the Escape dispatch, which made protected calls (spell stop, reload) fail and get blamed on the addon.
+
 ## 0.2.8
 
 - Training window joins the combat deferral: opening it mid-combat queues for after the fight with a chat note, and an open window hides on combat start and returns after (core S:CombatDeferWindow).

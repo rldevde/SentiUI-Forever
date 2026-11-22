@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.19 - 2026-11-22
+
+- New shared helpers: S.EscClosable (Escape-close without a UISpecialFrames entry) and S.Dialog (own confirm/prompt dialog). All core windows (settings, installer, movers) converted - addon-written entries in UISpecialFrames/StaticPopupDialogs taint the game's Escape dispatch, which is what made protected calls fail and get blamed on the addon.
+- The 'reload required?' confirm and the options reset confirm now use the own dialog (the reload still goes through C_UI.Reload).
+
 ## 0.3.18 - 2026-11-22
 
 - Reworked the combat deferral: the core no longer wraps ShowUIPanel/HideUIPanel/ToggleFrame or the Toggle* keybind functions - every wrapped call ran addon code inside the caller's dispatch and tainted it, which is what blocked Reload() in the addon list, SpellStopCasting() on Escape and secret comparisons when panels opened.

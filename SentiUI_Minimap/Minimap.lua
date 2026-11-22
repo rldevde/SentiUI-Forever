@@ -555,19 +555,13 @@ local function buildMenu()
 	menu.setupEntries = setupEntries
 	-- once, not per OnShow: re-inserting on every show piled duplicate
 	-- entries into the client's special-frame list
-	if type(UISpecialFrames) == "table" then
-		local found = false
-		for _, n in ipairs(UISpecialFrames) do
-			if n == "SentiUIMinimapMenu" then found = true break end
-		end
-		if not found then tinsert(UISpecialFrames, "SentiUIMinimapMenu") end
-	end
+	S.EscClosable(menu)
 	menu:EnableMouse(true)
 
-	-- no OnHide hooks: the menu joins UISpecialFrames, so OnHide would
-	-- run inside the Escape dispatch and taint the engine's protected
-	-- spell-stop calls. The watcher polls the hidden transition from
-	-- OnUpdate (a safe dispatch) and folds the old OnHide work into it.
+	-- no OnHide hooks: OnHide runs inside the Escape dispatch and
+	-- taints the engine's protected spell-stop calls. The watcher
+	-- polls the hidden transition from OnUpdate (a safe dispatch)
+	-- and folds the old OnHide work into it.
 	local watcher = CreateFrame("Frame")
 	watcher:Hide()
 	watcher:SetScript("OnUpdate", function(f)

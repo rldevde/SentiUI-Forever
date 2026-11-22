@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.1",
+		date = "2026-11-22",
+		changes = {
+			"Wipe and archive-wipe confirms now use the shared own dialog instead of StaticPopupDialogs entries; the window closes on Escape via S.EscClosable. Removes addon-written entries from game tables the Escape dispatch reads.",
+		},
+		changesDE = {
+			"Loesch- und Archiv-Loesch-Bestaetigungen nutzen jetzt den eigenen Dialog statt StaticPopupDialogs-Eintraegen; das Fenster schliesst per S.EscClosable auf Escape. Entfernt Addon-geschriebene Eintraege aus Spiel-Tabellen, die der Escape-Dispatch liest.",
+		},
+	},
+	{
 		version = "0.2.0",
 		date = "2026-11-22",
 		changes = {

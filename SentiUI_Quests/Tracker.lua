@@ -788,20 +788,17 @@ local function BuildFrame()
 end
 
 -- choice ---------------------------------------------------------------------------
-StaticPopupDialogs["SENTIUI_QUESTIE_CHOICE"] = {
-	text = L["Questie is on"] .. "\n\n" .. L["Which quest tracker?"] .. "\n"
-		.. L["You can change it later on the Quests options page."],
-	button1 = L["SentiUI tracker (works with Questie)"],
-	button2 = L["Questie's tracker"],
-	OnAccept = function() Core.SetMode("sentiui") end,
-	-- ESC/close only dismisses - picking Questie's tracker needs the real
-	-- button, otherwise an accidental ESC hides our tracker for good
-	OnCancel = function() end,
-	timeout = 0,
-	whileDead = true,
-	hideOnEscape = true,
-	preferredIndex = 3,
-}
+local function AskTrackerChoice()
+	S.Dialog({
+		text = L["Questie is on"] .. "\n\n" .. L["Which quest tracker?"] .. "\n"
+			.. L["You can change it later on the Quests options page."],
+		okText = L["SentiUI tracker (works with Questie)"],
+		cancelText = L["Questie's tracker"],
+		onAccept = function() Core.SetMode("sentiui") end,
+		-- the cancel button is the Questie pick, not a dismissal
+		onCancel = function() Core.SetMode("questie") end,
+	})
+end
 
 local function MaybeAsk()
 	if db.questieAsked or not ns.Questie.Loaded() then return end
@@ -810,7 +807,7 @@ local function MaybeAsk()
 		return
 	end
 	db.questieAsked = true
-	StaticPopup_Show("SENTIUI_QUESTIE_CHOICE")
+	AskTrackerChoice()
 end
 
 -- mode ---------------------------------------------------------------------------
@@ -823,11 +820,11 @@ function Core.SetMode(mode)
 	elseif mode == "questie" then
 		S.SafeCall("questie", function() ns.Questie.Run(false) end)
 		if frame and not InCombatLockdown() then frame:Hide() end
-		StaticPopup_Show("SENTIUI_RELOAD")
+		S.Options.AskReload()
 	elseif mode == "blizzard" then
 		S.SafeCall("questie", function() ns.Questie.Run(false) end)
 		if frame and not InCombatLockdown() then frame:Hide() end
-		StaticPopup_Show("SENTIUI_RELOAD")
+		S.Options.AskReload()
 	end
 end
 

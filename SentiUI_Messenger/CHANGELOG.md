@@ -1,5 +1,9 @@
 # SentiUI Messenger
 
+## 0.3.7 - 2026-11-22
+
+- Conversation windows now close on Escape via the shared S.EscClosable helper instead of UISpecialFrames entries - addon-written entries in that game table taint the Escape dispatch.
+
 ## 0.3.6
 
 - Messenger windows: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.

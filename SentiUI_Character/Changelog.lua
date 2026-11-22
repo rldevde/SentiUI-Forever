@@ -3,6 +3,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.13",
+		date = "2026-11-22",
+		changes = {
+			"Window now closes on Escape via the shared S.EscClosable helper instead of a UISpecialFrames entry - addon-written entries in that game table taint the Escape dispatch, which made protected calls (spell stop, reload) fail and get blamed on the addon.",
+		},
+		changesDE = {
+			"Fenster schliesst jetzt per gemeinsamem S.EscClosable-Helfer auf Escape statt ueber einen UISpecialFrames-Eintrag - von Addons geschriebene Eintraege in dieser Spiel-Tabelle tainten den Escape-Dispatch, weshalb geschuetzte Aufrufe (Zauber abbrechen, Neuladen) fehlschlugen und dem Addon angelastet wurden.",
+		},
+	},
+	{
 		version = "0.2.12",
 		date = "2026-11-22",
 		changes = {

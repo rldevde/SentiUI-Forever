@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.10 - 2026-11-22
+
+- Window now closes on Escape via the shared S.EscClosable helper instead of a UISpecialFrames entry - addon-written entries in that game table taint the Escape dispatch, which made protected calls (spell stop, reload) fail and get blamed on the addon.
+
 ## 0.1.9 - 2026-11-22
 
 - The dungeon map no longer registers GLOBAL_MOUSE_UP - the event fires inside the input dispatch that then delivers the click to a button, so any addon Lua there taints it and kills the protected call behind it (Reload in the addon list, SpellStopCasting on Escape). Drag release is detected by polling the button state in OnUpdate.

@@ -109,7 +109,7 @@ end
 function K.Build()
 	if K.frame then return K.frame end
 	local f = CreateFrame("Frame", "SentiUITrainingWindow", UIParent, "BackdropTemplate")
-	tinsert(UISpecialFrames, "SentiUITrainingWindow")
+	S.EscClosable(f)
 	f:SetSize(600, 600)
 	f:SetPoint("CENTER")
 	f:SetFrameStrata("DIALOG")

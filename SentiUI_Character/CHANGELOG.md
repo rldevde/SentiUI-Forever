@@ -1,5 +1,9 @@
 # Changelog — SentiUI_Character
 
+## 0.2.13 - 2026-11-22
+
+- Window now closes on Escape via the shared S.EscClosable helper instead of a UISpecialFrames entry - addon-written entries in that game table taint the Escape dispatch, which made protected calls (spell stop, reload) fail and get blamed on the addon.
+
 ## 0.2.12 - 2026-11-22
 
 - Gear slots now draw a flat inset box with a 1px border colored by item quality - the UI-Quickslot2 ring that rendered as a clunky square frame is gone. Durability warnings still tint the border red.

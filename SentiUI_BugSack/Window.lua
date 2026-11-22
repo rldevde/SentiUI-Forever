@@ -285,7 +285,7 @@ local function build()
 		S.Movers.Save("bugsack.window")
 	end)
 	win:SetScript("OnShow", function() W.Refresh() end)
-	tinsert(UISpecialFrames, "SentiUIBugSack")
+	S.EscClosable(win)
 	S.Movers.Register(win, "bugsack.window", L["BugSack"])
 
 	local title = S.Font(win, 13, ACCENT, "OUTLINE")
@@ -441,22 +441,14 @@ local function build()
 	local wipeBtn = Btn(win, L["Wipe all errors"], 90)
 	wipeBtn:SetPoint("LEFT", nextBtn, "RIGHT", 10, 0)
 	wipeBtn:SetScript("OnClick", function()
-		if StaticPopupDialogs and StaticPopupDialogs.SENTIUI_BUGSACK_WIPE
-			and StaticPopup_Show then
-			StaticPopup_Show("SENTIUI_BUGSACK_WIPE")
-		else
-			G():Reset()
-		end
+		S.Confirm(ns.L["Confirm wipe"], function() G():Reset() end,
+			{ okText = YES or "Yes", cancelText = NO or "No" })
 	end)
 	local wipeArchBtn = Btn(win, L["Clear archive"], 90)
 	wipeArchBtn:SetPoint("LEFT", wipeBtn, "RIGHT", 6, 0)
 	wipeArchBtn:SetScript("OnClick", function()
-		if StaticPopupDialogs and StaticPopupDialogs.SENTIUI_BUGSACK_WIPE_ARCHIVE
-			and StaticPopup_Show then
-			StaticPopup_Show("SENTIUI_BUGSACK_WIPE_ARCHIVE")
-		else
-			G():Reset("archive")
-		end
+		S.Confirm(ns.L["Confirm archive wipe"], function() G():Reset("archive") end,
+			{ okText = YES or "Yes", cancelText = NO or "No" })
 	end)
 	local expBtn = Btn(win, L["Export"], 60)
 	expBtn:SetPoint("LEFT", wipeArchBtn, "RIGHT", 6, 0)
@@ -584,25 +576,4 @@ function W.OpenExport(scope)
 	exportBox:HighlightText()
 end
 
-if type(StaticPopupDialogs) == "table" then
-	StaticPopupDialogs.SENTIUI_BUGSACK_WIPE = {
-		text = ns.L["Confirm wipe"],
-		button1 = YES,
-		button2 = NO,
-		OnAccept = function() ns.Grab:Reset() end,
-		timeout = 0,
-		whileDead = true,
-		hideOnEscape = true,
-		preferredIndex = 3,
-	}
-	StaticPopupDialogs.SENTIUI_BUGSACK_WIPE_ARCHIVE = {
-		text = ns.L["Confirm archive wipe"],
-		button1 = YES,
-		button2 = NO,
-		OnAccept = function() ns.Grab:Reset("archive") end,
-		timeout = 0,
-		whileDead = true,
-		hideOnEscape = true,
-		preferredIndex = 3,
-	}
-end
+

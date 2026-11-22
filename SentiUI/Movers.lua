@@ -472,10 +472,10 @@ local function buildBar()
 	editBar:EnableMouse(true)
 	editBar:SetScript("OnDragStart", editBar.StartMoving)
 	editBar:SetScript("OnDragStop", editBar.StopMovingOrSizing)
-	tinsert(UISpecialFrames, "SentiUIMoversBar")
-	-- WatchHide, not OnHide: ESC hides this window natively, and an
-	-- OnHide script would run inside the Escape dispatch and taint
-	-- the engine's protected spell-stop calls
+	S.EscClosable(editBar)
+	-- WatchHide, not OnHide: an OnHide script would run inside the
+	-- Escape dispatch and taint the engine's protected spell-stop
+	-- calls - the watcher polls the transition from OnUpdate instead
 	S.WatchHide(editBar, function()
 		if M.unlocked then M.SetUnlocked(false) end
 	end)
@@ -501,7 +501,7 @@ local function buildBar()
 	local reset = S.Widgets.Button(editBar, L["Reset all"], 90, 22)
 	reset:SetPoint("RIGHT", lock, "LEFT", -8, 0)
 	reset:SetScript("OnClick", function()
-		StaticPopup_Show("SENTIUI_RESET_MOVERS")
+		M.AskReset()
 	end)
 end
 
@@ -618,13 +618,8 @@ S.RegisterEvent("PLAYER_LOGIN", function()
 	testFrame:SetShown(S.DB.General().testFrame == true)
 end)
 
-StaticPopupDialogs["SENTIUI_RESET_MOVERS"] = {
-	text = L["Reset every frame position and scale?"],
-	button1 = YES or "Yes",
-	button2 = NO or "No",
-	OnAccept = function() M.ResetAll() end,
-	timeout = 0,
-	whileDead = true,
-	hideOnEscape = true,
-	preferredIndex = 3,
-}
+function M.AskReset()
+	S.Confirm(L["Reset every frame position and scale?"],
+		function() M.ResetAll() end,
+		{ okText = YES or "Yes", cancelText = NO or "No" })
+end

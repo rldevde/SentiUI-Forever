@@ -375,16 +375,15 @@ function ns.TextPopup(title, text, onAccept)
 		-- no OnEscapePressed handler on purpose: ANY insecure code in
 		-- the Escape dispatch taints the engine's later spell-stop
 		-- calls (protected SpellStopCasting/SpellStopTargeting,
-		-- ADDON_ACTION_FORBIDDEN blamed on us). The frame is in
-		-- UISpecialFrames, so the engine hides it natively and the
-		-- edit box drops focus on its own.
+		-- ADDON_ACTION_FORBIDDEN blamed on us). S.EscClosable eats the
+		-- key in OnKeyDown; a focused box clears its focus first.
 		scroll:SetScrollChild(edit)
 		f.edit = edit
 
 		local ok = ns.Button(f, 90, 22, L["Accept"])
 		ok:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -12, 10)
 		f.accept = ok
-		tinsert(UISpecialFrames, "SentiUIPanelTextPopup")
+		S.EscClosable(f)
 		textPopup = f
 	end
 	local f = textPopup

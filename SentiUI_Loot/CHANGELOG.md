@@ -1,5 +1,9 @@
 # SentiUI Loot
 
+## 0.2.7 - 2026-11-22
+
+- Window now closes on Escape via the shared S.EscClosable helper instead of a UISpecialFrames entry - addon-written entries in that game table taint the Escape dispatch, which made protected calls (spell stop, reload) fail and get blamed on the addon.
+
 ## 0.2.6
 
 - Interface-dispatch audit: hiding the Blizzard loot frame and refreshing the custom window no longer run inside LOOT_* events or the frame's OnShow - a visibility watcher and deferred calls do the work one frame outside the dispatch. Auto-loot slot pickup is deferred the same way.

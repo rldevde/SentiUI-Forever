@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.10 - 2026-11-22
+
+- The minimap menu now closes on Escape via the shared S.EscClosable helper instead of a UISpecialFrames entry - addon-written entries in that game table taint the Escape dispatch.
+
 ## 0.3.9 - 2026-11-22
 
 - The SetPoint post-hooks on Minimap and the cluster dock guards are replaced by polling: they ran inside the client's layout dispatch (panel opens) and tainted whatever protected work followed.

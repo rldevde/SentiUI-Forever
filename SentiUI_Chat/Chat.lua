@@ -299,24 +299,26 @@ local function ThrottleFilter(_, _, msg, author)
 	return false
 end
 
--- URL copy popup
-StaticPopupDialogs["SENTIUI_URL"] = {
-	text = "URL", button1 = CLOSE, hasEditBox = true, editBoxWidth = 350,
-	OnShow = function(self, data)
-		local eb = self.editBox or self.EditBox
-		if eb then eb:SetText(data or "") eb:SetFocus() eb:HighlightText() end
-	end,
-	-- no EditBoxOnEscapePressed: it runs inside the Escape dispatch
-	-- and taints the engine's protected spell-stop calls; hideOnEscape
-	-- closes the popup natively
-	timeout = 0, whileDead = true, hideOnEscape = true,
-}
+-- URL copy popup - own dialog, not StaticPopupDialogs: the client tracks
+-- who wrote each table value and the game's Escape path reads that table,
+-- so addon entries taint the dispatch and kill the protected spell-stop
+-- call behind it (ADDON_ACTION_FORBIDDEN)
+local function ShowUrlPopup(url)
+	S.Dialog({
+		text = "URL",
+		editText = url or "",
+		readOnly = true,
+		okText = CLOSE or "Close",
+		hideCancel = true,
+		onAccept = function() end,
+	})
+end
 
 function Core.HookItemRef()
 	local original = SetItemRef
 	SetItemRef = function(link, text, button, chatFrame)
 		if type(link) == "string" and link:sub(1, 4) == "url:" then
-			StaticPopup_Show("SENTIUI_URL", nil, nil, link:sub(5))
+			ShowUrlPopup(link:sub(5))
 			return
 		end
 		return original(link, text, button, chatFrame)
@@ -341,7 +343,7 @@ function Core.CopyChat(frame)
 			S.Movers.Save("chat.copy")
 		end)
 		S.Template(f, "panel")
-		tinsert(UISpecialFrames, "SentiUIChatCopy")
+		S.EscClosable(f)
 		S.Movers.Register(f, "chat.copy", L["Copy Chat"])
 		local title = S.Font(f, 13, ACCENT, "OUTLINE")
 		title:SetPoint("TOPLEFT", 10, -8)
@@ -786,7 +788,7 @@ local function EmojiPicker()
 	p:SetToplevel(true)
 	p:EnableMouse(true)
 	S.Template(p, "raised")
-	tinsert(UISpecialFrames, "SentiUIEmojiPicker")
+	S.EscClosable(p)
 	local title = S.Font(p, 11, ACCENT)
 	title:SetPoint("TOPLEFT", 8, -6)
 	title:SetText(L["Emotes"])
@@ -934,14 +936,6 @@ local function LevelFilter(_, _, msg, sender, ...)
 	return false, newMsg, sender, ...
 end
 
-function Core.SetupSticky()
-	if not db.stickyChat then return end
-	for _, t in ipairs({ "SAY", "PARTY", "RAID", "GUILD", "OFFICER", "WHISPER", "BN_WHISPER",
-		"CHANNEL", "INSTANCE_CHAT", "YELL" }) do
-		if ChatTypeInfo and ChatTypeInfo[t] then ChatTypeInfo[t].sticky = 1 end
-	end
-end
-
 function Core.UpdateKeywords()
 	Core.keywords = {}
 	for word in (db.keywords or ""):gmatch("[^,]+") do
@@ -971,7 +965,7 @@ end
 
 function Core.SettingChanged(mod, path)
 	if not Core.enabled then return end
-	if path == "stickyChat" then Core.SetupSticky() end
+
 	if path == "classColorMentions" and db.classColorMentions then Core.SetupClassColors() end
 	if path == "keywords" then Core.UpdateKeywords() return end
 	Core.Update()
@@ -994,7 +988,7 @@ function Core.Enable(mod)
 	S.SafeCall("chat:buttons", Core.HideBlizzardButtons)
 	S.SafeCall("chat:itemref", Core.HookItemRef)
 	if db.classColorMentions then S.SafeCall("chat:colors", Core.SetupClassColors) end
-	S.SafeCall("chat:sticky", Core.SetupSticky)
+
 	if db.timestamp ~= "NONE" and SetCVar then pcall(SetCVar, "showTimestamps", "none") end
 
 	S.SafeCall("chat:position", Core.PositionChat)

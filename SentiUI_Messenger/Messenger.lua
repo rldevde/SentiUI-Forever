@@ -483,7 +483,7 @@ local function BuildHub()
 	f:SetClampedToScreen(true)
 	f:Hide()
 	S.Template(f, "panel")
-	if UISpecialFrames then tinsert(UISpecialFrames, "SentiUIMessengerHub") end
+	S.EscClosable(f)
 
 	-- title bar: drags the window; its landing spot is written into the
 	-- mover store so /sui unlock and login placement agree
@@ -653,7 +653,7 @@ local function BuildCard()
 	f:SetClampedToScreen(true)
 	f:Hide()
 	S.Template(f, "panel")
-	if UISpecialFrames then tinsert(UISpecialFrames, "SentiUIMessengerCard") end
+	S.EscClosable(f)
 
 	f.name = S.Font(f, 13)
 	f.name:SetPoint("TOPLEFT", 12, -8)
@@ -834,7 +834,7 @@ local function BuildCopy()
 	f:EnableMouse(true)
 	f:Hide()
 	S.Template(f, "panel")
-	if UISpecialFrames then tinsert(UISpecialFrames, "SentiUIMessengerCopy") end
+	S.EscClosable(f)
 
 	local title = S.Font(f, 12, C.accent)
 	title:SetPoint("TOPLEFT", 12, -10)

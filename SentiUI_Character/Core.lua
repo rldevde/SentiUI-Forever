@@ -114,7 +114,7 @@ end
 function C.Enable(m)
 	mod = m
 	ns.Win.Build()
-	tinsert(UISpecialFrames, ns.Win.frame:GetName())
+	S.EscClosable(ns.Win.frame)
 
 	if not hooked then
 		hooked = true

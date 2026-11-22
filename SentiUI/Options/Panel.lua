@@ -148,8 +148,10 @@ function builders.button(row, page, item)
 	b:FitWidth(28)
 	b:SetScript("OnClick", function()
 		if item.confirm then
-			Panel.pendingConfirm = item.func
-			StaticPopup_Show("SENTIUI_CONFIRM")
+			local fn = item.func
+			S.Confirm(L["Are you sure?"], function()
+				S.SafeCall("button:" .. tostring(item.label or "?"), fn)
+			end, { okText = YES or "Yes", cancelText = NO or "No" })
 		elseif item.func then
 			-- unguarded clicks die silently into the error bag; a SafeCall
 			-- puts the failure into chat where it can be seen
@@ -589,7 +591,7 @@ function Panel.Build()
 		if y > f:GetTop() - 40 then f:StartMoving() end
 	end)
 	frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
-	tinsert(UISpecialFrames, "SentiUISettingsFrame")
+	S.EscClosable(frame)
 
 	-- title band
 	local logo = frame:CreateTexture(nil, "ARTWORK")
@@ -647,8 +649,10 @@ function Panel.Build()
 	resetPage:SetPoint("TOPRIGHT", -14, -50)
 	resetPage:SetScript("OnClick", function()
 		if not current then return end
-		Panel.pendingReset = current
-		StaticPopup_Show("SENTIUI_RESET_PAGE")
+		local page = current
+		S.Confirm(L["Reset every setting on this page?"], function()
+			Options.ResetPage(page)
+		end, { okText = YES or "Yes", cancelText = NO or "No" })
 	end)
 
 	contentScroll, contentChild = W.Scroll(frame)
@@ -683,34 +687,4 @@ end)
 S.On("OptionsChanged", Panel.Refresh)
 S.On("MoversChanged", Panel.Refresh)
 
-StaticPopupDialogs["SENTIUI_CONFIRM"] = {
-	text = L["Are you sure?"],
-	button1 = YES or "Yes",
-	button2 = NO or "No",
-	OnAccept = function()
-		if Panel.pendingConfirm then Panel.pendingConfirm() end
-		Panel.pendingConfirm = nil
-	end,
-	OnCancel = function() Panel.pendingConfirm = nil end,
-	timeout = 0,
-	whileDead = true,
-	hideOnEscape = true,
-	preferredIndex = 3,
-}
 
-StaticPopupDialogs["SENTIUI_RESET_PAGE"] = {
-	text = L["Reset every setting on this page?"],
-	button1 = YES or "Yes",
-	button2 = NO or "No",
-	OnAccept = function()
-		if Panel.pendingReset then
-			Options.ResetPage(Panel.pendingReset)
-			Panel.pendingReset = nil
-		end
-	end,
-	OnCancel = function() Panel.pendingReset = nil end,
-	timeout = 0,
-	whileDead = true,
-	hideOnEscape = true,
-	preferredIndex = 3,
-}

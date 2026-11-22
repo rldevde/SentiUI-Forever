@@ -3,6 +3,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.7",
+		date = "2026-11-22",
+		changes = {
+			"Conversation windows now close on Escape via the shared S.EscClosable helper instead of UISpecialFrames entries - addon-written entries in that game table taint the Escape dispatch.",
+		},
+		changesDE = {
+			"Unterhaltungsfenster schliessen jetzt per gemeinsamem S.EscClosable-Helfer auf Escape statt ueber UISpecialFrames-Eintraege - von Addons geschriebene Eintraege in dieser Spiel-Tabelle tainten den Escape-Dispatch.",
+		},
+	},
+	{
 		version = "0.3.6",
 		changes = {
 			"Messenger windows: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.",

@@ -106,8 +106,6 @@ ns.OPTIONS = {
 				{
 					label = L["Behavior"],
 					items = {
-						{ type = "toggle", key = "stickyChat", label = L["Sticky channels"],
-							desc = L["Enter reopens the channel you last wrote in."] },
 						{ type = "toggle", key = "classColorMentions", label = L["Class-colored names"] },
 						{ type = "toggle", key = "playerLevel", label = L["Player level"],
 							desc = L["Known players show as [52 Name] in chat."] },

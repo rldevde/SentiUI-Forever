@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.10",
+		date = "2026-11-22",
+		changes = {
+			"The minimap menu now closes on Escape via the shared S.EscClosable helper instead of a UISpecialFrames entry - addon-written entries in that game table taint the Escape dispatch.",
+		},
+		changesDE = {
+			"Das Minimap-Menue schliesst jetzt per gemeinsamem S.EscClosable-Helfer auf Escape statt ueber einen UISpecialFrames-Eintrag - von Addons geschriebene Eintraege in dieser Spiel-Tabelle tainten den Escape-Dispatch.",
+		},
+	},
+	{
 		version = "0.3.9",
 		date = "2026-11-22",
 		changes = {

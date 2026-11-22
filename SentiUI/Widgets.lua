@@ -442,3 +442,101 @@ function W.Scroll(parent)
 	sf:SetScript("OnSizeChanged", function(f) f:Scroll(f.offset) end)
 	return sf, child
 end
+
+-- shared confirm / prompt dialog ---------------------------------------------------
+-- One modal dialog for the whole suite. Deliberately NOT a StaticPopupDialogs
+-- entry: the client records who wrote each table value and the game's own
+-- Escape path reads StaticPopupDialogs - an addon-written entry marks the
+-- dispatch tainted, so the protected call it makes next (SpellStopCasting)
+-- gets ADDON_ACTION_FORBIDDEN blamed on whoever wrote it. An own frame plus
+-- S.EscClosable keeps Escape closing without touching the game's tables.
+local dlg
+
+local function GetDialog()
+	if dlg then return dlg end
+	dlg = CreateFrame("Frame", "SentiUIDialog", UIParent, "BackdropTemplate")
+	dlg:SetSize(380, 120)
+	dlg:SetPoint("CENTER", 0, 80)
+	dlg:SetFrameStrata("FULLSCREEN_DIALOG")
+	dlg:SetToplevel(true)
+	dlg:EnableMouse(true)
+	S.Template(dlg, "panel")
+	S.EscClosable(dlg)
+
+	dlg.msg = S.Font(dlg, 11)
+	dlg.msg:SetPoint("TOPLEFT", 18, -16)
+	dlg.msg:SetPoint("TOPRIGHT", -18, -16)
+	dlg.msg:SetJustifyH("CENTER")
+	dlg.msg:SetSpacing(3)
+
+	dlg.edit = W.EditBox(dlg, 340, 22)
+	dlg.edit.holder:SetPoint("BOTTOM", dlg, "BOTTOM", 0, 44)
+	dlg.edit.holder:Hide()
+	dlg.edit:SetScript("OnEnterPressed", function(e)
+		local h = dlg.ok:GetScript("OnClick")
+		if h then h(dlg.ok) end
+		e:ClearFocus()
+	end)
+
+	dlg.cancel = W.Button(dlg, CANCEL or "Cancel", 100, 22)
+	dlg.cancel:SetPoint("BOTTOMLEFT", dlg, "BOTTOM", 4, 12)
+	dlg.cancel:SetScript("OnClick", function()
+		dlg:Hide()
+		if dlg.onCancel then S.SafeCall("dialog:cancel", dlg.onCancel) end
+	end)
+
+	dlg.ok = W.Button(dlg, ACCEPT or "Accept", 100, 22)
+	dlg.ok:SetPoint("BOTTOMRIGHT", dlg, "BOTTOM", -4, 12)
+	dlg.ok:SetScript("OnClick", function()
+		local text = dlg.edit.holder:IsShown() and dlg.edit:GetText() or nil
+		dlg:Hide()
+		if dlg.onAccept then S.SafeCall("dialog:accept", dlg.onAccept, text) end
+	end)
+
+	dlg:Hide()
+	return dlg
+end
+
+-- opts: text, okText, cancelText, hideCancel, editText (shows an input box),
+-- onAccept(textOrNil), onCancel, focusEdit, readOnly
+function S.Dialog(opts)
+	local d = GetDialog()
+	d.msg:SetText(opts.text or "")
+	local hasEdit = opts.editText ~= nil
+	d.edit:SetText(opts.editText or "")
+	d.edit.holder:SetShown(hasEdit)
+	d.edit:SetEnabled(not opts.readOnly)
+	if opts.readOnly then
+		d.edit:HighlightText()
+		d.edit:SetTextColor(C.accent2.r, C.accent2.g, C.accent2.b)
+	else
+		d.edit:SetTextColor(C.text.r, C.text.g, C.text.b)
+	end
+	d.ok:SetText(opts.okText or ACCEPT or "Accept")
+	d.onAccept = opts.onAccept
+	d.onCancel = opts.onCancel
+	if opts.hideCancel then
+		d.cancel:Hide()
+		d.ok:ClearAllPoints()
+		d.ok:SetPoint("BOTTOM", 0, 12)
+	else
+		d.cancel:Show()
+		d.cancel:SetText(opts.cancelText or CANCEL or "Cancel")
+		d.ok:ClearAllPoints()
+		d.ok:SetPoint("BOTTOMRIGHT", d, "BOTTOM", -4, 12)
+	end
+	d:SetHeight(opts.editText ~= nil and 150 or 110)
+	d:Show()
+	if hasEdit then
+		if opts.readOnly then d.edit:HighlightText() end
+		if opts.focusEdit ~= false then C_Timer.After(0, function() d.edit:SetFocus() end) end
+	end
+	return d
+end
+
+function S.Confirm(text, onAccept, opts)
+	opts = opts or {}
+	opts.text = text
+	opts.onAccept = onAccept
+	return S.Dialog(opts)
+end

@@ -25,6 +25,18 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.3.19",
+		date = "2026-11-22",
+		changes = {
+			"New shared helpers: S.EscClosable (Escape-close without a UISpecialFrames entry) and S.Dialog (own confirm/prompt dialog). All core windows (settings, installer, movers) converted - addon-written entries in UISpecialFrames/StaticPopupDialogs taint the game's Escape dispatch, which is what made protected calls fail and get blamed on the addon.",
+			"The 'reload required?' confirm and the options reset confirm now use the own dialog (the reload still goes through C_UI.Reload).",
+		},
+		changesDE = {
+			"Neue gemeinsame Helfer: S.EscClosable (Escape-Schliessen ohne UISpecialFrames-Eintrag) und S.Dialog (eigener Bestaetigungs-/Eingabedialog). Alle Core-Fenster (Einstellungen, Installer, Mover) umgestellt - von Addons geschriebene Eintraege in UISpecialFrames/StaticPopupDialogs tainten den Escape-Dispatch des Spiels, weshalb geschuetzte Aufrufe fehlschlugen und dem Addon angelastet wurden.",
+			"Die 'Neuladen noetig?'- und Zuruecksetzen-Bestaetigungen nutzen jetzt den eigenen Dialog (das Neuladen geht weiterhin ueber C_UI.Reload).",
+		},
+	},
+	{
 		version = "0.3.18",
 		date = "2026-11-22",
 		changes = {

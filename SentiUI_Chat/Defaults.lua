@@ -37,7 +37,6 @@ ns.DEFAULTS = {
 	historySize = 30,
 
 	-- behaviour
-	stickyChat = true,             -- Enter repeats the last channel
 	classColorMentions = true,     -- player names in class color
 	playerLevel = true,            -- [52 Name] for known players
 	hyperlinkHover = true,         -- tooltip on item/spell/quest links

@@ -175,8 +175,11 @@ function Options.Get(page, item)
 end
 
 local function askReload()
-	StaticPopup_Show("SENTIUI_RELOAD")
+	S.Confirm(L["This change needs a reload to take effect. Reload now?"],
+		function() (C_UI and C_UI.Reload or ReloadUI)() end,
+		{ okText = L["Reload"], cancelText = L["Later"] })
 end
+Options.AskReload = askReload
 
 function Options.Set(page, item, value)
 	if Options.IsDisabled(page, item) then return false end
@@ -271,13 +274,4 @@ function Options.Matches(page, group, item, query)
 		or (page and has(page.label, query))
 end
 
-StaticPopupDialogs["SENTIUI_RELOAD"] = {
-	text = L["This change needs a reload to take effect. Reload now?"],
-	button1 = L["Reload"],
-	button2 = L["Later"],
-	OnAccept = function() (C_UI and C_UI.Reload or ReloadUI)() end,
-	timeout = 0,
-	whileDead = true,
-	hideOnEscape = true,
-	preferredIndex = 3,
-}
+

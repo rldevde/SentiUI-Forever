@@ -68,7 +68,7 @@ end
 local function BuildFrame()
 	if frame then return end
 	frame = CreateFrame("Frame", "SentiUILootHistory", UIParent, "BackdropTemplate")
-	tinsert(UISpecialFrames, "SentiUILootHistory")
+	S.EscClosable(frame)
 	frame:SetSize(460, 310)
 	frame:SetPoint("CENTER")
 	frame:SetFrameStrata("DIALOG")

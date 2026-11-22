@@ -1,4 +1,8 @@
 # Changelog
+
+## 0.4.7 - 2026-11-22
+
+- The tracker-choice prompt and the 'reload required?' confirms now use the shared own dialog instead of StaticPopupDialogs; the tracker window closes on Escape via S.EscClosable. Removes addon-written entries from game tables the Escape dispatch reads.
 ## 0.4.6
 
 - AutoQuest: quest, gossip and accept-confirm dialogs are now detected by a frame-visibility poll (step transitions) instead of QUEST_*/GOSSIP_* events that fire inside the NPC dialog dispatch.

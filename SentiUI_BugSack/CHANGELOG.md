@@ -1,5 +1,9 @@
 # Changelog — SentiUI BugSack
 
+## 0.2.1 - 2026-11-22
+
+- Wipe and archive-wipe confirms now use the shared own dialog instead of StaticPopupDialogs entries; the window closes on Escape via S.EscClosable. Removes addon-written entries from game tables the Escape dispatch reads.
+
 ## 0.2.0 - 2026-11-22
 
 - Reworked: the list now shows only the CURRENT session by default - older sessions live in the Archive view as collapsible session groups (session -> addon -> error) instead of cluttering the side list.

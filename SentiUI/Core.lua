@@ -199,6 +199,36 @@ function S.RunOutOfCombat(fn, ...)
 	return true
 end
 
+-- ESC-to-close ---------------------------------------------------------------
+-- Do NOT put windows into UISpecialFrames: the client records who wrote each
+-- table value, and the game's Escape dispatch iterates that table in Lua - an
+-- entry written by addon code marks the whole dispatch tainted, so the
+-- protected call it makes right after (SpellStopCasting, Reload) fails with
+-- ADDON_ACTION_FORBIDDEN and is blamed on whoever wrote the entry. Keyboard
+-- input reaches a frame's OnKeyDown before the binding fires, so eating the
+-- key press there closes the window without the protected dispatch ever
+-- starting. Propagation is decided per key press: Escape is swallowed, every
+-- other key passes through to the game.
+function S.EscClosable(f)
+	if not f or f._suiEsc then return end
+	f._suiEsc = true
+	f:EnableKeyboard(true)
+	f:SetPropagateKeyboardInput(true)
+	f:SetScript("OnKeyDown", function(self, key)
+		local esc = key == "ESCAPE"
+		self:SetPropagateKeyboardInput(not esc)
+		if not esc then return end
+		-- a focused edit box inside the window gets Escape first: it clears
+		-- its focus, the window stays (like the game's own popups)
+		local ok, foc = pcall(GetCurrentKeyBoardFocus or function() end)
+		local ours = ok and foc and foc ~= self and foc.ClearFocus
+			and (not foc.IsDescendantOf
+				or (pcall(foc.IsDescendantOf, foc, self) and foc:IsDescendantOf(self)))
+		if ours then foc:ClearFocus() return end
+		self:Hide()
+	end)
+end
+
 -- visibility watcher --------------------------------------------------------
 -- An OnHide/OnShow script on a special window - or an event registration for
 -- window-open events like TRADE_SKILL_SHOW/BANKFRAME_OPENED - runs insecure
@@ -603,7 +633,7 @@ SlashCmdList.SENTIUI = function(msg)
 	elseif msg == "lock" then
 		S.Movers.SetUnlocked(false)
 	elseif msg == "reset" then
-		StaticPopup_Show("SENTIUI_RESET_MOVERS")
+		S.Movers.AskReset()
 	elseif msg == "minimap" then
 		S:Set("general", "minimap.hide", not S:Get("general", "minimap.hide"))
 		S.MinimapButton.Sync()

@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.24 - 2026-11-22
+
+- Embedded ForeverBlackListed dialogs (note edit, removal request, sync accept) converted to the shared own dialog instead of StaticPopupDialogs entries; all panel windows now close on Escape via S.EscClosable. Both changes remove addon-written entries from game tables that the Escape dispatch reads in Lua - the source of the 'ADDON_ACTION_FORBIDDEN SpellStopCasting' blame.
+
 ## 0.5.23 - 2026-11-22
 
 - Player right-click menus now carry the same ForeverBlackListed entries the standalone adds: blacklist, good list, guild entries and a group picker - on Menu.ModifyMenu, classic UnitPopup and a docked fallback, so they show whichever backend draws the menu. Skipped when the standalone addon is installed (it registers them itself).

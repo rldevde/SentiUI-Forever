@@ -23,7 +23,7 @@ local function Create()
 	f:SetScript("OnDragStart", f.StartMoving)
 	f:SetScript("OnDragStop", f.StopMovingOrSizing)
 	f:SetClampedToScreen(true)
-	tinsert(UISpecialFrames, "SentiUIJournalFrame")
+	S.EscClosable(f)
 	f:Hide()
 
 	local title = S.Font(f, 13, S.colors.accent)

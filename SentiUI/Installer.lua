@@ -49,7 +49,7 @@ local function build()
 	frame:SetFrameStrata("DIALOG")
 	frame:EnableMouse(true)
 	frame:Hide()
-	tinsert(UISpecialFrames, "SentiUIInstaller")
+	S.EscClosable(frame)
 
 	local edge = S.Line(frame, C_.accent, 2)
 	edge:SetPoint("TOPLEFT", 0, 0)

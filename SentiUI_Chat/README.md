@@ -18,7 +18,7 @@ accent-colored tab underlines and a borderless edit box.
   highlighting (`%MYNAME%` works) with an alert sound, timestamps.
 - **Names** - class-colored player names everywhere, plus `[52 Name]`
   levels for players known from guild, group and friends.
-- **Extras** - spam throttle, sticky channels, link hover tooltips, a
+- **Extras** - spam throttle, link hover tooltips, a
   copy-chat button and window per frame, scroll-to-bottom arrow, optional
   chat history that survives a reload.
 

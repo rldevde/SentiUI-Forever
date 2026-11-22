@@ -2,6 +2,18 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.14",
+		date = "2026-11-22",
+		changes = {
+			"URL copy dialog, chat copy window and emote picker now use the own dialog/Escape handling instead of StaticPopupDialogs and UISpecialFrames.",
+			"Removed the 'sticky channels' option: it wrote into ChatTypeInfo, and every addon-written value there taints the Enter dispatch that later calls the protected SendChatMessage. Channel stickiness now follows the client's own defaults.",
+		},
+		changesDE = {
+			"URL-Kopierdialog, Kopierfenster und Emote-Picker nutzen jetzt den eigenen Dialog bzw. eigene Escape-Behandlung statt StaticPopupDialogs und UISpecialFrames.",
+			"Option 'Sticky-Kanaele' entfernt: sie schrieb in ChatTypeInfo, und jeder dort von einem Addon geschriebene Wert taintet den Enter-Dispatch, der spaeter das geschuetzte SendChatMessage aufruft. Die Kanal-Stickiness folgt jetzt den Client-Standards.",
+		},
+	},
+	{
 		version = "0.2.13",
 		date = "2026-11-22",
 		changes = {

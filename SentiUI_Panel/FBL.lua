@@ -462,26 +462,10 @@ function F.SortedEntries()
 end
 
 -- actions ---------------------------------------------------------------------------
-StaticPopupDialogs = StaticPopupDialogs or {}
-StaticPopupDialogs.SENTIFBL_NOTE = {
-	text = L["Blacklist note for %s"],
-	button1 = OKAY or "OK",
-	button2 = CANCEL or "Cancel",
-	hasEditBox = true,
-	timeout = 0,
-	whileDead = true,
-	hideOnEscape = true,
-	OnAccept = function(self, data)
-		local text = strtrim(self.editBox and self.editBox:GetText() or "")
-		if text ~= "" and data then
-			F.AddEntry(data.name, data.kind, data.group, text, data.guild, data.list, data.realm)
-		end
-	end,
-	EditBoxOnEnterPressed = function(self, data)
-		local parent = self:GetParent()
-		if parent and parent.button1 then parent.button1:Click() end
-	end,
-}
+-- Own dialog, not StaticPopupDialogs: the client records who wrote each
+-- table value, and the game's Escape path reads StaticPopupDialogs - an
+-- addon-written entry taints the dispatch, so the protected call right
+-- after (SpellStopCasting) gets ADDON_ACTION_FORBIDDEN blamed on us.
 
 function F.PromptAdd(name, kind, list, guild, realm, group)
 	local clean, r = F.SplitNameRealm(name)
@@ -490,9 +474,18 @@ function F.PromptAdd(name, kind, list, guild, realm, group)
 		S.Print(format(L["%s is already listed"], clean))
 		return
 	end
-	StaticPopup_Show("SENTIFBL_NOTE", clean, nil, {
-		name = clean, kind = kind or "player", list = list,
-		guild = guild, realm = realm or r, group = group,
+	S.Dialog({
+		text = format(L["Blacklist note for %s"], clean),
+		editText = "",
+		okText = OKAY or "OK",
+		cancelText = CANCEL or "Cancel",
+		onAccept = function(text)
+			text = text and strtrim(text) or ""
+			if text ~= "" then
+				F.AddEntry(clean, kind or "player", group, text,
+					guild, list, realm or r)
+			end
+		end,
 	})
 end
 
@@ -807,32 +800,21 @@ S.RegisterEvent("PLAYER_LOGIN", function()
 	C_Timer.After(5, JoinSync)
 end)
 
-StaticPopupDialogs.SENTIFBL_DEL_REQUEST = {
-	text = L["Removal request for %s:\n%s"],
-	button1 = YES or "Yes",
-	button2 = NO or "No",
-	timeout = 0,
-	whileDead = true,
-	hideOnEscape = true,
-	OnAccept = function(self, data)
-		local e = data and F.FindEntry(data.kind, data.name)
-		if e then F.RemoveEntry(e) end
-	end,
-	-- no OnHide: Escape hides the popup via hideOnEscape and an
-	-- OnHide callback runs insecure Lua inside the Escape dispatch,
-	-- tainting the engine's spell-stop calls after it. Visibility
-	-- is tracked natively via StaticPopup_Visible instead.
-}
-
 local function ShowNextRequest()
-	if type(StaticPopup_Visible) == "function"
-		and StaticPopup_Visible("SENTIFBL_DEL_REQUEST") then
-		return
-	end
+	local d = _G.SentiUIDialog
+	if d and d:IsShown() then return end
 	local req = table.remove(reqQueue, 1)
 	if not req then return end
-	StaticPopup_Show("SENTIFBL_DEL_REQUEST", req.name,
-		format("%s: %s", req.sender or "?", req.reason ~= "" and req.reason or "-"), req)
+	S.Dialog({
+		text = format(L["Removal request for %s:\n%s"], req.name,
+			format("%s: %s", req.sender or "?", req.reason ~= "" and req.reason or "-")),
+		okText = YES or "Yes",
+		cancelText = NO or "No",
+		onAccept = function()
+			local e = F.FindEntry(req.kind, req.name)
+			if e then F.RemoveEntry(e) end
+		end,
+	})
 end
 
 local function OnRemovalRequest(sender, kind, name, reason)
@@ -1230,17 +1212,14 @@ local function MergeReceived(json, from, quiet)
 	end
 end
 
-StaticPopupDialogs.SENTIFBL_SYNC_ACCEPT = {
-	text = L["Accept blacklist sync from %s?"],
-	button1 = YES or "Yes",
-	button2 = NO or "No",
-	timeout = 0,
-	whileDead = true,
-	hideOnEscape = true,
-	OnAccept = function(self, data)
-		if data then MergeReceived(data.json, data.from) end
-	end,
-}
+local function ShowSyncAccept(json, from)
+	S.Dialog({
+		text = format(L["Accept blacklist sync from %s?"], from),
+		okText = YES or "Yes",
+		cancelText = NO or "No",
+		onAccept = function() MergeReceived(json, from) end,
+	})
+end
 
 local function OwnNameLower()
 	local me = F.GetUnitFullName("player")
@@ -1266,8 +1245,7 @@ local function FinishReceive(from, transport)
 	lastDone[from] = { json = json, at = time() }
 	if not (DB().sync and DB().sync.autoAccept) then
 		Log("in", format(L["Sync offer from %s - awaiting your accept"], from))
-		StaticPopup_Show("SENTIFBL_SYNC_ACCEPT", from, nil,
-			{ json = json, from = from })
+		ShowSyncAccept(json, from)
 		return
 	end
 	if not Trusted(from) then
@@ -1580,8 +1558,8 @@ local function EditBox(parent, w, hint)
 	-- no OnEscapePressed/OnEditFocusLost handlers: ANY insecure code
 	-- inside the Escape dispatch (even a deferred C_Timer call)
 	-- taints the engine's spell-stop calls after it. The parent
-	-- window is in UISpecialFrames, so Escape hides it natively and
-	-- OnTextChanged keeps the hint in sync already.
+	-- window eats Escape through its own OnKeyDown (S.EscClosable),
+	-- and OnTextChanged keeps the hint in sync already.
 	upd()
 	return e
 end
@@ -1621,7 +1599,7 @@ local function Window()
 	f:SetScript("OnDragStart", function(self) if not InCombatLockdown() then self:StartMoving() end end)
 	f:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
 	f:SetClampedToScreen(true)
-	tinsert(UISpecialFrames, "SentiUIPanelFBLWindow")
+	S.EscClosable(f)
 	f:Hide()
 	win = f
 

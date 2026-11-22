@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.24",
+		date = "2026-11-22",
+		changes = {
+			"Embedded ForeverBlackListed dialogs (note edit, removal request, sync accept) converted to the shared own dialog instead of StaticPopupDialogs entries; all panel windows now close on Escape via S.EscClosable. Both changes remove addon-written entries from game tables that the Escape dispatch reads in Lua - the source of the 'ADDON_ACTION_FORBIDDEN SpellStopCasting' blame.",
+		},
+		changesDE = {
+			"Eingebettete ForeverBlackListed-Dialoge (Notiz, Entfernen-Anfrage, Sync-Angebot) auf den eigenen Dialog statt StaticPopupDialogs-Eintraegen umgestellt; alle Panel-Fenster schliessen jetzt per S.EscClosable auf Escape. Beides entfernt Addon-geschriebene Eintraege aus Spiel-Tabellen, die der Escape-Dispatch in Lua liest - die Quelle des 'ADDON_ACTION_FORBIDDEN SpellStopCasting'-Blames.",
+		},
+	},
+	{
 		version = "0.5.23",
 		date = "2026-11-22",
 		changes = {

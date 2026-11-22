@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.7",
+		date = "2026-11-22",
+		changes = {
+			"The tracker-choice prompt and the 'reload required?' confirms now use the shared own dialog instead of StaticPopupDialogs; the tracker window closes on Escape via S.EscClosable. Removes addon-written entries from game tables the Escape dispatch reads.",
+		},
+		changesDE = {
+			"Tracker-Auswahl und 'Neuladen noetig?'-Bestaetigungen nutzen jetzt den eigenen Dialog statt StaticPopupDialogs; das Tracker-Fenster schliesst per S.EscClosable auf Escape. Entfernt Addon-geschriebene Eintraege aus Spiel-Tabellen, die der Escape-Dispatch liest.",
+		},
+	},
+	{
 		version = "0.4.6",
 		changes = {
 			"AutoQuest: quest, gossip and accept-confirm dialogs are now detected by a frame-visibility poll (step transitions) instead of QUEST_*/GOSSIP_* events that fire inside the NPC dialog dispatch.",
