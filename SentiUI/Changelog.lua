@@ -25,6 +25,16 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.3.20",
+		date = "2026-11-22",
+		changes = {
+			"Installer rework: the wizard has an interactive step area now. New 'Interface scale' step with a live slider and a Recommended button that picks the scale matching your resolution; the last step's Finish button reloads the UI (C_UI.Reload) so every setting takes effect cleanly.",
+		},
+		changesDE = {
+			"Installer-Ueberarbeitung: der Assistent hat jetzt einen interaktiven Schrittbereich. Neuer Schritt 'Interface-Skalierung' mit Live-Schieberegler und Empfohlen-Knopf, der die zur Aufloesung passende Skalierung waehlt; der Fertig-Knopf des letzten Schritts laedt das UI neu (C_UI.Reload), damit alle Einstellungen sauber greifen.",
+		},
+	},
+	{
 		version = "0.3.19",
 		date = "2026-11-22",
 		changes = {

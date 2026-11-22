@@ -1,5 +1,9 @@
 # SentiUI Action Bars
 
+## 0.3.16 - 2026-11-22
+
+- Fix 'hide when empty' bars blinking on fresh characters: the bare SetShown fought the visibility state driver, which re-asserted 'show' and made the bar flicker every check tick. Empty bars now hide by unregistering the visibility driver and re-registering it when a slot gains an action; they also reappear while dragging a spell (ACTIONBAR_SHOWGRID) so they can receive drops.
+
 ## 0.3.15 - 2026-11-22
 
 - Real click blocker found via /suibars foci: parked Blizzard bars keep CHILD frames at their old rects with mouse enabled (an unnamed MultiBarBottomLeft child at MEDIUM/level 1001 sat over the extra bar). Parked subtrees and the status-tracking containers now lose their mouse recursively; secure twin buttons keep theirs (click targets). Unnamed fullscreen ModelScenes lose the mouse in the sweep.

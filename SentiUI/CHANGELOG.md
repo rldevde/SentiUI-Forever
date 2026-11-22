@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.20 - 2026-11-22
+
+- Installer rework: the wizard has an interactive step area now. New 'Interface scale' step with a live slider and a Recommended button that picks the scale matching your resolution; the last step's Finish button reloads the UI (C_UI.Reload) so every setting takes effect cleanly.
+
 ## 0.3.19 - 2026-11-22
 
 - New shared helpers: S.EscClosable (Escape-close without a UISpecialFrames entry) and S.Dialog (own confirm/prompt dialog). All core windows (settings, installer, movers) converted - addon-written entries in UISpecialFrames/StaticPopupDialogs taint the game's Escape dispatch, which is what made protected calls fail and get blamed on the addon.

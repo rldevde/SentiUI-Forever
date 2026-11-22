@@ -13,5 +13,8 @@ Settings core for the SentiUI interface suite (WoW Forever client).
   edge/center snapping are configurable under SentiUI > General.
 - `SentiUI_*` module addons dock their own sections and pages into the
   window — see `API.md` for the contract.
+- First run shows a short installer (`/sui install` any time): a live
+  UI-scale slider with a per-resolution *Recommended* button, then
+  *Finish & reload* applies everything cleanly.
 
 Disable other full UI replacements when running this suite.

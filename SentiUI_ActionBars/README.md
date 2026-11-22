@@ -54,7 +54,8 @@ manual pages, bonus bars, class forms).
 Own "Action Bars" section: global hotkey/count/macro/range toggles, and per
 bar: enable, button size, spacing, button count, buttons per row,
 **vertical layout**, visibility (always / combat / target), mouseover fade
-and "hide when empty". All bars and holders are SentiUI movers
+and "hide when empty" (empty bars reappear while dragging a spell so
+they can receive drops). All bars and holders are SentiUI movers
 (`/sui unlock`).
 
 ## Blizzard chrome

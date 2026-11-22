@@ -1095,19 +1095,39 @@ function Core.UpdateHotkeys()
 end
 Core.RefreshHotkeys = Core.UpdateHotkeys
 
--- extra bars vanish while every slot is empty (a layout change - out of
--- combat only, the driver re-asserts its rule on the next state change)
+-- extra bars vanish while every slot is empty. Hide via the visibility
+-- driver, not SetShown: the driver re-asserts its rule whenever the engine
+-- re-evaluates it, so a bare SetShown gets flipped back and the bar blinks
+-- once per check tick.
 local function CheckEmpty(bar)
-	if not bar.dbBar.hideEmpty then return end
-	local any = false
-	for _, btn in ipairs(bar.buttons) do
-		local slot = SlotOf(btn)
-		if slot and GetActionTexture(slot) ~= nil then any = true break end
-	end
 	local h = bar.holder
-	if h:IsShown() ~= any then
-		S.RunOutOfCombat(h.SetShown, h, any)
+	if not bar.dbBar.hideEmpty then
+		if h._emptyHidden then
+			h._emptyHidden = nil
+			S.RunOutOfCombat(function() ApplyVisibility(bar.def) end)
+		end
+		return
 	end
+	local any = bar.showGrid == true
+	if not any then
+		for _, btn in ipairs(bar.buttons) do
+			local slot = SlotOf(btn)
+			if slot then
+				local ok, tex = pcall(GetActionTexture, slot)
+				if ok and tex ~= nil then any = true break end
+			end
+		end
+	end
+	if any == not h._emptyHidden then return end
+	h._emptyHidden = not any or nil
+	S.RunOutOfCombat(function()
+		if h._emptyHidden then
+			pcall(UnregisterStateDriver, h, "visibility")
+			h:Hide()
+		else
+			ApplyVisibility(bar.def)
+		end
+	end)
 end
 
 local function CheckAllEmpty()
@@ -1346,6 +1366,15 @@ function Core.Enable(mod)
 			Core.UpdateBindings()
 			Core.UpdateHotkeys()
 		end)
+	end)
+	-- dragging a spell shows empty bars again so it can be dropped on them
+	S.RegisterEvent("ACTIONBAR_SHOWGRID", function()
+		for _, bar in pairs(bars) do bar.showGrid = true end
+		CheckAllEmpty()
+	end)
+	S.RegisterEvent("ACTIONBAR_HIDEGRID", function()
+		for _, bar in pairs(bars) do bar.showGrid = nil end
+		CheckAllEmpty()
 	end)
 	-- a form learned or lost shifts form numbers; rebuild the rule
 	S.RegisterEvent("UPDATE_SHAPESHIFT_FORMS", function()

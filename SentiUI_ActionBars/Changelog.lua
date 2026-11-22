@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.16",
+		date = "2026-11-22",
+		changes = {
+			"Fix 'hide when empty' bars blinking on fresh characters: the bare SetShown fought the visibility state driver, which re-asserted 'show' and made the bar flicker every check tick. Empty bars now hide by unregistering the visibility driver and re-registering it when a slot gains an action; they also reappear while dragging a spell (ACTIONBAR_SHOWGRID) so they can receive drops.",
+		},
+		changesDE = {
+			"Fix: 'Verstecken wenn leer'-Leisten blinkten auf frischen Charakteren - das nackte SetShown kaempfte gegen den Sichtbarkeits-State-Driver, der 'show' zuruecksetzte und die Leiste pro Pruef-Tick flackern liess. Leere Leisten verstecken sich jetzt ueber das Abmelden des Drivers und melden ihn wieder, sobald ein Platz eine Aktion traegt; beim Ziehen eines Zaubers erscheinen sie ebenfalls (ACTIONBAR_SHOWGRID), damit sie Drops annehmen.",
+		},
+	},
+	{
 		version = "0.3.15",
 		date = "2026-11-22",
 		changes = {

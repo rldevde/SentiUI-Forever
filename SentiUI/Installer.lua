@@ -1,7 +1,7 @@
 -- SentiUI installer: a small step wizard for first-run setup.
--- Steps are plain entries { title, text } — `text` may be a string or a
--- function evaluated when the step shows. Modules may append steps with
--- SentiUI.Installer.AddStep { ... } from their own files.
+-- Steps are plain entries { title, text, build? } — `text` may be a string or
+-- a function evaluated when the step shows; `build(host)` may return a frame
+-- with interactive widgets shown inside the step's content area.
 local _, S = ...
 local L = S.L
 local C = S.colors
@@ -10,12 +10,14 @@ local W = S.Widgets
 local Inst = {}
 S.Installer = Inst
 
-local frame, titleText, bodyText, counter, backBtn, nextBtn
+local frame, titleText, bodyText, counter, backBtn, nextBtn, stepHost
 local stepIndex = 1
+local stepFrames = {} -- lazily built content frame per step
 
 Inst.steps = {}
 
---- Append a step { title = "...", text = "..." | function() return "..." end }.
+--- Append a step { title = "...", text = "..." | function() return "..." end,
+--- build = function(host) return frame end }.
 function Inst.AddStep(step)
 	Inst.steps[#Inst.steps + 1] = step
 end
@@ -37,13 +39,23 @@ local function showStep(i)
 	bodyText:SetText(stepText(stepIndex) or "")
 	counter:SetText(stepIndex .. " / " .. n)
 	backBtn:SetEnabled(stepIndex > 1)
-	nextBtn:SetText((stepIndex == n and L["Finish"] or L["Next"]) or "")
+	nextBtn:SetText((stepIndex == n and L["Finish & reload"] or L["Next"]) or "")
+
+	-- per-step interactive content
+	for _, f in pairs(stepFrames) do if f then f:Hide() end end
+	local f = stepFrames[stepIndex]
+	if f == nil and type(st.build) == "function" and stepHost then
+		local ok, built = pcall(st.build, stepHost)
+		f = ok and built or nil
+		stepFrames[stepIndex] = f or false
+	end
+	if f then f:Show() end
 end
 
 local function build()
 	local C_ = C
 	frame = CreateFrame("Frame", "SentiUIInstaller", UIParent, "BackdropTemplate")
-	frame:SetSize(560, 330)
+	frame:SetSize(560, 380)
 	S.Template(frame, "panel")
 	frame:SetPoint("CENTER", 0, 80)
 	frame:SetFrameStrata("DIALOG")
@@ -77,6 +89,11 @@ local function build()
 	bodyText:SetJustifyV("TOP")
 	bodyText:SetSpacing(4)
 
+	-- interactive area below the text; steps build into it on demand
+	stepHost = CreateFrame("Frame", nil, frame)
+	stepHost:SetPoint("TOPLEFT", 20, -196)
+	stepHost:SetSize(520, 120)
+
 	backBtn = W.Button(frame, L["Back"], 90, 26)
 	backBtn:SetPoint("BOTTOMRIGHT", -120, 16)
 	backBtn:SetScript("OnClick", function() showStep(stepIndex - 1) end)
@@ -89,6 +106,9 @@ local function build()
 		else
 			markDone()
 			frame:Hide()
+			-- the last step's changes (ui scale) only take clean effect after
+			-- a reload, so the Finish button performs it
+			if C_UI and C_UI.Reload then C_UI.Reload() end
 		end
 	end)
 end
@@ -100,10 +120,68 @@ function Inst.Show()
 	frame:Show()
 end
 
+-- interface scale step ---------------------------------------------------------
+local function recommendedScale()
+	local h = GetScreenHeight and GetScreenHeight() or 0
+	if type(h) ~= "number" or h <= 0 then h = 1080 end
+	local v = 768 / h
+	v = math.floor(v / 0.05 + 0.5) * 0.05
+	return math.max(0.5, math.min(1.2, v))
+end
+
+local function currentUIScale()
+	local v = C_CVar and C_CVar.GetCVar and C_CVar.GetCVar("uiScale")
+	return tonumber(v) or 1
+end
+
+local function applyUIScale(v)
+	if not (C_CVar and C_CVar.SetCVar) then return end
+	pcall(C_CVar.SetCVar, "useUiScale", "1")
+	pcall(C_CVar.SetCVar, "uiScale", string.format("%.2f", v))
+end
+
 -- Built-in steps. Modules can append more from their files.
 Inst.AddStep {
 	title = "Welcome to SentiUI",
 	text = function() return string.format(L["INSTALLER_WELCOME"], S.version) end,
+}
+Inst.AddStep {
+	title = "Interface scale",
+	text = L["INSTALLER_SCALE_TEXT"],
+	build = function(host)
+		local f = CreateFrame("Frame", nil, host)
+		f:SetAllPoints()
+
+		local lab = S.Font(f, 11, C.textDim)
+		lab:SetPoint("TOPLEFT", 0, -4)
+		lab:SetText(L["Game UI scale"])
+
+		local val = S.Font(f, 11, C.accent)
+		val:SetPoint("LEFT", lab, "RIGHT", 10, 0)
+
+		local sl = W.Slider(f, 0.5, 1.5, 0.05)
+		sl:SetPoint("TOPLEFT", lab, "BOTTOMLEFT", 0, -10)
+		sl:SetWidth(280)
+
+		local rec = W.Button(f, L["Recommended"], 110, 22)
+		rec:SetPoint("LEFT", sl, "RIGHT", 16, 0)
+		rec:SetScript("OnClick", function() sl:SetValue(recommendedScale()) end)
+
+		sl.onChanged = function(v)
+			val:SetText(string.format("%.2fx", v))
+			applyUIScale(v)
+		end
+		local cur = currentUIScale()
+		sl:SetValue(cur, true)
+		val:SetText(string.format("%.2fx", cur))
+
+		local note = S.Font(f, 10, C.textDim)
+		note:SetPoint("TOPLEFT", sl, "BOTTOMLEFT", 0, -16)
+		note:SetWidth(500)
+		note:SetJustifyH("LEFT")
+		note:SetText(L["INSTALLER_SCALE_NOTE"])
+		return f
+	end,
 }
 Inst.AddStep {
 	title = "Your controls",
