@@ -439,6 +439,15 @@ local POLL_EVENTS = {
 	PLAYER_MONEY = true, PLAYER_XP_UPDATE = true, UPDATE_EXHAUSTION = true,
 	HONOR_XP_UPDATE = true, HEARTHSTONE_BOUND = true,
 	MINIMAP_UPDATE_TRACKING = true,
+	-- unit-vital events share the unit-frame update dispatch - Blizzard's
+	-- secret health/mana compares run right there ("execution tainted by
+	-- 'SentiUI_Panel'" in HealthBar/UnitFrame). The panel defs only read
+	-- "player"/"pet" vitals anyway, so polling loses nothing; the poll
+	-- synthesizes "player" for the unit arg their onevent filters check
+	UNIT_HEALTH = true, UNIT_MAXHEALTH = true,
+	UNIT_POWER_UPDATE = true, UNIT_MAXPOWER = true,
+	UNIT_DISPLAYPOWER = true, UNIT_AURA = true,
+	UNIT_HAPPINESS = true, UNIT_PET = true,
 }
 local pollBuckets, pollFrame
 
@@ -459,7 +468,10 @@ function ns.RegisterBusEvent(event, fn)
 				if t < 1.5 then return end
 				t = 0
 				for ev, l in pairs(pollBuckets) do
-					for i = 1, #l do S.SafeCall("poll:" .. ev, l[i], ev) end
+					-- UNIT_ defs filter unit == "player"; pass it so the
+					-- polled call is not filtered out
+					local u = ev:sub(1, 5) == "UNIT_" and "player" or nil
+					for i = 1, #l do S.SafeCall("poll:" .. ev, l[i], ev, u) end
 				end
 			end)
 		end

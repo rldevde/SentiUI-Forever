@@ -129,7 +129,18 @@ end
 
 -- the standalone addon, when loaded, owns sync/votes/merge - delegate
 local function ext() return _G.ForeverBlackListed end
-local function extdb() return ext() and ext().db or DB() end
+-- the standalone's db never passes through our DB(), so its .sync slot
+-- can be missing entirely (older standalone versions did not seed one) -
+-- hand out the same guarantee either way (read + type check inside pcall:
+-- secret-safe)
+local function extdb()
+	local e = ext()
+	local db = e and e.db
+	if type(db) ~= "table" then return DB() end
+	local ok, isTab = pcall(function() return type(db.sync) == "table" end)
+	if not (ok and isTab) then db.sync = {} end
+	return db
+end
 
 local function Dirty()
 	local db = DB()

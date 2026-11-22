@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.22",
+		changes = {
+			"UNIT vital events join the poll: UNIT_HEALTH/POWER/AURA/HAPPINESS/PET handlers shared the unit-frame update dispatch with Blizzard's secret health-bar compares ('execution tainted by SentiUI_Panel' in HealthBar/UnitFrame) - the vitals/buffs/pet plugins now refresh on the 1.5s ticker with a synthesized 'player' unit arg so their filters still pass. Also fixed: extdb() (the standalone FBL db when ForeverBlackListed is loaded) never ran through our defaults guarantee - callers indexing db.sync crashed again; it now guarantees .sync the same way DB() does.",
+		},
+		changesDE = {
+			"UNIT-Vital-Events jetzt auch gepollt: UNIT_HEALTH/POWER/AURA/HAPPINESS/PET-Handler teilten den Unitframe-Update-Dispatch mit Blizzards Secret-Healthbar-Vergleichen ('execution tainted by SentiUI_Panel' in HealthBar/UnitFrame) - Vitals-/Buff-/Pet-Plugins refreshen jetzt auf dem 1,5s-Ticker mit synthetisiertem 'player'-Unit-Arg, damit ihre Filter greifen. Ausserdem: extdb() (die Standalone-FBL-DB bei geladenem ForeverBlackListed) lief nie durch unsere Defaults-Garantie - db.sync-Zugriffe crashten erneut; es garantiert .sync jetzt wie DB().",
+		},
+	},
+
+	{
 		version = "0.5.21",
 		changes = {
 			"Event-bus de-taint: the client fires window-data events (durability, equipment/ilvl, spells/talents, friends/guild, quests, tradeskill/AH, mail, bags, money/xp/honor, tracking) INSIDE the window-open or input dispatch - a handler running there taints the dispatch and the client's secret status-bar compare right after fails with 'execution tainted by SentiUI_Panel' (the 16x TextStatusBar error on pressing C). Those events are now polled on a 1.5s ticker; arg-carrying events (UNIT_*, TIME_PLAYED_MSG, layer protocol) stay event-driven.",
