@@ -363,6 +363,123 @@ local function Pick(key)
 	Core.RebuildList()
 end
 
+-- ForeverBlackListed bridge ---------------------------------------------------
+-- the standalone addon keeps its blacklist state; lookups are cheap table
+-- reads. BN conversations have no character name - no list actions.
+local function FBLRef()
+	local F = _G.ForeverBlackListed
+	return (type(F) == "table" and type(F.FindEntry) == "function") and F or nil
+end
+
+local function FBLEntry(c)
+	local F = (c and not c.bn) and FBLRef() or nil
+	if not F or type(c.name) ~= "string" then return nil end
+	local ok, e = pcall(F.FindEntry, F, "player", c.name)
+	return ok and e or nil
+end
+
+-- context menu on a conversation row -----------------------------------------
+local menu, menuCatch
+local function CloseConvoMenu()
+	if menu then menu:Hide() end
+	if menuCatch then menuCatch:Hide() end
+end
+
+local function ConvoMenu(c, anchor)
+	local items = {
+		{ text = displayName(c), title = true },
+		{ text = L["Open"], fn = function() Core.Open(c.key) end },
+		{ text = c.pinned and L["Unpin"] or L["Pin"], fn = function()
+			c.pinned = not c.pinned or nil
+			if not c.bn then saved()[c.key] = c end
+			Core.RebuildList()
+		end },
+	}
+	local F = FBLRef()
+	if F then
+		local e = FBLEntry(c)
+		if e then
+			items[#items + 1] = { text = e.list == "good"
+					and ("|cff4dd278" .. L["Remove from good list"] .. "|r")
+					or ("|cffff5555" .. L["Remove from blacklist"] .. "|r"),
+				fn = function()
+					F:RemoveEntry(e)
+					if F.RefreshWindow then F:RefreshWindow() end
+					if F.DataDirty then F:DataDirty() end
+					Core.RebuildList()
+				end }
+		else
+			items[#items + 1] = { text = "|cffff5555" .. L["Add to blacklist"] .. "|r",
+				fn = function()
+					F:PromptNoteAdd(c.name, "player", "black")
+					Core.RebuildList()
+				end }
+			items[#items + 1] = { text = "|cff4dd278" .. L["Add to good list"] .. "|r",
+				fn = function()
+					F:PromptNoteAdd(c.name, "player", "good")
+					Core.RebuildList()
+				end }
+		end
+	end
+	items[#items + 1] = { text = "|cffff5555" .. L["Delete"] .. "|r",
+		fn = function() Core.DeleteConvo(c.key) end }
+
+	if not menu then
+		menuCatch = CreateFrame("Button", nil, UIParent)
+		menuCatch:SetAllPoints(UIParent)
+		menuCatch:SetFrameStrata("TOOLTIP")
+		menuCatch:SetFrameLevel(1)
+		menuCatch:RegisterForClicks("AnyUp", "AnyDown")
+		menuCatch:SetScript("OnClick", CloseConvoMenu)
+		menuCatch:Hide()
+		menu = CreateFrame("Frame", "SentiUIMessengerMenu", UIParent, "BackdropTemplate")
+		menu:SetFrameStrata("TOOLTIP")
+		menu:SetFrameLevel(10)
+		menu:SetToplevel(true)
+		menu:EnableMouse(true)
+		S.Template(menu, "panel")
+		S.EscClosable(menu)
+		menu.items = {}
+	end
+	for _, b in ipairs(menu.items) do b:Hide() end
+	local y = 4
+	for i, it in ipairs(items) do
+		local b = menu.items[i]
+		if not b then
+			b = CreateFrame("Button", nil, menu, "BackdropTemplate")
+			S.Template(b, "inset")
+			b.label = S.Font(b, 11, C.text)
+			b.label:SetPoint("LEFT", 8, 0)
+			b.label:SetPoint("RIGHT", -8, 0)
+			b.label:SetJustifyH("LEFT")
+			b:SetScript("OnEnter", function(s) S.SetBorderLit(s, true) end)
+			b:SetScript("OnLeave", function(s) S.SetBorderLit(s, false) end)
+			menu.items[i] = b
+		end
+		b:SetPoint("TOPLEFT", 4, -y)
+		b:SetPoint("TOPRIGHT", -4, -y)
+		b:SetHeight(20)
+		b.label:SetText(it.text)
+		b.label:SetTextColor(it.title and C.accent.r or C.text.r,
+			it.title and C.accent.g or C.text.g,
+			it.title and C.accent.b or C.text.b)
+		b:EnableMouse(not it.title)
+		b:SetScript("OnClick", function()
+			CloseConvoMenu()
+			if it.fn then it.fn() end
+		end)
+		b:Show()
+		y = y + 24
+	end
+	menu:SetSize(190, y + 4)
+	local scale = UIParent:GetEffectiveScale() or 1
+	local cx, cy = GetCursorPosition()
+	menu:ClearAllPoints()
+	menu:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", cx / scale + 4, cy / scale + 4)
+	menuCatch:Show()
+	menu:Show()
+end
+
 local function rowButtons(row)
 	-- small hover actions on the row's right edge: pin and delete.
 	-- rows are pooled across conversations, so the handlers resolve the
@@ -420,6 +537,7 @@ function Core.RebuildList()
 				row = CreateFrame("Button", nil, child, "BackdropTemplate")
 				row:SetHeight(ROW_H)
 				S.Template(row, "inset")
+				row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 				row.name = S.Font(row, 12)
 				row.name:SetPoint("TOPLEFT", 8, -7)
 				row.time = S.Font(row, 9, C.textDim)
@@ -440,6 +558,14 @@ function Core.RebuildList()
 			row:SetPoint("TOPRIGHT", -6, y)
 			y = y - (ROW_H + 4)
 			local rr, gg, bb = RowClassColor(c)
+			local e = FBLEntry(c)
+			if e then
+				if e.list == "good" then
+					rr, gg, bb = 0.30, 0.85, 0.45
+				else
+					rr, gg, bb = 1.00, 0.30, 0.30
+				end
+			end
 			row.name:SetText(displayName(c))
 			row.name:SetTextColor(rr, gg, bb)
 			local last = c.msgs[#c.msgs]
@@ -450,7 +576,13 @@ function Core.RebuildList()
 			S.SetBorderLit(row, picked == c.key)
 			row.c = c
 			rowButtons(row)
-			row:SetScript("OnClick", function() Pick(c.key) end)
+			row:SetScript("OnClick", function(_, btn)
+				if btn == "RightButton" then
+					ConvoMenu(c, row)
+				else
+					Pick(c.key)
+				end
+			end)
 			row:Show()
 		end
 	end

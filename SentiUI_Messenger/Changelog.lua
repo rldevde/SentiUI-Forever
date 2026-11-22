@@ -3,6 +3,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.10",
+		date = "2026-11-22",
+		changes = {
+			"ForeverBlackListed integration: right-click a conversation row for the context menu - add the contact to the blacklist or good list (with FBL's note prompt), or remove a listed contact. Listed names are tinted: blacklist = red, good list = green. No list actions for Battle.net chats (no character name).",
+		},
+		changesDE = {
+			"ForeverBlackListed-Anbindung: Rechtsklick auf eine Unterhaltung oeffnet das Kontextmenue - Kontakt auf die Blacklist oder Good List (mit FBL-Notiz-Abfrage) oder gelisteten Kontakt entfernen. Gelistete Namen sind eingefaerbt: Blacklist = rot, Good List = gruen. Keine Listen-Aktionen bei Battle.net-Chats (kein Charaktername).",
+		},
+	},
+	{
 		version = "0.3.9",
 		date = "2026-11-22",
 		changes = {

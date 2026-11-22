@@ -1,5 +1,9 @@
 # SentiUI Messenger
 
+## 0.3.10 - 2026-11-22
+
+- ForeverBlackListed integration: right-click a conversation row for the context menu - add the contact to the blacklist or good list (with FBL's note prompt), or remove a listed contact. Listed names are tinted: blacklist = red, good list = green. No list actions for Battle.net chats (no character name).
+
 ## 0.3.9 - 2026-11-22
 
 - Fix the close X (hub) and the card header buttons not clicking: the full-width drag strip covered them and won hit-testing. The strips now stop short of the button row.

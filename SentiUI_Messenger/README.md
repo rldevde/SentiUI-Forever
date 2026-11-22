@@ -31,6 +31,12 @@ independently.
 - **Pin & prune**: hover a conversation for its pin (keeps it on top
   and out of the trim) and delete buttons; a *Clear all* button empties
   the whole list.
+- **ForeverBlackListed integration** (when the standalone addon is
+  loaded): right-click a conversation for the context menu — add the
+  contact to the blacklist or good list (FBL asks for the mandatory
+  note), or remove a listed contact. Listed names are tinted:
+  blacklist = red, good list = green. Battle.net chats have no
+  character name, so no list actions there.
 - **Away auto-reply** (optional): answers an incoming whisper once per
   person every 15 minutes while you are flagged away.
 - **Secret-value safe**: whispers whose sender or text the client
