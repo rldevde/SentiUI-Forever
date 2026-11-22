@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.8",
+		date = "2026-11-22",
+		changes = {
+			"The loot window now registers its mover at module enable, not on the first loot - before, it had no handle in move mode until you had looted once. The handle also only shows while the own loot window is enabled.",
+		},
+		changesDE = {
+			"Das Plünderfenster meldet seinen Mover jetzt beim Laden des Moduls an, nicht erst beim ersten Loot - vorher hatte es im Verschiebemodus keinen Griff, bis man einmal gelootet hatte. Der Griff erscheint zudem nur, solange das eigene Plünderfenster aktiv ist.",
+		},
+	},
+	{
 		version = "0.2.7",
 		date = "2026-11-22",
 		changes = {

@@ -604,7 +604,12 @@ local function BuildLootWindow()
 		pcall(CloseLoot)
 		lootWin:Hide()
 	end)
-	S.Movers.Register(lootWin, "loot.window", L["Loot window"])
+	-- the mover registers at build time so move mode knows the window even
+	-- before the first loot; the handle itself only shows while the own
+	-- loot window is enabled
+	S.Movers.Register(lootWin, "loot.window", L["Loot window"], nil, {
+		active = function() return db and db.lootWindow end,
+	})
 end
 
 local function UpdateLootWindow()
@@ -871,7 +876,11 @@ function Core.SettingChanged(mod, path)
 	if not Core.enabled then return end
 	if path == "lootSkin" then UpdateLootFrame() end
 	if path == "rollSkin" then UpdateRollFrames() end
-	if path == "lootWindow" then UpdateLootWindow() end
+	if path == "lootWindow" then
+		UpdateLootWindow()
+		-- the mover handle's active gate changed with the setting
+		if S.Movers.unlocked then S.Movers.Recheck() end
+	end
 	if path == "feed" then
 		BuildFeed()
 		if feed then feed:SetShown(db.feed) end
@@ -926,6 +935,11 @@ function Core.Enable(mod)
 			if db and db.lootWindow then f:Hide() end
 		end)
 	end
+
+	-- build the window right away (it stays hidden until loot): the mover
+	-- otherwise only registers on the first loot and the window is missing
+	-- from move mode until then
+	BuildLootWindow()
 
 	-- loot feed: own item + money lines become fading rows
 	BuildFeed()

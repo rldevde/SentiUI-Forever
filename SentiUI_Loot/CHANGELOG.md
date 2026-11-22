@@ -1,5 +1,9 @@
 # SentiUI Loot
 
+## 0.2.8 - 2026-11-22
+
+- The loot window now registers its mover at module enable, not on the first loot - before, it had no handle in move mode until you had looted once. The handle also only shows while the own loot window is enabled.
+
 ## 0.2.7 - 2026-11-22
 
 - Window now closes on Escape via the shared S.EscClosable helper instead of a UISpecialFrames entry - addon-written entries in that game table taint the Escape dispatch, which made protected calls (spell stop, reload) fail and get blamed on the addon.
