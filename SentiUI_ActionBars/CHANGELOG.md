@@ -1,5 +1,9 @@
 # SentiUI Action Bars
 
+## 0.3.13 - 2026-11-22
+
+- Follow-up click fix: the widget CONTAINER frames themselves (UIWidgetBelowMinimap/TopCenter/PowerBar, ObjectiveTrackerUIWidget, ContainerFrame) also lose their mouse - they are pure layout frames; children keep their own hit flags. New /suibars foci prints the mouse-enabled frames under the cursor so any remaining click blocker names itself.
+
 ## 0.3.12 - 2026-11-22
 
 - Fix extension bar slots only clicking on a thin lower rim: the template's TextOverlayContainer rides at frame level 500 with its mouse enabled and covered the whole button, and the client's global FX/widget model scenes at high strata swallowed clicks where they overlap the bars. The container's mouse is dropped per button; the FX/widget model scenes lose theirs on a 2s sweep (they respawn late).

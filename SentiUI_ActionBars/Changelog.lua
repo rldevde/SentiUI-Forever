@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.13",
+		date = "2026-11-22",
+		changes = {
+			"Follow-up click fix: the widget CONTAINER frames themselves (UIWidgetBelowMinimap/TopCenter/PowerBar, ObjectiveTrackerUIWidget, ContainerFrame) also lose their mouse - they are pure layout frames; children keep their own hit flags. New /suibars foci prints the mouse-enabled frames under the cursor so any remaining click blocker names itself.",
+		},
+		changesDE = {
+			"Klick-Fix Nachtrag: die Widget-CONTAINER selbst (UIWidgetBelowMinimap/TopCenter/PowerBar, ObjectiveTrackerUIWidget, ContainerFrame) verlieren ebenfalls ihre Maus - reine Layout-Frames, die Kinder behalten eigene Hit-Flags. Neu: /suibars foci zeigt die mausaktiven Frames unter dem Cursor, damit sich ein verbleibender Klick-Blocker selbst nennt.",
+		},
+	},
+	{
 		version = "0.3.12",
 		date = "2026-11-22",
 		changes = {

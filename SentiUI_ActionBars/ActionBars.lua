@@ -1177,18 +1177,48 @@ function Core.Enable(mod)
 			"ContainerFrameContainer",
 		}) do
 			local f = _G[n]
-			if type(f) == "table" and type(f.GetChildren) == "function" then
-				for _, c in ipairs({ f:GetChildren() }) do
-					if type(c) == "table" and type(c.GetObjectType) == "function"
-						and c:GetObjectType() == "ModelScene"
-						and type(c.EnableMouse) == "function" then
-						c:EnableMouse(false)
+			if type(f) == "table" then
+				-- the container itself is a layout frame, never interactive;
+				-- children keep their own mouse flags
+				if type(f.EnableMouse) == "function" then f:EnableMouse(false) end
+				if type(f.GetChildren) == "function" then
+					for _, c in ipairs({ f:GetChildren() }) do
+						if type(c) == "table" and type(c.EnableMouse) == "function" then
+							local isScene = type(c.GetObjectType) == "function"
+								and c:GetObjectType() == "ModelScene"
+							local cn = type(c.GetName) == "function" and c:GetName() or ""
+							if isScene or (type(cn) == "string" and cn:find("ModelScene")) then
+								c:EnableMouse(false)
+							end
+						end
 					end
 				end
 			end
 		end
 	end
 	C_Timer.NewTicker(2, function() pcall(UnblockMouse) end)
+
+	-- /suibars foci: prints the mouse-enabled frames under the cursor so a
+	-- click blocker can be named instead of guessed
+	SLASH_SENTIUIAB1 = "/suibars"
+	SlashCmdList.SENTIUIAB = function(msg)
+		if strtrim(msg or "") ~= "foci" then
+			S.Print("|cffffff00/suibars foci|r - " .. L["list the frames eating clicks under the cursor"])
+			return
+		end
+		local foci = GetMouseFoci and { GetMouseFoci() } or {}
+		if #foci == 0 then
+			S.Print(L["no mouse-enabled frame under the cursor"])
+			return
+		end
+		for _, f in ipairs(foci) do
+			local n = type(f.GetName) == "function" and f:GetName() or nil
+			S.Print(format("%s  strata=%s level=%s",
+				n or (f.GetObjectType and f:GetObjectType()) or "?",
+				f.GetFrameStrata and f:GetFrameStrata() or "?",
+				f.GetFrameLevel and f:GetFrameLevel() or "?"))
+		end
+	end
 
 	-- mouseover fade ticks; painting itself is event-driven
 	C_Timer.NewTicker(0.05, function() pcall(BarFade) end)
