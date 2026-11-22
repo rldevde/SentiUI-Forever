@@ -1226,11 +1226,18 @@ function Core.Enable(mod)
 			return
 		end
 		for _, f in ipairs(foci) do
-			local n = type(f.GetName) == "function" and f:GetName() or nil
-			S.Print(format("%s  strata=%s level=%s",
-				n or (f.GetObjectType and f:GetObjectType()) or "?",
-				f.GetFrameStrata and f:GetFrameStrata() or "?",
-				f.GetFrameLevel and f:GetFrameLevel() or "?"))
+			local function call(m)
+				local v = type(f[m]) == "function" and select(2, pcall(f[m], f)) or nil
+				if v == nil then return "?" end
+				return tostring(v)
+			end
+			local par = type(f.GetParent) == "function"
+				and select(2, pcall(f.GetParent, f)) or nil
+			local pn = type(par) == "table" and type(par.GetName) == "function"
+				and par:GetName() or "?"
+			S.Print(format("%s (%s) type=%s strata=%s level=%s parent=%s",
+				call("GetName"), tostring(f), call("GetObjectType"),
+				call("GetFrameStrata"), call("GetFrameLevel"), tostring(pn)))
 		end
 	end
 
