@@ -156,18 +156,21 @@ end
 local dockGuards = {}
 local dockPump
 local function keepDocked(f, point, relPoint, x, y, scale)
-	if type(f) ~= "table" or f.__sentiDockGuard or not hooksecurefunc then
+	if type(f) ~= "table" or f.__sentiDockGuard then
 		return
 	end
 	f.__sentiDockGuard = true
 	dockGuards[#dockGuards + 1] = { f = f, p = point, rp = relPoint, x = x, y = y, s = scale }
 	if not dockPump then
 		dockPump = CreateFrame("Frame")
+		-- pure polling, no SetPoint hook: a post-hook ran inside the
+		-- client's layout dispatch and tainted whatever protected work
+		-- followed (panel opens, secret compares)
 		dockPump:SetScript("OnUpdate", function()
 			for _, g in ipairs(dockGuards) do
 				local fr = g.f
-				if fr.__sentiDockDirty then
-					fr.__sentiDockDirty = nil
+				local ok, _, rel = pcall(fr.GetPoint, fr, 1)
+				if ok and rel and rel ~= Minimap then
 					pcall(fr.ClearAllPoints, fr)
 					pcall(fr.SetPoint, fr, g.p, Minimap, g.rp, g.x, g.y)
 					if g.s then pcall(fr.SetScale, fr, g.s) end
@@ -175,9 +178,6 @@ local function keepDocked(f, point, relPoint, x, y, scale)
 			end
 		end)
 	end
-	pcall(hooksecurefunc, f, "SetPoint", function(fr, _, rel)
-		if rel ~= Minimap then fr.__sentiDockDirty = true end
-	end)
 end
 
 -- Element toggles: shown = unfaded + docked, hidden = faded.
@@ -916,15 +916,17 @@ local function buildPanel()
 		-- keep MinimapCluster alive: hiding it takes the whole minimap
 		-- with it on this client. Only the decorations go.
 	end)
-	-- keep the map pinned inside the panel if something re-anchors it
-	if hooksecurefunc then
-		hooksecurefunc(Minimap, "SetPoint", function(m, _, rel)
-			if rel ~= panel and not InCombatLockdown() then
-				pcall(m.ClearAllPoints, m)
-				pcall(m.SetPoint, m, "TOPLEFT", panel, "TOPLEFT", 4, -4)
-			end
-		end)
-	end
+	-- keep the map pinned inside the panel if something re-anchors it:
+	-- polled, not hooked - a SetPoint post-hook ran inside the client's
+	-- layout dispatch and tainted whatever protected work followed
+	C_Timer.NewTicker(0.5, function()
+		if InCombatLockdown() then return end
+		local ok, _, rel = pcall(Minimap.GetPoint, Minimap, 1)
+		if ok and rel and rel ~= panel then
+			pcall(Minimap.ClearAllPoints, Minimap)
+			pcall(Minimap.SetPoint, Minimap, "TOPLEFT", panel, "TOPLEFT", 4, -4)
+		end
+	end)
 	-- the panel carries the mover: map, bars and deco travel together
 	if not moverSet then
 		local ratio = panel:GetEffectiveScale() / UIParent:GetEffectiveScale()

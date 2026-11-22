@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.9 - 2026-11-22
+
+- The dungeon map no longer registers GLOBAL_MOUSE_UP - the event fires inside the input dispatch that then delivers the click to a button, so any addon Lua there taints it and kills the protected call behind it (Reload in the addon list, SpellStopCasting on Escape). Drag release is detected by polling the button state in OnUpdate.
+
 ## 0.1.8
 
 - Compile fix: a slot-parser loop assigned to its loop variable (LuaJIT const-assign error) - Page.lua failed to load. Uses a local instead.

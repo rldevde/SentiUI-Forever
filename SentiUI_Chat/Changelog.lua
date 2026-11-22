@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.12",
+		date = "2026-11-22",
+		changes = {
+			"All post-hooks on Blizzard layout and chat functions are gone (UIParent_ManageFramePositions, FCF_*, ChatEdit_UpdateHeader, tab clicks): they ran inside input/panel dispatches and tainted them - the probable source of blocked SendChatMessage and secret-compare errors when windows opened. One 0.25s watchdog now re-docks the chat, restyles new frames, re-colors tabs and edit box borders and re-anchors the edit box.",
+		},
+		changesDE = {
+			"Alle Post-Hooks auf Blizzard-Layout- und Chat-Funktionen sind weg (UIParent_ManageFramePositions, FCF_*, ChatEdit_UpdateHeader, Tab-Klicks): Sie liefen in Input-/Panel-Dispatches und vergifteten sie - die wahrscheinliche Quelle geblockter SendChatMessage-Aufrufe und Geheimwert-Fehler beim Fenster-Öffnen. Ein 0,25s-Watchdog dockt den Chat an, stylt neue Fenster, färbt Tabs und Editbox-Ränder und verankert die Editbox neu.",
+		},
+	},
+	{
 		version = "0.2.11",
 		changes = {
 			"Compile fix: UpdateKeywords assigned to the for-loop variable, which LuaJIT rejects as a const assign - the whole Chat.lua failed to load. Loop variable is now shadowed by a local.",

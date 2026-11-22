@@ -1,5 +1,9 @@
 # SentiUI Action Bars
 
+## 0.3.11 - 2026-11-22
+
+- Holder attach keeps ExtraAbilityContainer and friends in place by a 0.5s drift poll instead of SetParent/SetPoint post-hooks - the hooks ran inside the client's layout dispatch and tainted whatever protected work followed.
+
 ## 0.3.10
 
 - The labelled Call/Sec wrappers now delegate to the shared core wrapper (S.Call): blocked engine calls print the api name AND the call site (file.lua:line) once.

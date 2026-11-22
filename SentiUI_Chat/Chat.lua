@@ -448,25 +448,26 @@ function Core.StyleEditBox(frame)
 	if not eb.SetBackdrop and BackdropTemplateMixin then Mixin(eb, BackdropTemplateMixin) end
 	S.Template(eb, "raised")
 	if eb.SetAltArrowKeyMode then eb:SetAltArrowKeyMode(false) end
-	eb:HookScript("OnEditFocusGained", function(self) self:Show() end)
-	-- Blizzard re-anchors the edit box to whatever chat frame is active -
-	-- re-assert our layout every time it shows
-	eb:HookScript("OnShow", function()
-		S.SafeCall("chat:ebshow", Core.PositionEditBox, frame)
-	end)
-	if not ChatEdit_UpdateHeader then return end
-	hooksecurefunc("ChatEdit_UpdateHeader", function(editBox)
-		if editBox ~= eb then return end
-		local chatType = editBox:GetAttribute("chatType")
-		local info = chatType and ChatTypeInfo and ChatTypeInfo[chatType]
-		if chatType == "CHANNEL" then
-			local id = GetChannelName(editBox:GetAttribute("channelTarget"))
-			info = id and id > 0 and ChatTypeInfo["CHANNEL" .. id] or info
-		end
-		if info and editBox.SetBackdropBorderColor then
-			editBox:SetBackdropBorderColor(info.r, info.g, info.b)
-		end
-	end)
+	-- no OnShow/OnEditFocusGained hooks and no ChatEdit_UpdateHeader
+	-- hook: both fire inside the Enter/click dispatch right before
+	-- SendChatMessage - insecure Lua there taints the dispatch and the
+	-- send dies. The watchdog below re-applies anchor + border color.
+end
+
+-- per-editbox border color by chat type (was a ChatEdit_UpdateHeader
+-- post-hook - moved to the watchdog, see below)
+local function ApplyEditBoxColor(eb)
+	local chatType = eb.GetAttribute and eb:GetAttribute("chatType")
+	if chatType == eb._suiChatType then return end
+	eb._suiChatType = chatType
+	local info = chatType and ChatTypeInfo and ChatTypeInfo[chatType]
+	if chatType == "CHANNEL" and GetChannelName then
+		local id = GetChannelName(eb:GetAttribute("channelTarget"))
+		info = id and id > 0 and ChatTypeInfo["CHANNEL" .. id] or info
+	end
+	if info and eb.SetBackdropBorderColor then
+		eb:SetBackdropBorderColor(info.r, info.g, info.b)
+	end
 end
 
 function Core.PositionEditBox(frame)
@@ -985,31 +986,6 @@ function Core.Enable(mod)
 	if db.timestamp ~= "NONE" and SetCVar then pcall(SetCVar, "showTimestamps", "none") end
 
 	S.SafeCall("chat:position", Core.PositionChat)
-	-- missing FCF_* globals must not take the module down
-	local function SafeHook(name, fn)
-		if type(_G[name]) == "function" then hooksecurefunc(name, fn) end
-	end
-	SafeHook("FCF_OpenTemporaryWindow", function()
-		for _, name in ipairs(CHAT_FRAMES or {}) do Core.StyleChatFrame(_G[name]) end
-	end)
-	SafeHook("FCF_OpenNewWindow", function() Core.PositionChat() end)
-	SafeHook("FCF_DockFrame", function() Core.UpdateTabColors() end)
-	SafeHook("FCF_Tab_OnClick", function() Core.UpdateTabColors() end)
-	SafeHook("FCFTab_UpdateColors", function() Core.UpdateTabColors() end)
-	SafeHook("FCF_SetWindowName", function(_, frame)
-		if Core.IsRightChat(frame) then Core.PositionChat() end
-	end)
-	-- the game re-anchors the edit box to the active chat frame on focus
-	SafeHook("ChatEdit_SetLastActiveWindow", function(frame)
-		if frame then Core.PositionEditBox(frame) end
-	end)
-	SafeHook("FCF_DockUpdate", function()
-		for i = 1, (NUM_CHAT_WINDOWS or 10) do
-			local f = _G["ChatFrame" .. i]
-			if f then Core.PositionEditBox(f) end
-		end
-	end)
-
 	S.RegisterEvent("UPDATE_CHAT_WINDOWS", Core.PositionChat)
 	S.RegisterEvent("UPDATE_FLOATING_CHAT_WINDOWS", Core.PositionChat)
 	S.RegisterEvent("PLAYER_ENTERING_WORLD", function()
@@ -1029,14 +1005,48 @@ function Core.Enable(mod)
 	if not Core._posHooks then
 		Core._posHooks = true
 		pcall(ChatFrame1.SetAttribute, ChatFrame1, "ignoreFramePositionManager", true)
-		for _, fn in ipairs({ "FCF_RestorePositionAndDimensions", "FCF_SetWindowPosition",
-			"FCF_UpdateDockPosition", "FCF_DockUpdate", "FCF_UpdateChatWindows",
-			"FloatingChatFrame_Update", "UIParent_ManageFramePositions",
-			"UIParent_UpdateTopFramePositions" }) do
-			if type(_G[fn]) == "function" then
-				hooksecurefunc(fn, function() S.SafeCall("chat:snap", SnapChatFrame1) end)
-			end
-		end
+		-- no hooksecurefunc on Blizzard layout/chat functions: the
+		-- post-call runs inside whatever dispatch triggered it - a
+		-- keybind click, a panel open, the Enter key before
+		-- SendChatMessage - and taints it, killing the protected calls
+		-- and secret compares behind it. One quarter-second watchdog in
+		-- its own dispatch re-docks, restyles new frames, re-colors tabs
+		-- and edit boxes, and re-anchors the edit box instead.
+		local lastSel, lastShown
+		C_Timer.NewTicker(0.25, function()
+			S.SafeCall("chat:watch", function()
+				SnapChatFrame1()
+				local shown = 0
+				for i = 1, (NUM_CHAT_WINDOWS or 10) do
+					local f = _G["ChatFrame" .. i]
+					if f then
+						if not Core.styled[f] then
+							S.SafeCall("chat:style", Core.StyleChatFrame, f)
+						end
+						if f:IsShown() then shown = shown + 1 end
+						local eb = FindEditBox(f)
+						if eb then
+							ApplyEditBoxColor(eb)
+							if Core.leftPanel and eb:IsShown() then
+								local ok, _, relTo = pcall(eb.GetPoint, eb, 1)
+								if ok and relTo ~= Core.leftPanel then
+									S.SafeCall("chat:ebpos", Core.PositionEditBox, f)
+								end
+							end
+						end
+					end
+				end
+				if shown ~= lastShown then
+					lastShown = shown
+					Core.PositionChat()
+				end
+				local sel = SELECTED_CHAT_FRAME or SELECTED_DOCK_FRAME
+				if sel ~= lastSel then
+					lastSel = sel
+					Core.UpdateTabColors()
+				end
+			end)
+		end)
 	end
 
 	-- the client re-anchors chat windows on level ups; burst-check briefly so

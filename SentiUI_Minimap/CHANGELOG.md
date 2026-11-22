@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.9 - 2026-11-22
+
+- The SetPoint post-hooks on Minimap and the cluster dock guards are replaced by polling: they ran inside the client's layout dispatch (panel opens) and tainted whatever protected work followed.
+
 ## 0.3.8
 
 - Interface-dispatch audit: the menu joined UISpecialFrames once instead of on every show (the list grew without bound). Decor-kill and dock-correction hooks no longer hide or re-anchor Blizzard frames inside their show/layout dispatch - watchers poll the transitions and a pump applies corrections a frame later.

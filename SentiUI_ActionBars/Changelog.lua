@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.11",
+		date = "2026-11-22",
+		changes = {
+			"Holder attach keeps ExtraAbilityContainer and friends in place by a 0.5s drift poll instead of SetParent/SetPoint post-hooks - the hooks ran inside the client's layout dispatch and tainted whatever protected work followed.",
+		},
+		changesDE = {
+			"Die Holder-Befestigung hält ExtraAbilityContainer & Co. per 0,5s-Drift-Poll statt SetParent/SetPoint-Post-Hooks - die Hooks liefen im Layout-Dispatch des Clients und vergifteten die geschützte Arbeit danach.",
+		},
+	},
+	{
 		version = "0.3.10",
 		changes = {
 			"The labelled Call/Sec wrappers now delegate to the shared core wrapper (S.Call): blocked engine calls print the api name AND the call site (file.lua:line) once.",

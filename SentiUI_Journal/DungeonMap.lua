@@ -189,15 +189,20 @@ function M.Create(parent, opts)
 	-- protected spell-stop calls. A stale drag state is cleared when
 	-- the map shows again instead.
 	panel:HookScript("OnShow", function(frame) frame.drag = nil end)
-	pcall(panel.RegisterEvent, panel, "GLOBAL_MOUSE_UP")
-	panel:SetScript("OnEvent", function(frame, event, button)
-		if event == "GLOBAL_MOUSE_UP" and (button == nil or button == "LeftButton") then
-			StopDrag(frame)
-		end
-	end)
+	-- no GLOBAL_MOUSE_UP: the event fires inside the input dispatch that
+	-- delivers the click to a button - insecure Lua there taints the whole
+	-- dispatch and kills the protected call after it (Reload in the addon
+	-- list, SpellStopCasting on Escape, secret compares on panel opens).
+	-- The button state polls fine in OnUpdate instead.
 	panel:SetScript("OnUpdate", function(frame)
 		local d = frame.drag
 		if not d then
+			return
+		end
+		local down = (IsMouseButtonDown and IsMouseButtonDown("LeftButton"))
+			or (IsLeftButtonDown and IsLeftButtonDown())
+		if down == false then
+			StopDrag(frame)
 			return
 		end
 		local scale = frame:GetEffectiveScale()

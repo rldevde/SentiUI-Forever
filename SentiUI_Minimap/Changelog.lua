@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.9",
+		date = "2026-11-22",
+		changes = {
+			"The SetPoint post-hooks on Minimap and the cluster dock guards are replaced by polling: they ran inside the client's layout dispatch (panel opens) and tainted whatever protected work followed.",
+		},
+		changesDE = {
+			"Die SetPoint-Post-Hooks auf Minimap und den Cluster-Dock-Guards sind durch Polling ersetzt: Sie liefen im Layout-Dispatch des Clients (Fenster-Öffnungen) und vergifteten die geschützte Arbeit danach.",
+		},
+	},
+	{
 		version = "0.3.8",
 		changes = {
 			"Interface-dispatch audit: the menu joined UISpecialFrames once instead of on every show (the list grew without bound). Decor-kill and dock-correction hooks no longer hide or re-anchor Blizzard frames inside their show/layout dispatch - watchers poll the transitions and a pump applies corrections a frame later.",

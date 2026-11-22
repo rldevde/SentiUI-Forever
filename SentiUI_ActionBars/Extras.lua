@@ -228,7 +228,8 @@ local function MakeHolder(name, point, x, y, w, h, key, title)
 	return holder
 end
 
-local hooked = {}
+local watched = {}
+local attachPump
 local function Attach(frame, holder, point)
 	if not frame or not holder then return end
 	point = point or "CENTER"
@@ -238,24 +239,34 @@ local function Attach(frame, holder, point)
 	-- keep Blizzard's layout managers away from it
 	frame.ignoreInLayout = true
 	frame.ignoreFramePositionManager = true
-	if hooked[frame] then return end
-	hooked[frame] = true
-	hooksecurefunc(frame, "SetParent", function(self, parent)
-		if parent == holder or InCombatLockdown() then return end
-		-- yield to another addon's holder frame instead of fighting it:
-		-- two holder hooks ping-ponged ExtraAbilityContainer into a
-		-- stack overflow once both suites were loaded
-		local pn = type(parent) == "table" and parent.GetName
-			and parent:GetName() or nil
-		if pn and pn ~= holder:GetName() and pn:find("Holder") then return end
-		self:SetParent(holder)
-	end)
-	hooksecurefunc(frame, "SetPoint", function(self, _, relative)
-		if relative == holder or self.sentiFixing or InCombatLockdown() then return end
-		self.sentiFixing = true
-		self:ClearAllPoints()
-		self:SetPoint(point, holder, point, 0, 0)
-		self.sentiFixing = nil
+	if watched[frame] then return end
+	watched[frame] = { holder = holder, point = point }
+	if attachPump then return end
+	-- drift poll instead of SetParent/SetPoint post-hooks: those ran
+	-- inside the client's layout dispatch and tainted whatever protected
+	-- work followed in that pass (panel opens, secret compares)
+	attachPump = C_Timer.NewTicker(0.5, function()
+		if InCombatLockdown() then return end
+		for fr, w in pairs(watched) do
+			local par = fr.GetParent and fr:GetParent()
+			if par and par ~= w.holder then
+				-- yield to another addon's holder frame instead of
+				-- fighting it: two holder hooks ping-ponged
+				-- ExtraAbilityContainer into a stack overflow once
+				local pn = type(par) == "table" and par.GetName
+					and par:GetName() or nil
+				if not (pn and pn ~= w.holder:GetName() and pn:find("Holder")) then
+					Call("attach:SetParent", fr.SetParent, fr, w.holder)
+				end
+			end
+			local ok, _, rel = pcall(fr.GetPoint, fr, 1)
+			if ok and rel and rel ~= w.holder and not fr.sentiFixing then
+				fr.sentiFixing = true
+				fr:ClearAllPoints()
+				fr:SetPoint(w.point, w.holder, w.point, 0, 0)
+				fr.sentiFixing = nil
+			end
+		end
 	end)
 end
 

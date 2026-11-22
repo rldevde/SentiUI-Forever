@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.9",
+		date = "2026-11-22",
+		changes = {
+			"The dungeon map no longer registers GLOBAL_MOUSE_UP - the event fires inside the input dispatch that then delivers the click to a button, so any addon Lua there taints it and kills the protected call behind it (Reload in the addon list, SpellStopCasting on Escape). Drag release is detected by polling the button state in OnUpdate.",
+		},
+		changesDE = {
+			"Die Dungeon-Karte registriert GLOBAL_MOUSE_UP nicht mehr - das Event feuert im selben Input-Dispatch, der danach den Klick an einen Button ausliefert; Addon-Lua dort vergiftet den Dispatch und tötet den geschützten Aufruf dahinter (Reload in der Addon-Liste, SpellStopCasting bei Escape). Das Drag-Ende wird jetzt per Button-State-Polling im OnUpdate erkannt.",
+		},
+	},
+	{
 		version = "0.1.8",
 		changes = {
 			"Compile fix: a slot-parser loop assigned to its loop variable (LuaJIT const-assign error) - Page.lua failed to load. Uses a local instead.",
