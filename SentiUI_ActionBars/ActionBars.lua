@@ -1218,6 +1218,18 @@ function Core.Enable(mod)
 		local foci
 		if GetMouseFoci then
 			foci = { GetMouseFoci() }
+			-- this client may return one array-table instead of multiple
+			-- values: unwrap entries that are plain tables
+			local flat = {}
+			for _, v in ipairs(foci) do
+				if type(v) == "table" and type(v.GetObjectType) ~= "function"
+					and type(v.GetFrameStrata) ~= "function" then
+					for _, w in pairs(v) do flat[#flat + 1] = w end
+				else
+					flat[#flat + 1] = v
+				end
+			end
+			foci = flat
 		else
 			-- fallback: walk every frame, keep mouse-enabled ones under the
 			-- cursor (same result GetMouseFoci would give)
