@@ -25,6 +25,18 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.3.18",
+		date = "2026-11-22",
+		changes = {
+			"Reworked the combat deferral: the core no longer wraps ShowUIPanel/HideUIPanel/ToggleFrame or the Toggle* keybind functions - every wrapped call ran addon code inside the caller's dispatch and tainted it, which is what blocked Reload() in the addon list, SpellStopCasting() on Escape and secret comparisons when panels opened.",
+			"Blocked window opens are now recognized inside the dead dispatch's stack (binding chunk, Toggle* name or panel file) and queued for after combat - same feature, zero taint.",
+		},
+		changesDE = {
+			"Kampf-Verzögerung umgebaut: Der Kern umschreibt ShowUIPanel/HideUIPanel/ToggleFrame und die Toggle*-Tastenfunktionen nicht mehr - jeder umschriebene Aufruf führte Addon-Code im Dispatch des Aufrufers aus und vergiftete ihn, was Reload() in der Addon-Liste, SpellStopCasting() bei Escape und Geheimwert-Vergleiche beim Öffnen von Fenstern blockierte.",
+			"Geblockte Fenster-Öffnungen werden jetzt im Stack des toten Dispatches erkannt (Binding-Chunk, Toggle*-Name oder Fenster-Datei) und für nach dem Kampf gequeued - gleiche Funktion, null Taint.",
+		},
+	},
+	{
 		version = "0.3.17",
 		date = "2026-11-22",
 		changes = {

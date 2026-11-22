@@ -351,24 +351,59 @@ function S:CombatDeferWindow(f)
 end
 
 -- Blizzard key toggles (C, K, N ...): the engine's window Show is protected
--- here, so a mid-combat press dies to ADDON_ACTION_FORBIDDEN. The global
--- toggle queues the open instead and fires after combat only when the
--- window is still closed - a manual open in between must not toggle shut.
+-- here, so a mid-combat press dies to ADDON_ACTION_FORBIDDEN. We do NOT wrap
+-- the globals - every wrapped call would run insecure addon Lua inside the
+-- caller's dispatch and taint everything protected after it (Reload,
+-- SpellStopCasting, secret compares). Instead the blocked-call capture below
+-- recognizes the toggle in the dead dispatch's stack and queues the open
+-- for PLAYER_REGEN_ENABLED - the request is deferred, the dispatch clean.
+-- bind = keybinding chunk prefix, hints = stack fragments for click paths.
 local TOGGLE_DEFS = {
-	{ fn = "ToggleCharacter",        label = "Character",    frames = { "CharacterFrame", "PaperDollFrame" } },
-	{ fn = "ToggleSpellBook",        label = "Spellbook",    frames = { "SpellBookFrame", "PlayerSpellsFrame" } },
-	{ fn = "ToggleSkillFrame",       label = "Skills",       frames = { "SkillFrame", "ProfessionsBookFrame" } },
-	{ fn = "ToggleTalentFrame",      label = "Talents",      frames = { "TalentFrame", "PlayerTalentFrame", "ClassTalentFrame" } },
-	{ fn = "ToggleFriendsFrame",     label = "Social",       frames = { "FriendsFrame" } },
-	{ fn = "ToggleGuildFrame",       label = "Guild",        frames = { "GuildFrame", "CommunitiesFrame" } },
-	{ fn = "ToggleAchievementFrame", label = "Achievements", frames = { "AchievementFrame" } },
-	{ fn = "TogglePVPUI",            label = "PvP",          frames = { "PVPUIFrame", "PVPFrame", "HonorFrame" } },
-	{ fn = "TogglePVPFrame",         label = "PvP",          frames = { "PVPUIFrame", "PVPFrame", "HonorFrame" } },
-	{ fn = "ToggleQuestLog",         label = "Quest log",    frames = { "QuestLogFrame" } },
-	{ fn = "ToggleWorldMap",         label = "Map",          frames = { "WorldMapFrame" } },
-	{ fn = "ToggleHelpFrame",        label = "Help",         frames = { "HelpFrame" } },
-	{ fn = "ToggleCalendar",         label = "Calendar",     frames = { "CalendarFrame" } },
-	{ fn = "ToggleLFGParentFrame",   label = "Group finder", frames = { "LFGParentFrame", "PVEFrame", "GroupFinderFrame" } },
+	{ fn = "ToggleCharacter",      bind = "TOGGLECHARACTER",      label = "Character",
+		frames = { "CharacterFrame", "PaperDollFrame" },
+		hints = { "CharacterFrame", "PaperDollFrame" } },
+	{ fn = "ToggleSpellBook",      bind = "TOGGLESPELLBOOK",      label = "Spellbook",
+		frames = { "SpellBookFrame", "PlayerSpellsFrame" },
+		hints = { "SpellBookFrame", "PlayerSpellsFrame" } },
+	{ fn = "ToggleSkillFrame",     label = "Skills",
+		frames = { "SkillFrame", "ProfessionsBookFrame" },
+		hints = { "SkillFrame" } },
+	{ fn = "ToggleProfessionsBook", bind = "TOGGLEPROFESSIONBOOK", label = "Professions",
+		frames = { "ProfessionsBookFrame", "ProfessionsFrame" },
+		hints = { "ProfessionsBook", "ProfessionsFrame", "ShowProfessionsFrame" } },
+	{ fn = "ToggleTalentFrame",    bind = "TOGGLETALENTS",        label = "Talents",
+		frames = { "TalentFrame", "PlayerTalentFrame", "ClassTalentFrame" },
+		hints = { "TalentFrame", "ClassTalentFrame" } },
+	{ fn = "ToggleFriendsFrame",   bind = "TOGGLESOCIAL",         label = "Social",
+		frames = { "FriendsFrame" }, hints = { "FriendsFrame" } },
+	{ fn = "ToggleGuildFrame",     bind = "TOGGLEGUILD",          label = "Guild",
+		frames = { "GuildFrame", "CommunitiesFrame" },
+		hints = { "GuildFrame", "CommunitiesFrame" } },
+	{ fn = "ToggleAchievementFrame", bind = "TOGGLEACHIEVEMENT",  label = "Achievements",
+		frames = { "AchievementFrame" }, hints = { "AchievementFrame" } },
+	{ fn = "TogglePVPUI",          bind = "TOGGLEPVPUI",          label = "PvP",
+		frames = { "PVPUIFrame", "PVPFrame", "HonorFrame" },
+		hints = { "PVPUIFrame", "HonorFrame" } },
+	{ fn = "TogglePVPFrame",       bind = "TOGGLEPVPFRAME",       label = "PvP",
+		frames = { "PVPUIFrame", "PVPFrame", "HonorFrame" },
+		hints = { "PVPFrame" } },
+	{ fn = "ToggleQuestLog",       bind = "TOGGLEQUESTLOG",       label = "Quest log",
+		frames = { "QuestLogFrame" }, hints = { "QuestLogFrame" } },
+	{ fn = "ToggleWorldMap",       bind = "TOGGLEWORLDMAP",       label = "Map",
+		frames = { "WorldMapFrame" }, hints = { "WorldMapFrame" } },
+	{ fn = "ToggleHelpFrame",      bind = "TOGGLEHELPPANEL",      label = "Help",
+		frames = { "HelpFrame" }, hints = { "HelpFrame" } },
+	{ fn = "ToggleCalendar",       bind = "TOGGLECALENDAR",       label = "Calendar",
+		frames = { "CalendarFrame" }, hints = { "CalendarFrame" } },
+	{ fn = "ToggleLFGParentFrame", bind = "TOGGLEGROUPFINDER",    label = "Group finder",
+		frames = { "LFGParentFrame", "PVEFrame", "GroupFinderFrame" },
+		hints = { "LFGParentFrame", "PVEFrame", "GroupFinderFrame" } },
+	{ fn = "ToggleBackpack",       bind = "TOGGLEBACKPACK",       label = "Bags",
+		frames = { "ContainerFrame1", "ContainerFrameCombinedBags" },
+		hints = { "ToggleBackpack", "OpenBackpack" } },
+	{ fn = "ToggleAllBags",        bind = "TOGGLEALLBAGS",        label = "Bags",
+		frames = { "ContainerFrame1", "ContainerFrameCombinedBags" },
+		hints = { "OpenAllBags", "ToggleAllBags" } },
 }
 
 local function toggleStillClosed(d)
@@ -382,78 +417,65 @@ local function toggleStillClosed(d)
 	return true
 end
 
-local pendingKeys = {}
-
--- generic panel opens/closes that bypass the named toggles (micro menu,
--- /click paths, other addons): ShowUIPanel defers unless the frame is
--- already open, HideUIPanel unless already closed, ToggleFrame replays
--- verbatim. Same (function, frame) queues once - a double ToggleFrame
--- would undo itself.
-local PANEL_DEFS = {
-	{ fn = "ShowUIPanel", mode = "show" },
-	{ fn = "HideUIPanel", mode = "hide" },
-	{ fn = "ToggleFrame", mode = "toggle" },
-}
-
-local function queuePanelCall(orig, f, mode, label, ...)
-	local key = tostring(orig) .. "|" .. tostring(f)
-	if pendingKeys[key] then return end
-	pendingKeys[key] = true
-	local args = { n = select("#", ...), ... }
+local function queueToggleDef(d)
+	if d.queued then return end
+	d.queued = true
 	pendingToggles[#pendingToggles + 1] = {
-		key = key,
-		run = function() return orig(f, (unpack or table.unpack)(args, 1, args.n)) end,
-		skip = function()
-			local ok, s = pcall(f.IsShown, f)
-			s = ok and s == true
-			if mode == "show" then return s end
-			if mode == "hide" then return not s end
-			return false
+		def = d,
+		run = function()
+			local f = _G[d.fn]
+			if type(f) == "function" then return f() end
 		end,
+		skip = function() return not toggleStillClosed(d) end,
 	}
-	noteDeferred(label)
+	noteDeferred(d.label)
 end
 
-S.RegisterEvent("PLAYER_LOGIN", function()
+-- which toggle died inside this dispatch: the binding chunk names itself
+-- ([TOGGLECHARACTER0]:1), click paths name the Toggle* function or the
+-- panel file it was opening
+local function toggleFromStack(stack)
+	local fnName = stack:match("in function '(Toggle[%a_]+)'")
+		or stack:match("in upvalue '(Toggle[%a_]+)'")
+	if fnName then
+		for _, d in ipairs(TOGGLE_DEFS) do
+			if d.fn == fnName then return d end
+		end
+	end
+	local bind = stack:match('%[string "(TOGGLE[%a%d_]+)"%]')
+		or stack:match("%[(TOGGLE[%a%d_]+)%]")
+	if bind then
+		bind = bind:gsub("%d+$", "")
+		for _, d in ipairs(TOGGLE_DEFS) do
+			if d.bind == bind then return d end
+		end
+	end
 	for _, d in ipairs(TOGGLE_DEFS) do
-		local orig = _G[d.fn]
-		if type(orig) == "function" then
-			d.orig = orig
-			_G[d.fn] = function(...)
-				if combatLock() then
-					if not d.queued then
-						d.queued = true
-						local a = { n = select("#", ...), ... }
-						pendingToggles[#pendingToggles + 1] = {
-							def = d,
-							run = function()
-								return orig((unpack or table.unpack)(a, 1, a.n))
-							end,
-							skip = function() return not toggleStillClosed(d) end,
-						}
-						noteDeferred(d.label)
-					end
-					return
-				end
-				return orig(...)
+		if d.hints then
+			for _, h in ipairs(d.hints) do
+				if stack:find(h, 1, true) then return d end
 			end
 		end
 	end
-	for _, d in ipairs(PANEL_DEFS) do
-		local orig, mode = _G[d.fn], d.mode
-		if type(orig) == "function" then
-			_G[d.fn] = function(f, ...)
-				if combatLock() and type(f) == "table" then
-					local ok, n = pcall(f.GetName, f)
-					queuePanelCall(orig, f, mode,
-						ok and type(n) == "string" and n or d.fn, ...)
-					return
-				end
-				return orig(f, ...)
-			end
-		end
-	end
-end)
+end
+
+-- the companion to `forbidden` above: when a window-open is blocked mid
+-- combat (keybind, micro button, any dispatch), find its toggle in the
+-- stack and queue it for after the fight
+local function deferBlockedOpen()
+	if not combatLock() then return end
+	local during = eventStack[#eventStack - 1]
+	if during == "ADDON_ACTION_BLOCKED"
+		or during == "ADDON_ACTION_FORBIDDEN" then return end
+	if type(debugstack) ~= "function" then return end
+	local ok, stack = pcall(debugstack, 3)
+	if not ok or type(stack) ~= "string" then return end
+	if type(issecretvalue) == "function" and issecretvalue(stack) then return end
+	local d = toggleFromStack(stack)
+	if d then queueToggleDef(d) end
+end
+S.RegisterEvent("ADDON_ACTION_FORBIDDEN", deferBlockedOpen)
+S.RegisterEvent("ADDON_ACTION_BLOCKED", deferBlockedOpen)
 
 S.RegisterEvent("PLAYER_REGEN_DISABLED", function()
 	for f, e in pairs(combatWins) do
@@ -483,7 +505,6 @@ S.RegisterEvent("PLAYER_REGEN_ENABLED", function()
 	-- deferred Blizzard window opens
 	local tq = pendingToggles
 	pendingToggles = {}
-	pendingKeys = {}
 	for i = 1, #tq do
 		local e = tq[i]
 		if e.def then e.def.queued = nil end
