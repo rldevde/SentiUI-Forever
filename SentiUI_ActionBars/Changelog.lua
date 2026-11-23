@@ -4,6 +4,15 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.63",
+		changes = {
+			"Loss-of-control banner follow-up: the game re-alphas its red art and re-anchors icon+text on every display tick, undoing the one-shot skin - the style now re-applies every 0.15s while the banner is visible, so the icon stays docked left, the red lines stay dead and the fonts keep the SentiUI look.",
+		},
+		changesDE = {
+			"Kontrollverlust-Banner, Nachschlag: das Spiel re-alphat seine rote Art und re-ankert Icon+Text bei jedem Display-Tick und macht den Einmal-Skin rueckgaengig - der Style laeuft jetzt alle 0,15s solange das Banner sichtbar ist: Icon bleibt links angedockt, die roten Linien bleiben tot und die Schrift behaelt den SentiUI-Look.",
+		},
+	},
+	{
 		version = "0.3.62",
 		changes = {
 			"Button skin fix, round 2: some button templates keep their themed face on named fields (ButtonTexture, ArtOverlay, Background, ButtonArt) or on chrome child frames instead of plain texture regions - the professions' red Create/Create All buttons painted over our fill and border. Text buttons now alpha named chrome fields and every child frame plus its textures before our template goes on.",

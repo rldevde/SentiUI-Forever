@@ -651,8 +651,9 @@ end
 -- left the Blizzard art visible and the icon overlapping the label -
 -- the client anchors the icon so it eats the first characters. Kill the
 -- art, dock the icon at the left edge, restyle the fonts.
-function SKINS.LossOfControlFrame(f)
-	for _, k in ipairs({ "blackBg", "BlackBg", "RedLineTop", "RedLineBottom" }) do
+local function ApplyLocStyle(f)
+	for _, k in ipairs({ "blackBg", "BlackBg", "RedLineTop",
+		"RedLineBottom", "RedX", "redX" }) do
 		local t = f[k]
 		if t and t.SetAlpha then Call("loc:art", t.SetAlpha, t, 0) end
 	end
@@ -664,11 +665,25 @@ function SKINS.LossOfControlFrame(f)
 		local okH, h = Call("loc:h", f.GetHeight, f)
 		local size = (okH and h or 40) - 6
 		Call("loc:isz", icon.SetSize, icon, size, size)
-		icon:ClearAllPoints()
-		icon:SetPoint("LEFT", f, "LEFT", 4, 0)
-		if icon.SetTexCoord then Call("loc:tc", icon.SetTexCoord, icon, 0.07, 0.93, 0.07, 0.93) end
+		Call("loc:cp", icon.ClearAllPoints, icon)
+		Call("loc:sp", icon.SetPoint, icon, "LEFT", f, "LEFT", 4, 0)
+		if icon.SetTexCoord then
+			Call("loc:tc", icon.SetTexCoord, icon, 0.07, 0.93, 0.07, 0.93)
+		end
 	end
 	RestyleFonts(f, 11)
+end
+
+function SKINS.LossOfControlFrame(f)
+	ApplyLocStyle(f)
+	if f._locTicker then return end
+	f._locTicker = true
+	-- the game re-alphas its red art and re-anchors icon+text on every
+	-- display tick, AFTER our watch-shown skin ran - re-apply while the
+	-- banner is visible so the layout sticks
+	C_Timer.NewTicker(0.15, function()
+		if f:IsShown() then S.SafeCall("loc:tick", ApplyLocStyle, f) end
+	end)
 end
 
 function SKINS.GhostFrame(f)

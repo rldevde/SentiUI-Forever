@@ -1,5 +1,9 @@
 # SentiUI Action Bars
 
+## 0.3.63 - 2026-11-23
+
+- Loss-of-control banner follow-up: the game re-alphas its red art and re-anchors icon+text on every display tick, undoing the one-shot skin - the style now re-applies every 0.15s while the banner is visible, so the icon stays docked left, the red lines stay dead and the fonts keep the SentiUI look.
+
 ## 0.3.62 - 2026-11-23
 
 - Button skin fix, round 2: some button templates keep their themed face on named fields (ButtonTexture, ArtOverlay, Background, ButtonArt) or on chrome child frames instead of plain texture regions - the professions' red "Create"/"Create All" buttons painted over our fill and border. Text buttons now alpha named chrome fields and every child frame plus its textures before our template goes on.
