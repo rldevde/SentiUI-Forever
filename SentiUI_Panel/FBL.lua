@@ -698,7 +698,7 @@ local function ChannelsReady()
 end
 
 local OnJoined -- defined below
-local DataHash, QueueChannelSend, SendVersionPing -- sync block below
+local DataHash, QueueChannelSend, SendVersionPing, ProbeChanAddon -- sync block below
 
 local joinTries = 0
 local function JoinSync()
@@ -778,9 +778,11 @@ function F.Debug()
 	local pend = 0
 	for _ in pairs(pending) do pend = pend + 1 end
 	local reg = PrefixRegistered()
-	S.Print(format("FBL: channel=%s prefix=%s autoAccept=%s trust=%s entries=%d pending=%d lastSync=%s",
+	S.Print(format("FBL: channel=%s prefix=%s addonOK=%s chatBlocked=%s autoAccept=%s trust=%s entries=%d pending=%d lastSync=%s",
 		tostring(chanNum or "-"),
 		reg == nil and "?" or tostring(reg),
+		chanAddonOK == nil and "probe" or tostring(chanAddonOK),
+		tostring(chatBlocked),
 		tostring(DB().sync and DB().sync.autoAccept),
 		tostring(DB().sync and DB().sync.trust),
 		F.EntryCount(),
@@ -793,6 +795,9 @@ end
 -- same three-way handshake the standalone performs on join
 OnJoined = function()
 	Log("info", format(L["Joined sync channel '%s' (#%d)"], chanName or "?", chanNum or 0))
+	-- find out whether addon messages reach custom channels at all;
+	-- until the probe answers, sends park in their pending slots
+	ProbeChanAddon()
 	C_Timer.After(3, SendVersionPing)
 	C_Timer.After(4, SendPullRequest)
 	if DataHash() ~= (DB().sync.lastHash or -1) then
@@ -1151,6 +1156,64 @@ end
 local SYNC_CHUNK = 200
 local pending, lastDone = {}, {}
 local sendQueue, sendTicker
+
+-- channel transport: SendAddonMessage accepts "CHANNEL" on modern
+-- clients (native addon traffic on a custom channel - invisible, not
+-- hardware-gated). On this client that path never reaches the channel,
+-- so it is probed once via our own echo; without the echo we fall back
+-- to SendChatMessage, which IS hardware-restricted and only drains
+-- inside real input events (clicks). Same model the standalone uses.
+local chanAddonOK -- nil = probe still out
+local chatBlocked, hw, inChat = false, false, false
+local verPending, pullPending -- control msgs awaiting a transport
+local chanSentAny
+
+local function RunHardware(fn, ...)
+	local prev = hw
+	hw = true
+	local ok, err = pcall(fn, ...)
+	hw = prev
+	if not ok then Log("err", tostring(err)) end
+end
+
+-- one channel message over the best allowed transport; true when sent
+local function ChanSend(text)
+	if not chanNum then return false end
+	if chanAddonOK then
+		local f = C_ChatInfo and C_ChatInfo.SendAddonMessage or SendAddonMessage
+		if not f then return false end
+		local ok, res = pcall(f, PREFIX, text, "CHANNEL", chanNum)
+		if not ok or res == false then return false end
+		if Enum and Enum.SendAddonMessageResult then
+			return res == nil or res == Enum.SendAddonMessageResult.Success
+		end
+		return true
+	end
+	-- chat fallback: hardware-gated, only inside RunHardware contexts
+	if chatBlocked or not hw then return false end
+	local f = (C_ChatInfo and C_ChatInfo.SendChatMessage) or SendChatMessage
+	if not f then return false end
+	inChat = true
+	local ok = pcall(f, text, "CHANNEL", nil, chanNum)
+	inChat = false
+	return ok and not chatBlocked
+end
+
+-- prove whether the client routes addon traffic on custom channels:
+-- our "FBLprobe" echoing back through CHAT_MSG_ADDON means it works
+ProbeChanAddon = function()
+	if not chanNum then return end
+	chanAddonOK = nil
+	local f = C_ChatInfo and C_ChatInfo.SendAddonMessage or SendAddonMessage
+	local ok = f and pcall(f, PREFIX, "FBLprobe", "CHANNEL", chanNum)
+	if not ok then chanAddonOK = false end
+	C_Timer.After(6, function()
+		if chanAddonOK == nil then
+			chanAddonOK = false
+			Log("info", L["Channel addon transport unavailable; chat fallback active"])
+		end
+	end)
+end
 local ignored = {}
 local seenPeers = {} -- session-only: first FBLver per sender hits the log
 
@@ -1318,10 +1381,13 @@ SendPullRequest = function()
 	if not chanNum then return end
 	if InCombatLockdown and InCombatLockdown() then return end
 	local msg = "FBLpull;" .. tostring(DB().rev or 0)
-	-- addon messages only: SendChatMessage on a channel is hardware-gated
-	-- on this client, every timer-driven attempt raised a blocked call
-	local f = C_ChatInfo and C_ChatInfo.SendAddonMessage or SendAddonMessage
-	ns.HardAPI("SendAddonMessage", f, PREFIX, msg, "CHANNEL", chanNum)
+	-- the chat fallback is hardware-gated: park the pull until the next
+	-- input event drains it (latest pull wins - it carries our rev)
+	if chanAddonOK then
+		ChanSend(msg)
+	else
+		pullPending = msg
+	end
 	Log("out", format(L["Requested list update (rev %d)"], DB().rev or 0))
 end
 
@@ -1354,13 +1420,22 @@ SendVersionPing = function()
 	local stat = format("FBLstat;%d;%d", DB().rev or 0, F.EntryCount())
 	local f = C_ChatInfo and C_ChatInfo.SendAddonMessage or SendAddonMessage
 	if f then
-		ns.HardAPI("SendAddonMessage", f, PREFIX, msg, "CHANNEL", chanNum)
-		ns.HardAPI("SendAddonMessage", f, PREFIX, stat, "CHANNEL", chanNum)
+		-- guild distribution works everywhere; only the custom channel
+		-- needs the probed transport
 		if IsInGuild and IsInGuild() then
 			ns.HardAPI("SendAddonMessageGUILD", f, PREFIX, msg, "GUILD")
 			ns.HardAPI("SendAddonMessageGUILD", f, PREFIX, stat, "GUILD")
 		end
-		Log("out", format(L["Version ping sent (rev %d)"], DB().rev or 0))
+		if chanAddonOK then
+			if ChanSend(msg) then
+				ChanSend(stat)
+				Log("out", format(L["Version ping sent (rev %d)"], DB().rev or 0))
+			end
+		else
+			-- no addon transport yet: park the pair for the next input
+			-- event (latest ping wins - it carries our rev)
+			verPending = { msg, stat }
+		end
 	end
 end
 
@@ -1382,29 +1457,54 @@ local function OnChunk(from, transport, seq, total, chunk)
 	if s.got >= total then FinishReceive(from, transport) end
 end
 
--- paced drain: addon-channel messages need no hardware event, one
--- chunk per tick keeps us under the message throttle
+-- paced drain: native addon traffic needs no hardware event (one
+-- chunk per tick keeps us under the message throttle); the chat
+-- fallback only moves while a real input event is active
 local sendFailed = 0
 local function DrainSend()
 	-- channel sends are combat-restricted on this client; the ticker
 	-- keeps running and resumes once combat ends
 	if InCombatLockdown and InCombatLockdown() then return end
-	local msg = sendQueue[1]
-	if not (msg and chanNum) then
+	if not (chanNum and (sendQueue[1] or verPending or pullPending)) then
 		if sendTicker then sendTicker:Cancel() sendTicker = nil end
 		return
 	end
-	local sent
-	local f = C_ChatInfo and C_ChatInfo.SendAddonMessage or SendAddonMessage
-	if f then sent = ns.HardAPI("SendAddonMessage", f, PREFIX, msg, "CHANNEL", chanNum) end
-	-- channel chat is hardware-gated: only drains while a real input
-	-- event is active (the Sync-all click); otherwise it errors and
-	-- the chunk stays queued for the next tick
-	if sent then table.remove(sendQueue, 1)
-	else sendFailed = sendFailed + 1 end
-	if #sendQueue == 0 and sendTicker then
-		sendTicker:Cancel()
-		sendTicker = nil
+	-- probe still out: hold everything until a transport is chosen
+	if chanAddonOK == nil then return end
+	-- no usable transport at all (chat blocked, addon channel dead):
+	-- drop the work instead of piling it up
+	if chatBlocked and not chanAddonOK then
+		sendQueue, verPending, pullPending = {}, nil, nil
+		if sendTicker then sendTicker:Cancel() sendTicker = nil end
+		return
+	end
+	-- the chat fallback needs a hardware event; hold the queue until
+	-- one arrives (SyncSendChannel / RequestRemoval run inside clicks)
+	if not chanAddonOK and not hw then return end
+	-- small control messages first (version/stat ping, pull)
+	if verPending and ChanSend(verPending[1]) and ChanSend(verPending[2]) then
+		verPending = nil
+	end
+	if pullPending and ChanSend(pullPending) then pullPending = nil end
+	while sendQueue[1] do
+		if not ChanSend(sendQueue[1]) then
+			if chanAddonOK then
+				-- transport is up but the call was rejected: one missing
+				-- chunk dooms the reassembly anyway - drop the payload
+				sendFailed = sendFailed + #sendQueue
+				sendQueue = {}
+				break
+			end
+			return -- chat path: retry on the next input event
+		end
+		table.remove(sendQueue, 1)
+		chanSentAny = true
+		-- pace native addon sends to one chunk per ticker step;
+		-- the chat fallback drains the whole queue inside the click
+		if chanAddonOK then break end
+	end
+	if #sendQueue == 0 and (chanSentAny or sendFailed > 0) then
+		if sendTicker then sendTicker:Cancel() sendTicker = nil end
 		if sendFailed > 0 then
 			Log("out", format(L["Send failed: %d chunks rejected"], sendFailed))
 			S.Print("|cffff5555" .. format(L["Send failed: %d chunks rejected"], sendFailed) .. "|r")
@@ -1412,7 +1512,7 @@ local function DrainSend()
 			Log("out", L["Blacklist sent"])
 			S.Print(L["Blacklist sent"])
 		end
-		sendFailed = 0
+		sendFailed, chanSentAny = 0, false
 	end
 end
 
@@ -1429,6 +1529,9 @@ QueueChannelSend = function()
 	DB().sync.lastHash = DataHash()
 	Log("out", format(L["Sending blacklist: %d chunks"], total))
 	if not sendTicker then sendTicker = C_Timer.NewTicker(0.3, DrainSend) end
+	-- inside a click the chat fallback drains everything at once;
+	-- on the addon transport this just sends the first chunk early
+	DrainSend()
 end
 
 -- live share: local changes rebroadcast after a short debounce
@@ -1454,8 +1557,13 @@ function F.SyncSendChannel()
 		S.Print("|cffff5555" .. L["Not in the sync channel"] .. "|r")
 		return
 	end
-	QueueChannelSend()
-	if #sendQueue > 0 then
+	-- called from a click: RunHardware carries the input event the
+	-- SendChatMessage fallback needs to drain right away
+	RunHardware(QueueChannelSend)
+	if #sendQueue == 0 then return end
+	if chanAddonOK == nil then
+		S.Print(L["Queued - channel transport not established yet"])
+	else
 		S.Print(format(L["Sending blacklist: %d chunks"], #sendQueue))
 	end
 end
@@ -1483,7 +1591,17 @@ end
 local reqf = CreateFrame("Frame")
 reqf:RegisterEvent("CHAT_MSG_ADDON")
 reqf:RegisterEvent("CHAT_MSG_CHANNEL")
+reqf:RegisterEvent("ADDON_ACTION_BLOCKED")
+reqf:RegisterEvent("ADDON_ACTION_FORBIDDEN")
 reqf:SetScript("OnEvent", function(_, ev, a1, a2, a3, a4)
+	if ev == "ADDON_ACTION_BLOCKED" or ev == "ADDON_ACTION_FORBIDDEN" then
+		if a1 == "SentiUI_Panel" and inChat then
+			-- our chat-fallback send was the culprit: never try it again
+			chatBlocked = true
+			Log("err", L["Channel chat send blocked; chat fallback disabled"])
+		end
+		return
+	end
 	-- requests and sync chunks ride both transports: the FBLsync addon
 	-- prefix and plain channel text, "FBLreq;kind;name;reason" and
 	-- "FBLv1;seq;total;chunk" either way
@@ -1491,6 +1609,14 @@ reqf:SetScript("OnEvent", function(_, ev, a1, a2, a3, a4)
 	if ev == "CHAT_MSG_ADDON" then
 		if a1 ~= PREFIX then return end
 		text, sender = a2, a4
+		if a3 == "CHANNEL" and chanAddonOK == nil then
+			-- our probe (or any peer's addon traffic) arrived: native
+			-- addon messages DO reach this custom channel - flush the
+			-- pending sends and announce ourselves
+			chanAddonOK = true
+			DrainSend()
+			SendVersionPing()
+		end
 	else
 		text, sender = a1, a2
 	end
@@ -1557,10 +1683,9 @@ function F.RequestRemoval(e, reason)
 	local msg = format("FBLreq;%s;%s;%s", e.kind or "player",
 		(e.name or ""):gsub(";", ","), why)
 	local sent
-	local f = C_ChatInfo and C_ChatInfo.SendAddonMessage or SendAddonMessage
-	if f and chanNum then
-		sent = ns.HardAPI("SendAddonMessage", f, PREFIX, msg, "CHANNEL", chanNum)
-	end
+	-- user-triggered from a click: inside the hardware event even the
+	-- chat fallback can send right away
+	RunHardware(function() sent = ChanSend(msg) end)
 
 	if not sent then
 		Log("out", L["Not in the sync channel"])

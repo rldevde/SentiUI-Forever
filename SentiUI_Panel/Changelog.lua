@@ -2,6 +2,15 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.37",
+		changes = {
+			"FBL sync transport fix: SentiUI's blacklist never reached ForeverBlackListed users. The module sent every channel message via SendAddonMessage 'CHANNEL' - a path this client does not route to custom channels, and the wrapper hid the failure, so 'Blacklist sent' printed while nothing went out. The panel now mirrors the standalone's model: a self-echo probe detects whether addon traffic reaches the channel; when it does not, sends fall back to SendChatMessage, which is hardware-gated and therefore drains inside the real input events (Sync buttons, removal request). Version pings and pull requests park in pending slots until a transport exists, ADDON_ACTION_BLOCKED during a chat send disables the chat path for the session, and F.Debug now reports the probed transport state.",
+		},
+		changesDE = {
+			"FBL-Sync-Transport-Fix: SentiUIs Blacklist erreichte ForeverBlackListed-Nutzer nie. Das Modul schickte jede Channel-Nachricht via SendAddonMessage 'CHANNEL' - ein Weg, den dieser Client nicht auf Custom-Channels routet, und der Wrapper versteckte den Fehlschlag, sodass 'Blacklist gesendet' erschien, waehrend nichts rausging. Das Panel spiegelt jetzt das Standalone-Modell: Ein Self-Echo-Probe erkennt, ob Addon-Traffic den Channel erreicht; wenn nicht, faellt der Versand auf SendChatMessage zurueck, das hardware-gated ist und daher nur in echten Input-Events drainen kann (Sync-Buttons, Loeschanfrage). Versions-Pings und Pull-Requests parken in Pending-Slots, bis ein Transport existiert, ADDON_ACTION_BLOCKED waehrend eines Chat-Sends deaktiviert den Chat-Pfad fuer die Session, und F.Debug zeigt jetzt den probten Transport-Status.",
+		},
+	},
+	{
 		version = "0.5.36",
 		changes = {
 			"Guild plugin combat fix: hovering the guild tile mid-fight fired ADDON_ACTION_BLOCKED - the tooltip called GetGuildRosterMOTD/GetGuildRosterInfo live and the roster API is protected under lockdown (a pcall does not stop the flag). MOTD and the member list are now cached inside the combat-guarded GuildRefresh and the tooltip only reads the cache; a dirty flag flushes one refresh on PLAYER_REGEN_ENABLED.",

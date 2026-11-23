@@ -57,6 +57,9 @@ ForeverBlackListed addon and delegates writes/sync to it when loaded.
 - Wire sync on the FBLsync channel: chunked JSON export, auto-accept
   with trust modes (everyone / guild / friends), live share of local
   changes, version pings, pull requests and last-write-wins merge
+- Channel transport is probed like the standalone: if SendAddonMessage
+  does not reach the custom channel on this client, sends fall back to
+  SendChatMessage, which only drains inside real input events (clicks)
 - 'Sync log' page in the list window (for everyone): live status
   (channel, own/peer revision, live share, auto-accept, trust, last
   sender, live member count) plus a persisted log of all sync
