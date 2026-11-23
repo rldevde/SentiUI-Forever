@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.40 - 2026-11-24
+
+- FBL sync: receiving a blacklist is now visible in chat, not just sending. A complete incoming list prints 'Blacklist received from <name> (n chunks)' in gold before the trust/accept step - previously only the merge result printed, and only when entries actually changed, so unchanged or echoed lists arrived silently.
+
 ## 0.5.39 - 2026-11-24
 
 - FBL sync channel: 'invalid channel name' spam gone. JoinSync retried the 18-char preferred name every cycle (up to 30 times per session), printing the system error each pass. Names that miss their join check twice are now remembered in db.sync.badNames and skipped on all later attempts, converging on the FBLsync fallback like the standalone; if every name ever turns bad the marks reset and retry (transient failures).

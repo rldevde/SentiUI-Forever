@@ -354,6 +354,7 @@ L["Blacklist import: %d added, %d updated"] = "Blacklist-Import: %d neu, %d aktu
 
 L["Sync all"] = "Alles synchronisieren"
 L["Blacklist sent"] = "Blacklist gesendet"
+L["Blacklist received from %s (%d chunks)"] = "Blacklist von %s empfangen (%d Blöcke)"
 L["Sync from %s: %d added, %d updated"] = "Sync von %s: %d neu, %d aktualisiert"
 L["Ignored sync from %s (not trusted)"] = "Sync von %s ignoriert (nicht vertrauenswürdig)"
 L["Accept blacklist sync from %s?"] = "Blacklist-Sync von %s annehmen?"

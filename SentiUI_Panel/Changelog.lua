@@ -2,6 +2,15 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.40",
+		changes = {
+			"FBL sync: receiving a blacklist is now visible in chat, not just sending. A complete incoming list prints 'Blacklist received from <name> (n chunks)' in gold before the trust/accept step - previously only the merge result printed, and only when entries actually changed, so unchanged or echoed lists arrived silently.",
+		},
+		changesDE = {
+			"FBL-Sync: Empfangene Blacklists sind jetzt auch im Chat sichtbar, nicht nur gesendete. Eine komplette eingehende Liste druckt 'Blacklist von <Name> empfangen (n Blöcke)' in Gold vor dem Trust-/Accept-Schritt - bisher druckte nur das Merge-Ergebnis, und auch das nur bei echten Änderungen, sodass unveränderte oder geechte Listen lautlos ankamen.",
+		},
+	},
+	{
 		version = "0.5.39",
 		changes = {
 			"FBL sync channel: 'invalid channel name' spam gone. JoinSync retried the 18-char preferred name every cycle (up to 30 times per session), printing the system error each pass. Names that miss their join check twice are now remembered in db.sync.badNames and skipped on all later attempts, converging on the FBLsync fallback like the standalone; if every name ever turns bad the marks reset and retry (transient failures).",

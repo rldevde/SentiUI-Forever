@@ -1375,6 +1375,10 @@ local function FinishReceive(from, transport)
 		return
 	end
 	lastDone[from] = { json = json, at = time() }
+	-- visible receive notice (the counterpart of "Blacklist sent"): the
+	-- merge line below only prints on actual changes, so a complete but
+	-- unchanged list used to arrive silently
+	S.Print("|cffebad33" .. format(L["Blacklist received from %s (%d chunks)"], from, s.total) .. "|r")
 	if not (DB().sync and DB().sync.autoAccept) then
 		Log("in", format(L["Sync offer from %s - awaiting your accept"], from))
 		ShowSyncAccept(json, from)
