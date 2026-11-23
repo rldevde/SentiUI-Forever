@@ -1,5 +1,9 @@
 # SentiUI Meters
 
+## 0.1.5 - 2026-11-23
+
+- Row text readability: names and values now render with an outline and full text color instead of dim-on-dark-fill; the inline per-second value was brightened.
+
 ## 0.1.4 - 2026-11-23
 
 - Slimmer windows: default width 210 -> 160 px (existing installs parked on the old default are migrated; the Width slider still allows any size).

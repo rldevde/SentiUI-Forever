@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.5",
+		date = "2026-11-23",
+		changes = {
+			"Row text readability: names and values now render with an outline and full text color instead of dim-on-dark-fill; the inline per-second value was brightened.",
+		},
+		changesDE = {
+			"Zeilen-Lesbarkeit: Namen und Werte rendern jetzt mit Kontur und voller Textfarbe statt gedimmt auf dunklem Fill; die inline DPS/HPS-Zahl wurde aufgehellt.",
+		},
+	},
+	{
 		version = "0.1.4",
 		date = "2026-11-23",
 		changes = {

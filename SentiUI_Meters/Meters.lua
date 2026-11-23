@@ -317,12 +317,14 @@ local function RowAt(dock, i)
 	r.edge:SetPoint("TOPLEFT", r, "TOPLEFT", 0, -1)
 	r.edge:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 1)
 	r.edge:SetVertexColor(0.92, 0.68, 0.20, 0.0)
-	r.name = S.Font(r, 9)
+	-- OUTLINE on row text: the class-colored fill behind it makes plain
+	-- 9pt dim text nearly unreadable
+	r.name = S.Font(r, 9, S.colors.text, "OUTLINE")
 	r.name:SetPoint("LEFT", r, "LEFT", 4, 0)
 	r.name:SetPoint("RIGHT", r, "RIGHT", -64, 0)
 	r.name:SetJustifyH("LEFT")
 	r.name:SetWordWrap(false)
-	r.val = S.Font(r, 9, S.colors.textDim)
+	r.val = S.Font(r, 9, S.colors.text, "OUTLINE")
 	r.val:SetPoint("RIGHT", r, "RIGHT", -4, 0)
 	r.val:SetJustifyH("RIGHT")
 	r.val:SetWordWrap(false)
@@ -388,7 +390,7 @@ local function UpdateDock(d, cfg)
 		if mode.key == "threat" then
 			txt = format("%d%%", floor(v + 0.5))
 		elseif src.aps > 0 and not mode.perSec and mode.key ~= "threat" then
-			txt = txt .. format("  |cff6a6f7d%s|r", Abbrev(src.aps))
+			txt = txt .. format("  |cff9aa3b5%s|r", Abbrev(src.aps))
 		end
 		r.val:SetText(txt)
 		r:Show()
