@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.36 - 2026-11-23
+
+- Guild plugin combat fix: hovering the guild tile mid-fight fired ADDON_ACTION_BLOCKED - the tooltip called GetGuildRosterMOTD/GetGuildRosterInfo live and the roster API is protected under lockdown (a pcall does not stop the flag). MOTD and the member list are now cached inside the combat-guarded GuildRefresh and the tooltip only reads the cache; a dirty flag flushes one refresh on PLAYER_REGEN_ENABLED.
+
 ## 0.5.35 - 2026-11-23
 
 - FBL realm fix: entries added from a unit lost the target's server - GetUnitFullName called GetUnitName without the realm flag and CleanName stripped any "-Realm" suffix, so AddEntry silently stored our own realm. A ported GetUnitNameRealm (name + realm returns) now feeds AddUnit, the window's Target button (name field carries "First Last-Realm") and the tooltip auto-add, matching the standalone ForeverBlackListed.

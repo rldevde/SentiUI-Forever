@@ -2,6 +2,15 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.36",
+		changes = {
+			"Guild plugin combat fix: hovering the guild tile mid-fight fired ADDON_ACTION_BLOCKED - the tooltip called GetGuildRosterMOTD/GetGuildRosterInfo live and the roster API is protected under lockdown (a pcall does not stop the flag). MOTD and the member list are now cached inside the combat-guarded GuildRefresh and the tooltip only reads the cache; a dirty flag flushes one refresh on PLAYER_REGEN_ENABLED.",
+		},
+		changesDE = {
+			"Gilden-Plugin-Kampffix: Hover ueber der Gilden-Kachel mitten im Kampf feuerte ADDON_ACTION_BLOCKED - der Tooltip rief GetGuildRosterMOTD/GetGuildRosterInfo live auf und die Roster-API ist unter Lockdown protected (pcall stoppt das Flag nicht). MOTD und Mitgliederliste werden jetzt im kampfgeschuetzten GuildRefresh gecacht, der Tooltip liest nur noch den Cache; ein Dirty-Flag holt den Refresh bei PLAYER_REGEN_ENABLED nach.",
+		},
+	},
+	{
 		version = "0.5.35",
 		date = "2026-11-23",
 		changes = {

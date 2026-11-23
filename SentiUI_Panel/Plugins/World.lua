@@ -255,10 +255,16 @@ ns.RegisterPlugin({
 })
 
 -- Guild ----------------------------------------------------------------------------------------
-local guildCache = { online = nil, total = 0, name = nil }
+local guildCache = { online = nil, total = 0, name = nil, motd = nil, members = nil }
+local guildDirty
 local MAX_GUILD = 30
+local OnlineMembers, FillGuildTip -- forwards: GuildRefresh fills the tip cache
 
 local function GuildRefresh()
+	-- the roster/club calls are protected under lockdown and a pcall does
+	-- not stop the BLOCKED flag - a tooltip hover in combat must never
+	-- reach them; defer to the next regen instead
+	if InCombatLockdown() then guildDirty = true return end
 	-- modern club API first - the classic roster calls are the ones
 	-- that get flagged forbidden on this client. Online count comes from
 	-- the member list: presence 0/3 = unknown/offline, the rest counts
@@ -288,6 +294,7 @@ local function GuildRefresh()
 							guildCache.name = Plain(info.name) or guildCache.name
 						end
 					end
+					FillGuildTip()
 					return
 				end
 				guildCache.total = total -- member list works, presence does not
@@ -299,13 +306,14 @@ local function GuildRefresh()
 	if not (okG and Plain(inGuild)) then guildCache.online, guildCache.name = nil, nil return end
 	local ok, total, online = pcall(GetNumGuildMembers)
 	if ok then guildCache.online, guildCache.total = Plain(online) or 0, Plain(total) or 0 end
+	FillGuildTip()
 	if GetGuildInfo then
 		local okN, name = pcall(GetGuildInfo, "player")
 		if okN then guildCache.name = Plain(name) or guildCache.name end
 	end
 end
 
-local function OnlineMembers()
+OnlineMembers = function()
 	local out = {}
 	local ok, total = pcall(GetNumGuildMembers)
 	total = ok and Plain(total) or 0
@@ -334,31 +342,47 @@ local function OnlineMembers()
 	return out
 end
 
+-- tooltip cache: motd + member list. Only filled inside GuildRefresh -
+-- which is combat-guarded - so the tooltip itself never touches the
+-- protected roster API
+FillGuildTip = function()
+	if GetGuildRosterMOTD then
+		local okM, motd = pcall(GetGuildRosterMOTD)
+		guildCache.motd = okM and Plain(motd) or nil
+	end
+	guildCache.members = OnlineMembers()
+end
+
 ns.RegisterPlugin({
 	id = "guild",
 	label = L["Guild"],
 	icon = "Interface\\Icons\\INV_Shirt_GuildTabard_01",
 	bar = "bottom", zone = "RIGHT", order = 70,
-	events = { "GUILD_ROSTER_UPDATE", "PLAYER_GUILD_UPDATE", "PLAYER_ENTERING_WORLD" },
-	onevent = function() GuildRefresh() end,
+	events = { "GUILD_ROSTER_UPDATE", "PLAYER_GUILD_UPDATE",
+		"PLAYER_ENTERING_WORLD", "PLAYER_REGEN_ENABLED" },
+	onevent = function(ev)
+		if ev == "PLAYER_REGEN_ENABLED" then
+			if guildDirty then guildDirty = nil GuildRefresh() end
+		else
+			GuildRefresh()
+		end
+	end,
 	update = function()
 		local online = guildCache.online
 		if not online then return DH .. L["No guild"] .. "|r" end
 		return format("%s%d|r", AH, online)
 	end,
 	tooltip = function(tip)
-		-- on-demand refresh while hovering is fine, it is not a tick
+		-- the refresh is combat-guarded, so a hover mid-fight just shows
+		-- the last cached roster instead of poking the protected API
 		GuildRefresh()
 		if C_GuildInfo then SecureAPI(C_GuildInfo.GuildRoster) end
 		TipHead(tip, guildCache.name or L["Guild"])
-		if GetGuildRosterMOTD then
-			local okM, motd = pcall(GetGuildRosterMOTD)
-			motd = okM and Plain(motd)
-			if motd and motd ~= "" then tip:AddLine(DH .. motd .. "|r") end
-		end
+		local motd = guildCache.motd
+		if motd and motd ~= "" then tip:AddLine(DH .. motd .. "|r") end
 		local online, total = guildCache.online, guildCache.total
 		if online then TipKV(tip, L["Online"], format("%d / %d", online, total)) end
-		local members = OnlineMembers()
+		local members = guildCache.members or {}
 		if #members > 0 then
 			TipSub(tip, format("%s (%d)", L["Online now"], #members))
 			local shown = min(#members, MAX_GUILD)
