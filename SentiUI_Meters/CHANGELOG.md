@@ -1,5 +1,9 @@
 # SentiUI Meters
 
+## 0.1.4 - 2026-11-23
+
+- Slimmer windows: default width 210 -> 160 px (existing installs parked on the old default are migrated; the Width slider still allows any size).
+
 ## 0.1.3 - 2026-11-23
 
 - Running overall: the 'Overall' segment is now a real accumulated total - every session the client reports (expired fights plus the live one) is summed per source and keeps counting through new fights. Interrupts, dispels, deaths and every other metric accumulate the same way.

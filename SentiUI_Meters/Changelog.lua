@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.4",
+		date = "2026-11-23",
+		changes = {
+			"Slimmer windows: default width 210 -> 160 px (existing installs parked on the old default are migrated; the Width slider still allows any size).",
+		},
+		changesDE = {
+			"Schmalere Fenster: Standardbreite 210 -> 160 px (bestehende Installationen auf dem alten Standard werden migriert; der Breiten-Slider erlaubt weiter jede Groesse).",
+		},
+	},
+	{
 		version = "0.1.3",
 		date = "2026-11-23",
 		changes = {

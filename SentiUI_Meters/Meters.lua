@@ -765,6 +765,9 @@ function Core.Enable(mod)
 	db.acc = db.acc or {}
 	db.seen = db.seen or {}
 	accStore, seenStore = db.acc, db.seen
+	-- width slimmed down in 0.1.4: migrate installs still parked on the
+	-- old default (a hand-picked width is left alone)
+	if db.width == 210 then db.width = 160 end
 	for i = 1, MAX_DOCKS do BuildDock(i) end
 	Layout()
 	for i, d in ipairs(docks) do

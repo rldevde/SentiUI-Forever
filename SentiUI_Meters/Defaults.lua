@@ -6,7 +6,7 @@ ns.DEFAULTS = {
 
 	-- shared look: fixed window size, the rows scroll inside when a
 	-- metric lists more than fits (raid threat has up to 40 entries)
-	width = 210,
+	width = 160,
 	height = 170,
 	barHeight = 14,
 	spacing = 2,
