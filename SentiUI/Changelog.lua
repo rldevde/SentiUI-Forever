@@ -25,6 +25,16 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.4.4",
+		date = "2026-11-23",
+		changes = {
+			"The 'update available' notice now prints in the client's system-message style (yellow, like deaths/rested notices) via the new S.PrintSystem helper instead of the normal addon prefix line.",
+		},
+		changesDE = {
+			"Die 'Update verfügbar'-Meldung erscheint jetzt im Systemnachrichten-Stil des Clients (gelb, wie Todes-/Erholt-Meldungen) über den neuen S.PrintSystem-Helfer statt als normale Addon-Zeile.",
+		},
+	},
+	{
 		version = "0.4.3",
 		date = "2026-11-23",
 		changes = {

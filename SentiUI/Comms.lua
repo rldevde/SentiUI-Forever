@@ -213,7 +213,7 @@ local function OnNotify(msg)
 		end
 	end
 	if #out > 0 then
-		S.Print(format(S.L["SentiUI update available: %s"], table.concat(out, ", ")))
+		S.PrintSystem(format(S.L["SentiUI update available: %s"], table.concat(out, ", ")))
 	end
 end
 

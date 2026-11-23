@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.4 - 2026-11-23
+
+- The "update available" notice now prints in the client's system-message style (yellow, like deaths/rested notices) via the new `S.PrintSystem` helper instead of the normal addon prefix line.
+
 ## 0.4.3 - 2026-11-23
 
 - Outdated peers now get told: when a received manifest shows older or missing SentiUI modules, the peer is whispered an addon message with the modules to update (`SUIver;n`). Their client prints `SentiUI update available: mod: old -> new` locally — the same fires on our side when a peer's suite is newer than ours. One notice per peer per session, no spam.

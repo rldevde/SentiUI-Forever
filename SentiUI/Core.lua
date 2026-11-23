@@ -15,6 +15,14 @@ function S.Print(msg)
 	DEFAULT_CHAT_FRAME:AddMessage(PRINT_PREFIX .. tostring(msg))
 end
 
+-- system-message style: the client's own yellow notices (deaths, rested,
+-- playtime) - for one-off alerts that should not read like addon chatter
+function S.PrintSystem(msg)
+	local t = ChatTypeInfo and ChatTypeInfo.SYSTEM
+	DEFAULT_CHAT_FRAME:AddMessage(PRINT_PREFIX .. tostring(msg),
+		t and t.r or 1, t and t.g or 1, t and t.b or 0)
+end
+
 -- debug.traceback does not exist on this client - debugstack does. The
 -- fallback is pcall-wrapped so a missing stack lib can never turn a real
 -- error into "error in error handling".
