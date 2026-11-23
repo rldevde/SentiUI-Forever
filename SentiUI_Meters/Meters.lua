@@ -23,7 +23,8 @@ local SEG_CURRENT = SEG.Current or 1
 
 local BLANK = "Interface\\Buttons\\WHITE8X8"
 local HEADER_H = 20
-local MAX_ROWS = 30
+local MAX_ROWS = 40 -- a full raid's threat list fits in the scroll
+local MAX_DOCKS = 4 -- fixed window pool; "+ New window" enables the next
 local TICK = 0.4
 
 local Core = {}
@@ -177,7 +178,7 @@ end
 local function RowAt(dock, i)
 	local r = dock.rows[i]
 	if r then return r end
-	r = CreateFrame("Frame", nil, dock)
+	r = CreateFrame("Frame", nil, dock.content)
 	r.bg = r:CreateTexture(nil, "BACKGROUND")
 	r.bg:SetAllPoints()
 	r.bg:SetTexture(BLANK)
@@ -216,6 +217,8 @@ local function PlayerGUID()
 	return myGUID
 end
 
+local SetScroll -- forward: UpdateDock clamps the offset, defined below
+
 local function UpdateDock(d, cfg)
 	local mode = ModeFor(cfg.mode)
 	d.title:SetText(mode.label)
@@ -231,15 +234,15 @@ local function UpdateDock(d, cfg)
 
 	local h = db.barHeight
 	local gap = db.spacing
-	local show = min(n, db.rows)
+	local show = min(n, MAX_ROWS)
 	for i = 1, show do
 		local src = scratch[i]
 		local r = RowAt(d, i)
 		r:SetHeight(h)
 		r:ClearAllPoints()
-		r:SetPoint("TOPLEFT", d, "TOPLEFT", 4,
-			-(HEADER_H + 4 + (i - 1) * (h + gap)))
-		r:SetPoint("RIGHT", d, "RIGHT", -4, 0)
+		r:SetPoint("TOPLEFT", d.content, "TOPLEFT", 0,
+			-((i - 1) * (h + gap)))
+		r:SetPoint("RIGHT", d.content, "RIGHT", -8, 0)
 		local v = mode.perSec and src.aps or src.total
 		local frac = (IsN(v) and IsN(top) and top > 0) and min(v / top, 1) or 0
 		r.fill:SetWidth(max((db.width - 10) * frac, frac > 0 and 2 or 0.001))
@@ -276,19 +279,78 @@ local function UpdateDock(d, cfg)
 	d.hint:SetText(hint or "")
 	d.hint:SetShown(hint ~= nil)
 
-	local bodyH = (show > 0) and (show * (h + gap)) or h
-	d:SetSize(db.width, HEADER_H + 4 + bodyH + 6)
+	-- fixed window: the rows scroll inside the clipped view instead of
+	-- the frame growing with the entry count
+	d.contentH = max(show * (h + gap), 1)
+	d.content:SetSize(db.width - 16, d.contentH)
+	SetScroll(d, d.scroll or 0)
 end
 
 Core.UpdateDock = UpdateDock
 
+-- scroll: the content child slides inside the clipped view; a slim bar
+-- on the right edge shows position when the list is taller than it
+local function UpdateThumb(d)
+	if not d.view then return end
+	local vh = d.view:GetHeight()
+	if not vh or vh <= 0 or (d.contentH or 0) <= vh then
+		if d.bar then d.bar:Hide() end
+		if d.thumb then d.thumb:Hide() end
+		return
+	end
+	d.bar:ClearAllPoints()
+	d.bar:SetPoint("TOPRIGHT", d.view, "TOPRIGHT", 0, 0)
+	d.bar:SetPoint("BOTTOMRIGHT", d.view, "BOTTOMRIGHT", 0, 0)
+	d.bar:SetWidth(3)
+	d.bar:Show()
+	local th = max(14, vh * vh / d.contentH)
+	local span = max(d.contentH - vh, 1)
+	local frac = max(0, min((d.scroll or 0) / span, 1))
+	d.thumb:ClearAllPoints()
+	d.thumb:SetPoint("TOPRIGHT", d.view, "TOPRIGHT", 0, -frac * (vh - th))
+	d.thumb:SetSize(3, th)
+	d.thumb:Show()
+end
+
+SetScroll = function(d, v)
+	-- all frames here are built at enable, so re-anchoring is allowed
+	-- in combat too - the threat list must scroll mid-fight
+	local vh = d.view and d.view:GetHeight() or 0
+	local span = max((d.contentH or 0) - vh, 0)
+	d.scroll = max(0, min(v or 0, span))
+	if d.content then
+		d.content:ClearAllPoints()
+		d.content:SetPoint("TOPLEFT", d.view, "TOPLEFT", 0, d.scroll)
+	end
+	UpdateThumb(d)
+end
+
 -- mode/segment menu: one shared popup, rows built once - opening only
 -- re-marks the checks against the dock it currently serves
 local menu
+local AddDock, NextFreeDock -- forward: menu rows call both below
+
 local function BuildMenu()
 	menu = CreateFrame("Frame", "SentiUIMeterMenu", UIParent,
 		"BackdropTemplate")
 	S.Template(menu, "raised")
+	-- explicit accent frame on top of the backdrop edge: the flat 1px
+	-- border rendered too faint on the popup - the top edge read as
+	-- missing entirely. Four strips, guaranteed visible.
+	local acc = S.colors.accent
+	local ea = 0.5
+	local et = menu:CreateTexture(nil, "OVERLAY", nil, 2)
+	et:SetTexture(BLANK) et:SetHeight(1) et:SetVertexColor(acc.r, acc.g, acc.b, ea)
+	et:SetPoint("TOPLEFT") et:SetPoint("TOPRIGHT")
+	local eb = menu:CreateTexture(nil, "OVERLAY", nil, 2)
+	eb:SetTexture(BLANK) eb:SetHeight(1) eb:SetVertexColor(acc.r, acc.g, acc.b, ea)
+	eb:SetPoint("BOTTOMLEFT") eb:SetPoint("BOTTOMRIGHT")
+	local el = menu:CreateTexture(nil, "OVERLAY", nil, 2)
+	el:SetTexture(BLANK) el:SetWidth(1) el:SetVertexColor(acc.r, acc.g, acc.b, ea)
+	el:SetPoint("TOPLEFT") el:SetPoint("BOTTOMLEFT")
+	local er = menu:CreateTexture(nil, "OVERLAY", nil, 2)
+	er:SetTexture(BLANK) er:SetWidth(1) er:SetVertexColor(acc.r, acc.g, acc.b, ea)
+	er:SetPoint("TOPRIGHT") er:SetPoint("BOTTOMRIGHT")
 	menu:SetFrameStrata("TOOLTIP")
 	menu:SetClampedToScreen(true)
 	menu:EnableMouse(true)
@@ -326,7 +388,31 @@ local function BuildMenu()
 	y = y + 8
 	Item({ label = L["Current fight"], seg = "current" })
 	Item({ label = L["Overall"], seg = "overall" })
-	menu:SetSize(170, y + 6)
+	local ln2 = S.Line(menu, S.colors.border)
+	ln2:SetPoint("TOPLEFT", menu, "TOPLEFT", 8, -(y + 2))
+	ln2:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -8, -(y + 2))
+	y = y + 8
+	-- "+ New window": turns the next pool dock on and chains it to the
+	-- left of the shown ones (toward the action bars); hidden once all
+	-- four docks are live
+	local add = CreateFrame("Button", nil, menu)
+	add:SetHeight(18)
+	add:SetPoint("TOPLEFT", menu, "TOPLEFT", 6, -y)
+	add:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -6, -y)
+	local addHl = add:CreateTexture(nil, "HIGHLIGHT")
+	addHl:SetAllPoints()
+	addHl:SetColorTexture(0.92, 0.68, 0.20, 0.08)
+	add.fs = S.Font(add, 10, S.colors.accent)
+	add.fs:SetPoint("LEFT", 8, 0)
+	add.fs:SetText("+ " .. L["New window"])
+	add:SetScript("OnClick", function()
+		AddDock()
+		menu:Hide()
+	end)
+	menu.addBtn = add
+	y = y + 19
+	menu.baseH = y + 6
+	menu:SetSize(170, menu.baseH)
 	menu:SetScript("OnHide", function() menu.dock, menu.cfg = nil, nil end)
 	if S.EscClosable then S.EscClosable(menu) end
 	menu:Hide()
@@ -344,6 +430,11 @@ local function ShowMenu(dock, cfg)
 			(on and S.colors.accent or S.colors.text).g,
 			(on and S.colors.accent or S.colors.text).b)
 	end
+	-- "+ New window" only while a pool slot is still off; the menu
+	-- shrinks by a row when it is hidden
+	local hasFree = NextFreeDock() ~= nil
+	menu.addBtn:SetShown(hasFree)
+	menu:SetHeight(menu.baseH - (hasFree and 0 or 19))
 	menu:ClearAllPoints()
 	menu:SetPoint("TOPLEFT", dock, "BOTTOMLEFT", 0, -2)
 	menu:Show()
@@ -369,8 +460,29 @@ local function BuildDock(i)
 	hl:SetPoint("TOPLEFT", d, "TOPLEFT", 6, -HEADER_H + 2)
 	hl:SetPoint("TOPRIGHT", d, "TOPRIGHT", -6, -HEADER_H + 2)
 
+	-- clipped view + content child: the rows live in `content`, the
+	-- wheel slides it inside `view` and a slim bar shows the position
+	d.view = CreateFrame("Frame", nil, d)
+	d.view:SetPoint("TOPLEFT", d, "TOPLEFT", 4, -(HEADER_H + 4))
+	d.view:SetPoint("BOTTOMRIGHT", d, "BOTTOMRIGHT", -4, 4)
+	pcall(d.view.SetClipsChildren, d.view, true)
+	d.content = CreateFrame("Frame", nil, d.view)
+	d.content:SetPoint("TOPLEFT", d.view, "TOPLEFT", 0, 0)
+	d.view:EnableMouseWheel(true)
+	d.view:SetScript("OnMouseWheel", function(self, delta)
+		SetScroll(d, (d.scroll or 0) - delta * (db.barHeight + db.spacing) * 3)
+	end)
+	d.bar = d:CreateTexture(nil, "OVERLAY")
+	d.bar:SetColorTexture(0.13, 0.16, 0.22, 0.9)
+	d.thumb = d:CreateTexture(nil, "OVERLAY")
+	d.thumb:SetColorTexture(0.92, 0.68, 0.20, 0.95)
+	d.bar:Hide()
+	d.thumb:Hide()
+	d.contentH = 1
+	d.scroll = 0
+
 	d.hint = S.Font(d, 9, S.colors.textDim)
-	d.hint:SetPoint("CENTER", d, "CENTER", 0, -4)
+	d.hint:SetPoint("CENTER", d.view, "CENTER")
 	d.rows = {}
 
 	d:SetScript("OnMouseUp", function(self, btn)
@@ -389,9 +501,26 @@ local function BuildDock(i)
 		if menu and menu.dock == d then menu:Hide() end
 	end)
 
+	-- fixed size from the start: width/height are settings, the list
+	-- scrolls inside instead of resizing the window
+	d:SetSize(db.width, HEADER_H + 4 + db.height + 6)
+	-- warm the row pool out of combat: a row frame created mid-fight is
+	-- protected and every SetPoint/Show on it would fire FORBIDDEN
+	for i = 1, MAX_ROWS do RowAt(d, i):Hide() end
+
 	d.cfg = db["dock" .. i]
 	docks[i] = d
 	return d
+end
+
+-- the previous SHOWN dock: new windows chain onto the enabled ones,
+-- skipping disabled gaps in the pool
+local function PrevShown(i)
+	for j = i - 1, 1, -1 do
+		if docks[j] and db["dock" .. j] and db["dock" .. j].enabled then
+			return docks[j]
+		end
+	end
 end
 
 -- default anchor: beside the loot chat panel (the right chat dock);
@@ -403,8 +532,10 @@ local function Layout()
 			d:ClearAllPoints()
 			if i == 1 and loot then
 				d:SetPoint("TOPRIGHT", loot, "TOPLEFT", -6, 0)
-			elseif i > 1 and docks[i - 1] then
-				d:SetPoint("TOPRIGHT", docks[i - 1], "TOPLEFT", -6, 0)
+			elseif i > 1 and PrevShown(i) then
+				-- chained toward the action bars: each new window docks
+				-- onto the left edge of the previous shown one
+				d:SetPoint("TOPRIGHT", PrevShown(i), "TOPLEFT", -6, 0)
 			else
 				d:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -8, 200)
 			end
@@ -422,9 +553,25 @@ end
 Core.RefreshAll = RefreshAll
 Core.Layout = Layout
 
+-- first pool slot that is still off; "+ New window" consumes it
+NextFreeDock = function()
+	for i = 1, MAX_DOCKS do
+		local cfg = db["dock" .. i]
+		if cfg and not cfg.enabled then return i end
+	end
+end
+
+AddDock = function()
+	local i = NextFreeDock()
+	if not i then return end
+	db["dock" .. i].enabled = true
+	Layout() -- chains the new window onto the previous shown dock
+	RefreshAll()
+end
+
 function Core.Enable(mod)
 	db = mod.db
-	for i = 1, 2 do BuildDock(i) end
+	for i = 1, MAX_DOCKS do BuildDock(i) end
 	Layout()
 	for i, d in ipairs(docks) do
 		S.Movers.Register(d, "meter." .. i, L["Meter"] .. " " .. i)
@@ -449,6 +596,7 @@ end
 function Core.SettingChanged()
 	if not db then return end
 	for _, d in ipairs(docks) do
+		d:SetSize(db.width, HEADER_H + 4 + db.height + 6)
 		for _, r in ipairs(d.rows) do r:SetHeight(db.barHeight) end
 	end
 	RefreshAll()
