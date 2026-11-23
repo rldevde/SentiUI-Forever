@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.23 - 2026-11-23
+
+- The SentiUI flyout of the minimap menu is now extensible: modules can file their own rows via `S.MinimapMenuRows` (the new Admin module adds its console entry there, only on admin characters).
+
 ## 0.3.22 - 2026-11-23
 
 - Mail indicator reworked: the docked Blizzard mail frame did not show reliably under our layout. The coords bar now carries its own small envelope next to the coordinates, driven by the same three-stage detection the panel plugin uses (HasNewMail -> icon child's IsShown -> GetLatestThreeSenders). Blizzard's frame stays faded while the bar is up and only docks to the map's top-right corner as the fallback with the bar hidden.

@@ -546,6 +546,10 @@ local SUI_ENTRIES = {
 	{ "Reload", nil, "/reload" },
 }
 
+-- other SentiUI modules can file their own row into the flyout (the admin
+-- module does) - the rows are iterated live on every menu open
+S.MinimapMenuRows = SUI_ENTRIES
+
 local function buildMenu()
 	menu = CreateFrame("Frame", "SentiUIMinimapMenu", UIParent, "BackdropTemplate")
 	menu:SetFrameStrata("TOOLTIP")

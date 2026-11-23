@@ -8,7 +8,7 @@
 ## Category-deDE: Sentinel
 ## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
 ## Author: xRL-Dev.de
-## Version: 0.3.40
+## Version: 0.4.0
 ## DefaultState: enabled
 ## SavedVariables: SentiUIDB
 ## LoadSavedVariablesFirst: 1
@@ -23,6 +23,7 @@ DB.lua
 Changelog.lua
 Style.lua
 Widgets.lua
+Comms.lua
 Movers.lua
 MinimapButton.lua
 Installer.lua

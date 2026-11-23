@@ -25,6 +25,22 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.4.0",
+		date = "2026-11-23",
+		changes = {
+			"New shared comms layer (S.Comms): the suite now joins a common \"SentiUI\" channel on login, rejoins automatically when lost and answers addon messages on the SUIv1 prefix.",
+			"Version exchange: every client announces its full SentiUI suite manifest (all SentiUI_* addon versions) on join, re-answers queries and re-announces periodically - Comms.Peers() and Comms.PeerStatus() compare remote players against the local suite.",
+			"Channel log: joins, leaves, kicks, bans and moderator changes are recorded (SentiUIDB.modules.Comms.log, kept across sessions) for the admin console to display.",
+			"Modules can hook in via Comms.OnMessage / Comms.OnNotice / Comms.OnLog - channel work no longer has to be re-implemented per addon.",
+		},
+		changesDE = {
+			"Neuer gemeinsamer Comms-Layer (S.Comms): die Suite tritt beim Login einem gemeinsamen \"SentiUI\"-Channel bei, tritt bei Verlust automatisch wieder bei und beantwortet Addon-Nachrichten auf dem SUIv1-Prefix.",
+			"Versions-Austausch: jeder Client meldet beim Beitritt sein komplettes SentiUI-Manifest (alle SentiUI_*-Addon-Versionen), beantwortet Abfragen erneut und meldet sich regelmäßig neu - Comms.Peers() und Comms.PeerStatus() vergleichen andere Spieler mit der lokalen Suite.",
+			"Channel-Log: Beitritte, Austritte, Kicks, Banns und Moderatoren-Wechsel werden aufgezeichnet (SentiUIDB.modules.Comms.log, sitzungsübergreifend) für die Admin-Konsole.",
+			"Module können sich über Comms.OnMessage / Comms.OnNotice / Comms.OnLog einklinken - Channel-Arbeit muss nicht mehr pro Addon neu gebaut werden.",
+		},
+	},
+	{
 		version = "0.3.40",
 		date = "2026-11-23",
 		changes = {

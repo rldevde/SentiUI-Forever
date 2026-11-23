@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.23",
+		date = "2026-11-23",
+		changes = {
+			"The SentiUI flyout of the minimap menu is now extensible: modules can file their own rows via S.MinimapMenuRows (the new Admin module adds its console entry there, only on admin characters).",
+		},
+		changesDE = {
+			"Das SentiUI-Flyout des Minimap-Menüs ist jetzt erweiterbar: Module können über S.MinimapMenuRows eigene Einträge einreichen (das neue Admin-Modul legt dort seinen Konsolen-Eintrag ab, nur auf Admin-Charakteren).",
+		},
+	},
+	{
 		version = "0.3.22",
 		date = "2026-11-23",
 		changes = {

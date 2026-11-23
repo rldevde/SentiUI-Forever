@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 - 2026-11-23
+
+- New shared comms layer (`S.Comms`): the suite joins a common `SentiUI` channel on login, rejoins automatically when lost and answers addon messages on the `SUIv1` prefix.
+- Version exchange: every client announces its full SentiUI suite manifest (all `SentiUI_*` addon versions) on join, re-answers queries and re-announces periodically — `Comms.Peers()` and `Comms.PeerStatus()` compare remote players against the local suite.
+- Channel log: joins, leaves, kicks, bans and moderator changes are recorded (`SentiUIDB.modules.Comms.log`, kept across sessions) for the admin console to display.
+- Modules can hook in via `Comms.OnMessage` / `Comms.OnNotice` / `Comms.OnLog` — channel work no longer has to be re-implemented per addon.
+
 ## 0.3.40 - 2026-11-23
 
 - Mover snap-back fix: dragged frames returned to their default position because rect reads (GetCenter/GetSize) answer secret inside the drag/keyboard hardware handlers on this client, so the save silently skipped. Saves now run one tick later where reads are plain, fall back to storing the raw UIParent anchor when the rect is still unreadable, and M.Save (window title drags) defers the same way.
