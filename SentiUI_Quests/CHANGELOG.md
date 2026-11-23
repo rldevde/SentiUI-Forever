@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.12 - 2026-11-23
+
+- Zone detection reworked: "here" is now a SET of header names built from zone/subzone/minimap/instance text plus every map name up the player's map chain — a plain `GetRealZoneText` compare missed quests filed under a subzone or instance header (e.g. Northshire Valley vs Elwynn Forest, The Stockade).
+- Headers that still match no name count as "here" when one of their quests is pinned on the player's zone map (`C_QuestLog.GetQuestsOnMap`).
+- Ordering: the current zone's header block sorts first, other "here" headers next, the rest keeps log order.
+- A header with a secret title no longer swallows the quests below it under the previous zone.
+
 ## 0.4.11 - 2026-11-23
 
 - Pin and quest text are separate targets now: clicking a row's pin only marks the way (track + waypoint) and the tracker stays put - the map no longer pops open. Clicking the quest text still opens the quest on the map.

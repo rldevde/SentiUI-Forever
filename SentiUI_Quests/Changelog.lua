@@ -4,6 +4,22 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.12",
+		date = "2026-11-23",
+		changes = {
+			"Zone detection reworked: 'here' is now a SET of header names built from zone/subzone/minimap/instance text plus every map name up the player's map chain - a plain GetRealZoneText compare missed quests filed under a subzone or instance header (e.g. Northshire Valley vs Elwynn Forest, The Stockade).",
+			"Headers that still match no name count as 'here' when one of their quests is pinned on the player's zone map (C_QuestLog.GetQuestsOnMap).",
+			"Ordering: the current zone's header block sorts first, other 'here' headers next, the rest keeps log order.",
+			"A header with a secret title no longer swallows the quests below it under the previous zone.",
+		},
+		changesDE = {
+			"Zonen-Erkennung überarbeitet: 'hier' ist jetzt ein SET aus Header-Namen aus Zone-/Subzone-/Minimap-/Instanztext plus allen Map-Namen der Spieler-Map-Kette - ein simpler GetRealZoneText-Vergleich übersah Quests, die unter einem Subzonen- oder Instanz-Header lagen (z.B. Nordhain vs. Wald von Elwynn, Das Verlies).",
+			"Header ohne Namenstreffer zählen auch als 'hier', wenn eine ihrer Quests auf der Spieler-Zonen-Map gepinnt ist (C_QuestLog.GetQuestsOnMap).",
+			"Reihenfolge: der aktuelle Zonen-Block steht oben, andere 'hier'-Header folgen, der Rest bleibt in Log-Reihenfolge.",
+			"Ein Header mit geheimem Titel verschluckt die Quests darunter nicht mehr unter der vorherigen Zone.",
+		},
+	},
+	{
 		version = "0.4.11",
 		date = "2026-11-23",
 		changes = {

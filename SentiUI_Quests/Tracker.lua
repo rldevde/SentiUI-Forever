@@ -419,6 +419,95 @@ end
 local dirty -- a render was requested during combat; done on regen
 local SetScroll -- forward: Refresh clamps the offset, defined below
 
+-- "here" = every log header name that counts as the player's current
+-- area. GetRealZoneText alone cannot decide it: the log files quests
+-- under a subzone (Northshire Valley vs Elwynn Forest), an instance name
+-- (The Stockade) or a map name the zone text never says. Sources: zone/
+-- subzone/minimap/instance text, every map name up the player's map
+-- chain to the continent, plus headers whose quests are pinned on the
+-- player's zone map (C_QuestLog.GetQuestsOnMap).
+local function HereSet(headerQuests)
+	local names = {}
+	local function add(v)
+		if type(v) == "string" and v ~= "" and not S.IsSecret(v) then names[v] = true end
+	end
+	for _, fn in ipairs({ "GetRealZoneText", "GetZoneText", "GetSubZoneText", "GetMinimapZoneText" }) do
+		if type(_G[fn]) == "function" then
+			local ok, n = pcall(_G[fn])
+			if ok then add(n) end
+		end
+	end
+	local okI, inInst = pcall(IsInInstance)
+	if okI and inInst == true then
+		local okN, nm = pcall(GetInstanceInfo)
+		if okN then add(nm) end
+	end
+	local zoneMap
+	local UT = type(Enum) == "table" and type(Enum.UIMapType) == "table" and Enum.UIMapType or {}
+	if C_Map and C_Map.GetBestMapForUnit and C_Map.GetMapInfo then
+		local ok, id = pcall(C_Map.GetBestMapForUnit, "player")
+		if not ok or S.IsSecret(id) then id = nil end
+		for _ = 1, 10 do
+			if type(id) ~= "number" then break end
+			local okM, info = pcall(C_Map.GetMapInfo, id)
+			if not okM or type(info) ~= "table" or S.IsSecretTable(info) then break end
+			add(info.name)
+			local t = info.mapType
+			if t == (UT.Zone or 3) and not zoneMap then zoneMap = id end
+			if t == (UT.Continent or 2) or t == (UT.World or 1) or t == (UT.Cosmic or 0) then break end
+			id = info.parentMapID
+		end
+	end
+	local here = {}
+	for h in pairs(headerQuests) do if names[h] then here[h] = true end end
+	-- a header no name resolved still counts when one of its quests is
+	-- pinned on the player's zone map
+	if zoneMap and C_QuestLog and C_QuestLog.GetQuestsOnMap then
+		local okL, list = pcall(C_QuestLog.GetQuestsOnMap, zoneMap)
+		if okL and type(list) == "table" and not S.IsSecretTable(list) then
+			local onMap = {}
+			for _, q in ipairs(list) do
+				if type(q) == "table" and not S.IsSecretTable(q)
+					and type(q.questID) == "number" then
+					onMap[q.questID] = true
+				end
+			end
+			for h, ids in pairs(headerQuests) do
+				if not here[h] then
+					for _, id in ipairs(ids) do
+						if onMap[id] then here[h] = true break end
+					end
+				end
+			end
+		end
+	end
+	return here
+end
+
+-- the single header that counts as THE place the player is: real zone if
+-- it's a header, inside an instance the instance's own header, else the
+-- current map's name when the log files under it
+local function MainHeader(headerQuests)
+	local function has(n) return type(n) == "string" and headerQuests[n] ~= nil end
+	local ok, real = pcall(GetRealZoneText)
+	real = ok and not S.IsSecret(real) and real or nil
+	local okI, inInst = pcall(IsInInstance)
+	inInst = okI and inInst == true
+	if type(real) == "string" and (has(real) or not inInst) then return real end
+	if inInst then
+		local okN, nm = pcall(GetInstanceInfo)
+		if okN and has(nm) then return nm end
+	end
+	if C_Map and C_Map.GetBestMapForUnit and C_Map.GetMapInfo then
+		local okB, id = pcall(C_Map.GetBestMapForUnit, "player")
+		if okB and type(id) == "number" and not S.IsSecret(id) then
+			local okM, info = pcall(C_Map.GetMapInfo, id)
+			if okM and type(info) == "table" and has(info.name) then return info.name end
+		end
+	end
+	return real
+end
+
 local function Refresh()
 	if not frame or not db or db.tracker ~= "sentiui" then
 		if frame and not InCombatLockdown() then frame:Hide() end
@@ -431,33 +520,27 @@ local function Refresh()
 
 	BuildWatchSet()
 	-- filter modes: "watched" = the game's quest watch list (default),
-	-- "zone" = every quest under the current zone's log header,
-	-- "all" = the whole log. zoneName reads localized like the headers.
+	-- "zone" = every quest under a header that counts as "here",
+	-- "all" = the whole log
 	local mode = db.filter or "watched"
-	local zoneName
-	if mode == "zone" then
-		local okz, zn = pcall(GetRealZoneText)
-		zoneName = okz and not S.IsSecret(zn) and zn or nil
-		if type(zoneName) ~= "string" or zoneName == "" then
-			local okz2, zn2 = pcall(GetZoneText)
-			zoneName = okz2 and not S.IsSecret(zn2) and zn2 or nil
-		end
-	end
 	local showAll = mode == "all"
-	local zoneOnly = mode == "zone" and type(zoneName) == "string" and zoneName ~= ""
+	local zoneOnly = mode == "zone"
 	local items = {}
 	local count = 0
 	local curHeader
+	local headerQuests = {} -- header name -> quest ids under it (zone match)
 	for i = 1, NumEntries() do
 		local info = QuestInfo(i)
-		if info and not S.IsSecretTable(info) and not S.IsSecret(info.title) then
-			if info.isHeader then
-				curHeader = info.title
-				items[#items + 1] = { header = info.title }
-			elseif info.questID and not S.IsSecret(info.questID)
-				and not info.isHidden
-				and (showAll or (zoneOnly and curHeader == zoneName)
-					or (not showAll and not zoneOnly and IsWatched(info.questID))) then
+		if info and not S.IsSecretTable(info) then
+			-- a header first, title or not: a secret title must not let the
+			-- quests below file under the previous zone's header
+			if (not S.IsSecret(info.isHeader)) and info.isHeader == true then
+				curHeader = (not S.IsSecret(info.title)) and info.title or nil
+				if curHeader then items[#items + 1] = { header = curHeader } end
+			elseif not S.IsSecret(info.title)
+				and info.questID and not S.IsSecret(info.questID)
+				and not S.IsSecret(info.isHidden) and not info.isHidden
+				and (showAll or zoneOnly or IsWatched(info.questID)) then
 				local complete = ((not S.IsSecret(info.isComplete)) and info.isComplete == true)
 					or IsComplete(info.questID)
 				local title = info.title or "?"
@@ -471,7 +554,13 @@ local function Refresh()
 					complete = complete,
 					color = DiffColor(info.level),
 					objs = complete and {} or Objectives(info.questID),
+					zoneHeader = type(curHeader) == "string" and curHeader or nil,
 				}
+				if it.zoneHeader then
+					local ids = headerQuests[it.zoneHeader]
+					if not ids then ids = {} headerQuests[it.zoneHeader] = ids end
+					ids[#ids + 1] = info.questID
+				end
 				-- usable quest item next to the row (click = /use item:id)
 				if GetQuestLogSpecialItemInfo then
 					local okQ, itemID, r2, r3 = pcall(GetQuestLogSpecialItemInfo, i)
@@ -518,6 +607,53 @@ local function Refresh()
 				count = count + 1
 			end
 		end
+	end
+
+	-- "here" is a SET of header names (zone/subzone/instance/map names -
+	-- see HereSet): a plain GetRealZoneText == header compare misses
+	-- quests the log files under a different local name
+	local here = HereSet(headerQuests)
+	local main = MainHeader(headerQuests)
+	if zoneOnly then
+		local zoneItems = {}
+		for _, it in ipairs(items) do
+			if it.header then
+				if here[it.header] then zoneItems[#zoneItems + 1] = it end
+			elseif it.zoneHeader and here[it.zoneHeader] then
+				zoneItems[#zoneItems + 1] = it
+			end
+		end
+		items = zoneItems
+		count = 0
+		for _, it in ipairs(items) do if it.quest then count = count + 1 end end
+	end
+	-- order header blocks: the main zone first, the other "here" headers
+	-- next, everything else in log order
+	do
+		local blocks, cur = {}, nil
+		for _, it in ipairs(items) do
+			if it.header or not cur then
+				cur = { h = it.header and it.header or nil, items = { it } }
+				blocks[#blocks + 1] = cur
+			else
+				cur.items[#cur.items + 1] = it
+			end
+		end
+		for i, b in ipairs(blocks) do b.i = i end
+		table.sort(blocks, function(a, b)
+			local am = a.h ~= nil and a.h == main
+			local bm = b.h ~= nil and b.h == main
+			if am ~= bm then return am end
+			local ai = a.h ~= nil and here[a.h] == true
+			local bi = b.h ~= nil and here[b.h] == true
+			if ai ~= bi then return ai end
+			return a.i < b.i
+		end)
+		local out = {}
+		for _, b in ipairs(blocks) do
+			for _, it in ipairs(b.items) do out[#out + 1] = it end
+		end
+		items = out
 	end
 
 	-- drop zone headers that have no watched quests under them
