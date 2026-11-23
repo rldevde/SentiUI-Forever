@@ -581,6 +581,26 @@ function Unit.Bar(tip, unit)
 		return
 	end
 	bar:SetAlpha(1)
+	-- the engine anchors the status bar to the left edge plus a width that
+	-- overshoots the tooltip's right border; pin it inside the tip with
+	-- the same inset the text columns use so both ends match
+	do
+		local pad = 11
+		local fs = Line(tip, 1)
+		if fs then
+			local okP, _, _, _, xo = pcall(fs.GetPoint, fs, 1)
+			if okP and type(xo) == "number" and not S.IsSecret(xo)
+				and xo > 0 and xo < 40 then
+				pad = xo
+			end
+		end
+		local okB, _, _, _, bo = pcall(bar.GetPoint, bar, 1)
+		bo = (okB and type(bo) == "number" and not S.IsSecret(bo))
+			and bo or 5
+		pcall(bar.ClearAllPoints, bar)
+		pcall(bar.SetPoint, bar, "BOTTOMLEFT", tip, "BOTTOMLEFT", pad, bo)
+		pcall(bar.SetPoint, bar, "RIGHT", tip, "RIGHT", -pad, 0)
+	end
 	pcall(bar.SetHeight, bar, ns.Cfg().barHeight or 6)
 	local r, g, b = UnitColor(tip, unit)
 	if have(r) then pcall(bar.SetStatusBarColor, bar, r, g, b) end

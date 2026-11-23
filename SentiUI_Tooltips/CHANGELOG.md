@@ -1,5 +1,9 @@
 # SentiUI Tooltips
 
+## 0.2.16 - 2026-11-23
+
+- Health bar no longer sticks out past the tooltip's right edge: the engine anchors GameTooltipStatusBar to the left with a width that overshoots the frame's right border. It is now pinned inside the tip on every unit pass - left/right inset matching the text columns - so the bar and the border line up on both sides.
+
 ## 0.2.15 - 2026-11-23
 
 - Other addons' tooltips work again: the skin + blank-icon sweep + unit/item passes ran on EVERY tooltip flowing through TooltipDataProcessor, including third-party addon tips that draw their own art on BACKGROUND or as WHITE8X8 fills - erasing the tip entirely. All passes are now gated to the game's shared tooltip family (GameTooltip*, ItemRef*, ShoppingTooltip*, EmbeddedItemTooltip, BuffFrameTooltip).

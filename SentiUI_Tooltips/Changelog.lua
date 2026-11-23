@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.16",
+		date = "2026-11-23",
+		changes = {
+			"Health bar no longer sticks out past the tooltip's right edge: GameTooltipStatusBar is now pinned inside the tip with the same inset the text columns use on every unit pass.",
+		},
+		changesDE = {
+			"Gesundheitsbalken ragt nicht mehr rechts ueber den Tooltip-Rand: GameTooltipStatusBar wird jetzt bei jedem Unit-Pass mit demselben Innenabstand wie die Textspalten im Tooltip verankert.",
+		},
+	},
+	{
 		version = "0.2.15",
 		date = "2026-11-23",
 		changes = {
