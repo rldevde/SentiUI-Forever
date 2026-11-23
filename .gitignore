@@ -6,3 +6,6 @@
 !/.gitignore
 !/LICENSE
 !/README.md
+
+# Private module, local-only: never commit or distribute
+/SentiUI_Admin/
