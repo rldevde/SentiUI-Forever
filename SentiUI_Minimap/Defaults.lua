@@ -23,7 +23,7 @@ ns.DEFAULTS = {
 		clock = false,             -- the time manager clock, docks into the zone bar
 		calendar = false,          -- the calendar button, docks into the zone bar
 		tracking = false,          -- the tracking blip, docked top-left
-		mail = false,              -- the mail icon, docked top-right
+		mail = false,              -- the mail icon, next to the coordinates
 		difficulty = false,        -- dungeon/raid difficulty flag
 	},
 }

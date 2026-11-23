@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.22 - 2026-11-23
+
+- Mail indicator reworked: the docked Blizzard mail frame did not show reliably under our layout. The coords bar now carries its own small envelope next to the coordinates, driven by the same three-stage detection the panel plugin uses (HasNewMail -> icon child's IsShown -> GetLatestThreeSenders). Blizzard's frame stays faded while the bar is up and only docks to the map's top-right corner as the fallback with the bar hidden.
+
 ## 0.3.21 - 2026-11-23
 
 - The pending-mail icon now sits inside the coords bar right next to the coordinates instead of the map's top-right corner (scaled to fit the 20px strip, falls back to the corner while the bar is hidden). Dock guards are rewritable now so the mail icon can move between the bar and the map when the coords bar is toggled.

@@ -25,7 +25,7 @@ local SUN = "Interface\\AddOns\\SentiUI_Minimap\\Media\\Sun.tga"
 local MOON = "Interface\\AddOns\\SentiUI_Minimap\\Media\\Moon.tga"
 
 local mod        -- module def, mod.db filled at enable
-local panel, deco, ring, halo, zoneBar, zoneText, coordsBar, coordsText
+local panel, deco, ring, halo, zoneBar, zoneText, coordsBar, coordsText, mailBtn
 local menuBtn, menu, suiMenu, addonPop, addonTrigger
 local zoomIn, zoomOut
 local trackBtn, trackPop
@@ -214,6 +214,32 @@ local function keepDocked(f, point, relPoint, x, y, scale, anchor)
 	end
 end
 
+-- Mail detection, same triage the panel plugin runs: HasNewMail() is the
+-- verdict the engine itself feeds (SentinelForeverCore uses it too), the
+-- ICON child's IsShown is the fallback - never the IndicatorFrame
+-- container, which is always shown and would stick the signal - and the
+-- unread-sender list is the last resort for a missing API.
+local function MailWaiting()
+	if type(HasNewMail) == "function" then
+		local ok, has = pcall(HasNewMail)
+		has = ok and has
+		if not S.IsSecret(has) and type(has) == "boolean" then return has end
+	end
+	local cluster = _G.MinimapCluster
+	local ind = cluster and (cluster.IndicatorFrame or cluster.MailFrame)
+	local f = (ind and type(ind.MailFrame) == "table" and ind.MailFrame)
+		or _G.MiniMapMailFrame
+	if type(f) == "table" and type(f.IsShown) == "function" then
+		local okS, s = pcall(f.IsShown, f)
+		if okS and not S.IsSecret(s) then return s == true end
+	end
+	if type(GetLatestThreeSenders) == "function" then
+		local ok2, a = pcall(GetLatestThreeSenders)
+		if ok2 and not S.IsSecret(a) then return a ~= nil end
+	end
+	return false
+end
+
 -- Element toggles: shown = unfaded + docked, hidden = faded.
 local ELEMENTS = {
 	tracking   = { "MiniMapTracking", "MiniMapTrackingButton", "MiniMapTrackingFrame", { "MinimapCluster", "Tracking" }, { "MinimapCluster", "Tracking", "Button" } },
@@ -252,13 +278,16 @@ function Core.PositionIndicators()
 		local c = resolve(s)
 		if c and c.EnableMouse then pcall(c.EnableMouse, c, false) end
 	end
-	-- the mail icon lives in the coords bar right next to the coordinates;
-	-- while the bar is hidden it falls back to the map's top-right corner
+	-- the mail signal is our own icon in the coords bar, right next to the
+	-- coordinates - blizzard's frame visibility is unreliable under our
+	-- layout, so it only carries the fallback while the bar is hidden
 	local inBar = coordsBar and coordsText and db.coords == true
+	local waiting = not db.hide.mail and MailWaiting()
+	if mailBtn then mailBtn:SetShown(inBar and waiting) end
 	for _, s in ipairs(ELEMENTS.mail) do
 		local f = resolve(s)
 		if f then
-			if db.hide.mail then
+			if inBar or db.hide.mail then
 				fade(f)
 			else
 				unfade(f)
@@ -268,13 +297,8 @@ function Core.PositionIndicators()
 				if okW and type(w) == "number" and not S.IsSecret(w) and w > 64 then
 					pcall(f.EnableMouse, f, false)
 				end
-				if inBar then
-					dock(f, "LEFT", "RIGHT", 4, 0, 0.55, coordsText)
-					keepDocked(f, "LEFT", "RIGHT", 4, 0, 0.55, coordsText)
-				else
-					dock(f, "TOPRIGHT", "TOPRIGHT", -21, -3, 0.85)
-					keepDocked(f, "TOPRIGHT", "TOPRIGHT", -21, -3, 0.85)
-				end
+				dock(f, "TOPRIGHT", "TOPRIGHT", -21, -3, 0.85)
+				keepDocked(f, "TOPRIGHT", "TOPRIGHT", -21, -3, 0.85)
 			end
 		end
 	end
@@ -1035,6 +1059,25 @@ local function buildCoordsBar()
 	buildMenuButton()
 	buildAddonTrigger()
 	buildPerfButton()
+	-- own mail indicator right next to the coordinates - blizzard's frame
+	-- does not show reliably under our layout, so the bar carries a small
+	-- envelope driven by MailWaiting() instead
+	mailBtn = CreateFrame("Button", "SentiUIMinimapMail", coordsBar)
+	mailBtn:SetSize(14, 14)
+	mailBtn:SetPoint("LEFT", coordsText, "RIGHT", 4, 0)
+	mailBtn.icon = mailBtn:CreateTexture(nil, "ARTWORK")
+	mailBtn.icon:SetAllPoints()
+	mailBtn.icon:SetTexture("Interface\\Icons\\INV_Letter_15")
+	mailBtn.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	mailBtn:SetScript("OnEnter", function(b)
+		GameTooltip:SetOwner(b, "ANCHOR_LEFT")
+		GameTooltip:AddLine(L["Mail"])
+		GameTooltip:AddLine(L["You have unread mail"], 1, 1, 1)
+		GameTooltip:AddLine(L["Check your mailbox"], 0.6, 0.6, 0.6)
+		GameTooltip:Show()
+	end)
+	mailBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	mailBtn:Hide()
 end
 
 function Core.UpdateCoords()

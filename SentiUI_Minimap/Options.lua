@@ -70,7 +70,7 @@ ns.OPTIONS = {
 						{ type = "toggle", key = "hide.tracking", label = L["Hide tracking icon"],
 							desc = L["Otherwise it docks into the map's top-left corner."] },
 						{ type = "toggle", key = "hide.mail", label = L["Hide mail icon"],
-							desc = L["Otherwise it sits top-right when new mail arrives."] },
+							desc = L["Otherwise it sits next to the coordinates when new mail arrives."] },
 						{ type = "toggle", key = "hide.difficulty", label = L["Hide difficulty flag"] },
 						{ type = "toggle", key = "perfButton", label = L["Performance icon"],
 							desc = L["A gear icon next to the addon buttons: latency, framerate and addon memory on hover, right-click opens the options."] },

@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.22",
+		date = "2026-11-23",
+		changes = {
+			"Mail indicator reworked: the coords bar now carries its own small envelope next to the coordinates, driven by the same three-stage detection the panel plugin uses (HasNewMail -> icon IsShown -> GetLatestThreeSenders). Blizzard's frame is the fallback only while the bar is hidden.",
+		},
+		changesDE = {
+			"Post-Indikator ueberarbeitet: die Koordinatenleiste traegt jetzt einen eigenen kleinen Briefumschlag neben den Koordinaten, gespeist von derselben dreistufigen Erkennung wie das Panel-Plugin (HasNewMail -> Icon-IsShown -> GetLatestThreeSenders). Blizzards Frame ist nur noch Fallback, solange die Leiste aus ist.",
+		},
+	},
+	{
 		version = "0.3.21",
 		date = "2026-11-23",
 		changes = {
