@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.1",
+		date = "2026-11-23",
+		changes = {
+			"Hardened every call into the Blizzard DamageMeter objects: session-window enumeration, entry-frame walks, children/regions, anchoring and Show/Hide are all pcall'd now - an error raised inside Blizzard code showed up as a Blizzard_DamageMeter error, not ours. SetSession also falls back to the bare (type) signature if the (type, id) form is rejected.",
+		},
+		changesDE = {
+			"Alle Aufrufe in die Blizzard-DamageMeter-Objekte gehärtet: Session-Fenster-Enumeration, Entry-Frame-Walks, Children/Regions, Verankerung und Show/Hide laufen jetzt über pcall - ein Fehler in Blizzards Code erschien als Blizzard_DamageMeter-Fehler, nicht als unserer. SetSession fällt bei Ablehnung der (type, id)-Form auf die nackte (type)-Signatur zurück.",
+		},
+	},
+	{
 		version = "0.2.0",
 		date = "2026-11-23",
 		changes = {

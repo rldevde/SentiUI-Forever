@@ -200,6 +200,23 @@ function ns.IsOffline(unit)
 	if not (okC and ns.Plain(conn) == false) then return false end
 	local okV, vis = pcall(UnitIsVisible, unit)
 	if okV and ns.Plain(vis) == true then return false end
+	-- out of sight: the raid roster carries a server-driven online flag -
+	-- worth a second opinion before trusting the false read
+	if IsInRaid and IsInRaid() and GetRaidRosterInfo then
+		local okU, uname = pcall(GetUnitName, unit, true)
+		local bare = okU and type(uname) == "string" and uname:match("^(.-)%-") or uname
+		if type(bare) == "string" and bare ~= "" then
+			local okN, n = pcall(GetNumGroupMembers)
+			n = okN and ns.Plain(n) or 0
+			for i = 1, n do
+				local okR, name, _, _, _, _, _, online = pcall(GetRaidRosterInfo, i)
+				if not okR or type(name) ~= "string" then break end
+				if name == uname or name:match("^(.-)%-") == bare then
+					return online ~= true -- the roster's word wins
+				end
+			end
+		end
+	end
 	return true
 end
 

@@ -1,5 +1,9 @@
 # SentiUI Meters
 
+## 0.2.1 - 2026-11-23
+
+- Hardened every call into the Blizzard DamageMeter objects: session-window enumeration, entry-frame walks, children/regions, anchoring and Show/Hide are all pcall'd now — an error raised inside Blizzard code showed up as a `Blizzard_DamageMeter` error, not ours. `SetSession` also falls back to the bare `(type)` signature if the `(type, id)` form is rejected.
+
 ## 0.2.0 - 2026-11-23
 
 - Native meter windows: every dock now hosts one of Blizzard's own DamageMeter session windows (DamageMeter:ShowNewSessionWindow) parked inside its view - the client's trusted code refreshes the rows itself, so the meter updates live in combat and scrolls natively. The window's own chrome is stripped, class colours + bar metrics applied, metric and segment per dock via SetDamageMeterType/SetSession. Threat stays on the custom renderer (no DamageMeterType exists for it); docks without a native window fall back to it as well.

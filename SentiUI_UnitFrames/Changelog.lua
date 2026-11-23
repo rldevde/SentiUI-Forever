@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.38",
+		date = "2026-11-23",
+		changes = {
+			"Offline check gets a second opinion for out-of-sight members too: when UnitIsConnected reads false for a raid member we cannot see, the raid roster's own online flag decides before the frame greys out.",
+		},
+		changesDE = {
+			"Offline-Check bekommt auch für unsichtbare Mitglieder eine zweite Meinung: liest UnitIsConnected bei einem Raid-Mitglied false, das wir nicht sehen können, entscheidet das Online-Flag des Raid-Rosters, bevor der Frame abgedunkelt wird.",
+		},
+	},
+	{
 		version = "0.2.37",
 		date = "2026-11-23",
 		changes = {

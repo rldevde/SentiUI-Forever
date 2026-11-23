@@ -1,5 +1,9 @@
 # SentiUI Unit Frames
 
+## 0.2.38 - 2026-11-23
+
+- Offline check gets a second opinion for out-of-sight members too: when `UnitIsConnected` reads false for a raid member we cannot see, the raid roster's own `online` flag decides before the frame greys out.
+
 ## 0.2.37 - 2026-11-23
 
 - Members no longer stick on "offline" while online: `UnitIsConnected` can return plainly-false for visible units on this client, so the check now double-checks via `UnitIsVisible` (a unit we can see is online by definition), holds the flag for 3s to survive zoning flicker, and the name text is restored when the member reads connected again.

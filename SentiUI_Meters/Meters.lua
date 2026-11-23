@@ -82,23 +82,25 @@ local function AcquireWindow(i)
 		return nil
 	end
 	-- diff the set: ShowNewSessionWindow's return is unreliable, the new
-	-- window simply appears in the enumeration
+	-- window simply appears in the enumeration. Every call into Blizzard
+	-- objects is pcall'd: an error raised inside THEIR code gets
+	-- attributed to Blizzard_DamageMeter, not to us
 	local before = {}
-	DMGR:ForEachSessionWindow(function(w)
+	pcall(DMGR.ForEachSessionWindow, DMGR, function(w)
 		if w then before[w] = true end
 	end)
 	if type(DMGR.ShowNewSessionWindow) == "function" then
 		pcall(DMGR.ShowNewSessionWindow, DMGR)
 	end
 	local found
-	DMGR:ForEachSessionWindow(function(w)
+	pcall(DMGR.ForEachSessionWindow, DMGR, function(w)
 		if w and not before[w] and not w._sentiDock and not found then
 			found = w
 		end
 	end)
 	if not found then
 		-- nothing new spawned (pool cap?) - reuse an untagged window
-		DMGR:ForEachSessionWindow(function(w)
+		pcall(DMGR.ForEachSessionWindow, DMGR, function(w)
 			if w and not w._sentiDock and not found then found = w end
 		end)
 	end
@@ -111,7 +113,7 @@ end
 local function StripNativeChrome(w)
 	local keep
 	if type(w.ForEachEntryFrame) == "function" then
-		w:ForEachEntryFrame(function(e)
+		pcall(w.ForEachEntryFrame, w, function(e)
 			if keep then return end
 			local p = e and e.GetParent and e:GetParent()
 			while p and p.GetParent and p:GetParent() and p:GetParent() ~= w do
@@ -120,13 +122,18 @@ local function StripNativeChrome(w)
 			if p and p:GetParent() == w then keep = p end
 		end)
 	end
-	for _, c in ipairs({ w:GetChildren() }) do
+	local function kids(f, ...)
+		local res = { pcall(f, ...) }
+		if res[1] then table.remove(res, 1) return res end
+		return {}
+	end
+	for _, c in ipairs(kids(w.GetChildren, w)) do
 		if c ~= keep and type(c) == "table" then
 			pcall(c.SetAlpha, c, 0)
 			pcall(c.EnableMouse, c, false)
 		end
 	end
-	for _, r in ipairs({ w:GetRegions() }) do
+	for _, r in ipairs(kids(w.GetRegions, w)) do
 		if r and r.SetAlpha then pcall(r.SetAlpha, r, 0) end
 	end
 end
@@ -154,15 +161,15 @@ local function EmbedNative(d, i)
 	local w = AcquireWindow(i)
 	if not w then return nil end
 	d.native = w
-	w:ClearAllPoints()
-	w:SetPoint("TOPLEFT", d.view, "TOPLEFT", 0, 0)
-	w:SetPoint("BOTTOMRIGHT", d.view, "BOTTOMRIGHT", 0, 0)
+	pcall(w.ClearAllPoints, w)
+	pcall(w.SetPoint, w, "TOPLEFT", d.view, "TOPLEFT", 0, 0)
+	pcall(w.SetPoint, w, "BOTTOMRIGHT", d.view, "BOTTOMRIGHT", 0, 0)
 	if w.SetFrameLevel and d.view.GetFrameLevel then
 		pcall(w.SetFrameLevel, w, d.view:GetFrameLevel() + 5)
 	end
 	StripNativeChrome(w)
 	NativeLooks(w)
-	w:Show()
+	pcall(w.Show, w)
 	return w
 end
 
@@ -173,7 +180,7 @@ local function NativeShown(w, on)
 	if not w or w._wantShown == on then return end
 	w._wantShown = on
 	S.RunOutOfCombat(function()
-		if on then w:Show() else w:Hide() end
+		if on then pcall(w.Show, w) else pcall(w.Hide, w) end
 	end)
 end
 
@@ -188,7 +195,11 @@ local function ApplyNative(d, cfg, mode)
 		pcall(w.SetDamageMeterType, w, mode.type)
 		local st = (cfg.segment == "overall") and SEG_OVERALL or SEG_CURRENT
 		if type(w.SetSession) == "function" then
-			pcall(w.SetSession, w, st, 0)
+			-- session-id argument shape differs between builds; try the
+			-- documented (type, id) form and fall back to bare (type)
+			if not pcall(w.SetSession, w, st, 0) then
+				pcall(w.SetSession, w, st)
+			end
 		end
 	end
 	NativeShown(w, true)
