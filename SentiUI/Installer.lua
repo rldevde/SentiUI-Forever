@@ -210,6 +210,10 @@ local function recommendedScale()
 end
 
 local function currentUIScale()
+	if UIParent and UIParent.GetScale then
+		local v = tonumber(UIParent:GetScale())
+		if v and v > 0 then return v end
+	end
 	local v = C_CVar and C_CVar.GetCVar and C_CVar.GetCVar("uiScale")
 	return tonumber(v) or 1
 end

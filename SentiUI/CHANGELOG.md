@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.5 - 2026-11-23
+
+- Fixed "forbidden call" + "Interface action failed" at login: the `useUiScale`/`uiScale` CVars are forbidden to addons on this build, so `S.ApplyGameScale` no longer writes them — the scale now goes straight onto `UIParent` (combat-deferred, clamped 0.5–1.2). Affects the installer's scale step and the Interface settings slider.
+
 ## 0.4.4 - 2026-11-23
 
 - The "update available" notice now prints in the client's system-message style (yellow, like deaths/rested notices) via the new `S.PrintSystem` helper instead of the normal addon prefix line.

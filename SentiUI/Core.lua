@@ -689,10 +689,15 @@ end
 -- re-applied on every login (PLAYER_LOGIN in Installer.lua). Shared by
 -- the installer's scale step and the settings' Interface page.
 function S.ApplyGameScale(v)
-	if not (C_CVar and C_CVar.SetCVar) then return end
-	pcall(C_CVar.SetCVar, "useUiScale", "1")
-	pcall(C_CVar.SetCVar, "uiScale", string.format("%.2f", v))
+	-- the useUiScale/uiScale CVars are FORBIDDEN to addons on this build
+	-- (pcall does not silence the report) - put the scale on UIParent
+	-- directly instead. Resizing UIParent is combat-protected, so queue it
+	v = math.max(0.5, math.min(1.2, v))
 	S.DB.General().gameScale = v
+	if not (UIParent and UIParent.SetScale) then return end
+	S.RunOutOfCombat(function()
+		pcall(UIParent.SetScale, UIParent, v)
+	end)
 end
 
 -- slash commands ------------------------------------------------------------------------

@@ -25,6 +25,16 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.4.5",
+		date = "2026-11-23",
+		changes = {
+			"Fixed 'forbidden call' + 'Interface action failed' at login: the useUiScale/uiScale CVars are forbidden to addons on this build, so S.ApplyGameScale no longer writes them - the scale now goes straight onto UIParent (combat-deferred, clamped 0.5-1.2). Affects the installer's scale step and the Interface settings slider.",
+		},
+		changesDE = {
+			"'forbidden call' + 'Interface-Aktion fehlgeschlagen' beim Login behoben: die useUiScale/uiScale-CVars sind für Addons auf diesem Build verboten, S.ApplyGameScale schreibt sie nicht mehr - die Skalierung geht direkt auf UIParent (combat-deferred, auf 0,5-1,2 begrenzt). Betrifft den Scale-Schritt des Installers und den Interface-Slider in den Einstellungen.",
+		},
+	},
+	{
 		version = "0.4.4",
 		date = "2026-11-23",
 		changes = {
