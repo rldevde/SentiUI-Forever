@@ -1,5 +1,11 @@
 # SentiUI Meters
 
+## 0.3.0 - 2026-11-23
+
+- Reworked the Details way: no more embedded Blizzard session windows at all — every dock renders `C_DamageMeter` data itself, so the `Blizzard_DamageMeter` error class is gone for good.
+- New: spec icons on rows (`specIconID`), a real **session history** in the right-click menu (named past fights via `GetAvailableCombatSessions`), and a **spell breakdown** window on left-clicking a player row (top spells per metric+segment via `GetCombatSessionSourceFrom*`).
+- Secret-table guards now cover `combatSources`, session lists and spell containers.
+
 ## 0.2.3 - 2026-11-23
 
 - DamageMeter errors eliminated at the root: docks now only **adopt** session windows Blizzard spawned itself (windows born under our taint keep it, and every secret comparison their handlers hit gets blamed on us). Metric/segment/look are written as plain window fields + `needsSourceWindowRefresh` so the manager's own untainted pass applies them, and dock visibility drives `SetAlpha`/`EnableMouse` instead of `Show`/`Hide` — no call into Blizzard internals remains that could reach a secret read. Docks without a spare window fall back to the custom renderer and keep retrying.

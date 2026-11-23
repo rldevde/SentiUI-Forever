@@ -70,177 +70,6 @@ local function ModeFor(key)
 	return ModeByKey[key] or MODES[1]
 end
 
--- native session windows -----------------------------------------------------
--- Blizzard's own DamageMeter session windows update themselves with
--- trusted code - they refresh in combat where our Lua rows can't. Each
--- dock claims one and anchors it inside its view; threat mode keeps the
--- custom renderer (no DamageMeterType exists for it).
-local DMGR = DamageMeter -- the Blizzard manager global (may be nil early)
-
-local function AcquireWindow(i)
-	if not (DMGR and type(DMGR.ForEachSessionWindow) == "function") then
-		return nil
-	end
-	-- adopt only, never spawn: a window born under our taint (from a
-	-- ShowNewSessionWindow call we made) keeps it, and every secret
-	-- comparison its handlers hit afterwards gets blamed on us. Windows
-	-- Blizzard spawned itself run untainted - those are safe to dock
-	local found
-	pcall(DMGR.ForEachSessionWindow, DMGR, function(w)
-		if w and not w._sentiDock and not found then found = w end
-	end)
-	if found then found._sentiDock = i end
-	return found
-end
-
--- the session window ships its own header/dropdown/chrome; we keep only
--- the direct child that hosts the entry rows and fade the rest
-local function StripNativeChrome(w)
-	local keep
-	if type(w.ForEachEntryFrame) == "function" then
-		pcall(w.ForEachEntryFrame, w, function(e)
-			if keep then return end
-			local p = e and e.GetParent and e:GetParent()
-			while p and p.GetParent and p:GetParent() and p:GetParent() ~= w do
-				p = p:GetParent()
-			end
-			if p and p:GetParent() == w then keep = p end
-		end)
-	end
-	local function kids(f, ...)
-		local res = { pcall(f, ...) }
-		if res[1] then table.remove(res, 1) return res end
-		return {}
-	end
-	for _, c in ipairs(kids(w.GetChildren, w)) do
-		if c ~= keep and type(c) == "table" then
-			pcall(c.SetAlpha, c, 0)
-			pcall(c.EnableMouse, c, false)
-		end
-	end
-	for _, r in ipairs(kids(w.GetRegions, w)) do
-		if r and r.SetAlpha then pcall(r.SetAlpha, r, 0) end
-	end
-end
-
-local function noop() end
-
--- SetSessionDuration compares combatSession.durationSeconds - a SECRET
--- number - and throws whenever that path runs inside our tainted call
--- (w:Show -> UpdateShownState -> UpdateSessionTimerState). The session
--- timer is stripped chrome for us anyway, so disable the whole path on
--- windows we own: instance fields shadow the mixin methods, and every
--- step is called via self: dispatch so the stubs intercept it
-local function NeutralizeSessionTimer(w)
-	for _, m in ipairs({
-		"SetSessionDuration", "ShowSessionTimerFromCombatSession",
-		"ShowSessionTimer", "HideSessionTimer", "UpdateSessionTimerState",
-	}) do
-		if w[m] ~= nil then pcall(function() w[m] = noop end) end
-	end
-	if w.SessionTimer and w.SessionTimer.Hide then
-		pcall(w.SessionTimer.Hide, w.SessionTimer)
-	end
-end
-
-local function NativeLooks(w)
-	-- the manager/window setters run Blizzard refresh paths in OUR taint
-	-- and can throw on secret reads; the same settings live as plain
-	-- fields on the window - write those and flag a refresh instead, so
-	-- the manager's own (untainted) pass picks them up
-	w.useClassColor = true
-	w.showBarIcons = true
-	w.barHeight = db.barHeight
-	w.barSpacing = db.spacing
-	w.needsSourceWindowRefresh = true
-end
-
--- parked OVER the dock's view (no reparent - the manager may re-anchor
--- its children internally); it follows our frame through its anchors
-local function EmbedNative(d, i)
-	local w = AcquireWindow(i)
-	if not w then return nil end
-	d.native = w
-	NeutralizeSessionTimer(w) -- before Show(): its OnShow walks the timer
-	pcall(w.ClearAllPoints, w)
-	pcall(w.SetPoint, w, "TOPLEFT", d.view, "TOPLEFT", 0, 0)
-	pcall(w.SetPoint, w, "BOTTOMRIGHT", d.view, "BOTTOMRIGHT", 0, 0)
-	if w.SetFrameLevel and d.view.GetFrameLevel then
-		pcall(w.SetFrameLevel, w, d.view:GetFrameLevel() + 5)
-	end
-	StripNativeChrome(w)
-	NativeLooks(w)
-	pcall(w.SetAlpha, w, 1)
-	pcall(w.EnableMouse, w, true)
-	return w
-end
-
--- Show/Hide on a session window would walk Blizzard's OnShow chain
--- (UpdateShownState -> secret compares) inside our taint. Visibility is
--- driven by SetAlpha + EnableMouse instead - pure widget calls that can
--- never reach their Lua; the window keeps refreshing underneath
-local function NativeShown(w, on)
-	if not w or w._wantShown == on then return end
-	w._wantShown = on
-	S.RunOutOfCombat(function()
-		pcall(w.SetAlpha, w, on and 1 or 0)
-		pcall(w.EnableMouse, w, on == true)
-	end)
-end
-
--- applies the dock's metric+segment to its native window; threat (no
--- DamageMeterType) and missing windows return false = custom renderer
-local function ApplyNative(d, cfg, mode)
-	local w = d.native
-	if not w then return false end
-	if not mode.type then NativeShown(w, false) return false end
-	-- a window the manager itself keeps hidden can't render - our own
-	-- renderer takes the dock until Blizzard shows it again
-	if w.IsShown then
-		local okS, shown = pcall(w.IsShown, w)
-		if okS and Plain(shown) == false then
-			NativeShown(w, false)
-			return false
-		end
-	end
-	if d._nMode ~= cfg.mode or d._nSeg ~= cfg.segment then
-		d._nMode, d._nSeg = cfg.mode, cfg.segment
-		-- plain fields, not methods: SetSession/SetDamageMeterType run
-		-- secret-reading refresh paths inside our taint
-		w.damageMeterType = mode.type
-		w.sessionType = (cfg.segment == "overall") and SEG_OVERALL or SEG_CURRENT
-		w.sessionID = 0
-		w.needsSourceWindowRefresh = true
-	end
-	NativeShown(w, true)
-	for _, r in ipairs(d.rows) do r:Hide() end
-	d.hint:Hide()
-	if d.bar then d.bar:Hide() end
-	if d.thumb then d.thumb:Hide() end
-	return true
-end
-
--- native window acquisition is protected work (spawning + anchoring a
--- Blizzard frame) and DamageMeter may load after us - retry lazily
-local function EnsureNative(d, i, tries)
-	if d.native then return end
-	DMGR = DMGR or DamageMeter
-	if not (DMGR and type(DMGR.ForEachSessionWindow) == "function") then
-		if (tries or 0) < 10 then
-			C_Timer.After(3, function() EnsureNative(d, i, (tries or 0) + 1) end)
-		end
-		return
-	end
-	S.RunOutOfCombat(function()
-		if d.native then return end
-		if not EmbedNative(d, i) then
-			-- no spare window right now: keep a slow retry going, the
-			-- manager may create another session window later
-			C_Timer.After(15, function() EnsureNative(d, i) end)
-		end
-	end)
-end
-
 -- class color for a source; classFilename can be missing on pets/secret
 local function ClassColor(cls)
 	if type(cls) == "string" then
@@ -258,23 +87,43 @@ local function ClassColor(cls)
 end
 
 -- data ---------------------------------------------------------------------
+-- a session's combatSources can be a SECRET TABLE on this client - type()
+-- alone is not enough, iterate-able access must pass the secret checks
+local function SourceList(s)
+	if type(s) ~= "table" then return nil end
+	local cs = s.combatSources
+	if type(cs) ~= "table" then return nil end
+	if IsSecret(cs) or (S.IsSecretTable and S.IsSecretTable(cs)) then
+		return nil
+	end
+	return cs
+end
+
 local function SessionFor(mtype, segment)
 	if not (DM and DM.GetCombatSessionFromType and mtype) then return nil end
 	local st = (segment == "overall") and SEG_OVERALL or SEG_CURRENT
 	local ok, s = pcall(DM.GetCombatSessionFromType, st, mtype)
-	if not ok or type(s) ~= "table" or type(s.combatSources) ~= "table" then
-		return nil
-	end
+	if not ok or not SourceList(s) then return nil end
 	return s
 end
 
 local function SessionByID(id, mtype)
 	if not (DM and DM.GetCombatSessionFromID and id) then return nil end
 	local ok, s = pcall(DM.GetCombatSessionFromID, id, mtype)
-	if not ok or type(s) ~= "table" or type(s.combatSources) ~= "table" then
-		return nil
-	end
+	if not ok or not SourceList(s) then return nil end
 	return s
+end
+
+-- cfg.segment: "current" | "overall" | "session" (cfg.segId = a past
+-- session's id from GetAvailableCombatSessions). A stale/expired id
+-- falls back to the live current fight so the dock heals itself
+local function SessionForCfg(cfg, mtype)
+	if cfg.segment == "session" and IsN(cfg.segId) then
+		local s = SessionByID(cfg.segId, mtype)
+		if s then return s end
+		return SessionFor(mtype, "current")
+	end
+	return SessionFor(mtype, cfg.segment)
 end
 
 local function SessDur(v)
@@ -308,7 +157,7 @@ local function UpdateAccum(mkey, mtype)
 		local rec = { dur = dur or 0 }
 		local dd = (dur or 0) - (prev and prev.dur or 0)
 		if dd > 0 then acc.dur = (acc.dur or 0) + dd end
-		for _, src in ipairs(session.combatSources) do
+		for _, src in ipairs(SourceList(session) or {}) do
 			local total = Plain(src.totalAmount)
 			if total then
 				local key = Plain(src.sourceGUID) or Plain(src.name) or "?"
@@ -320,6 +169,8 @@ local function UpdateAccum(mkey, mtype)
 						row = {
 							name = Plain(src.name) or "?",
 							cls = Plain(src.classFilename),
+							spec = Plain(src.specIconID),
+							guid = Plain(src.sourceGUID),
 							total = 0,
 							self_ = Plain(src.isLocalPlayer) == true or nil,
 						}
@@ -328,6 +179,8 @@ local function UpdateAccum(mkey, mtype)
 					row.total = row.total + d
 					local nm = Plain(src.name)
 					if nm then row.name = nm end
+					local sp = Plain(src.specIconID)
+					if sp then row.spec = sp end
 				end
 			end
 		end
@@ -372,8 +225,10 @@ local function CollectOverall(mode)
 		local r = {
 			name = row.name,
 			cls = row.cls,
-			guid = (type(key) == "string" and key:sub(1, 7) == "Player-")
-				and key or nil,
+			spec = row.spec,
+			guid = row.guid
+				or ((type(key) == "string" and key:sub(1, 7) == "Player-")
+					and key or nil),
 			total = row.total or 0,
 			aps = dur > 0 and (row.total or 0) / dur or 0,
 			self_ = row.self_,
@@ -390,19 +245,22 @@ local function CollectOverall(mode)
 	return #scratch, top, false
 end
 
--- fills scratch with { name, cls, guid, total, aps }; returns count, max
-local function CollectMeter(mode, segment)
+-- fills scratch with { name, cls, guid, spec, total, aps }; returns
+-- count, max
+local function CollectMeter(mode, cfg)
 	wipe(scratch)
-	local s = SessionFor(mode.type, segment)
-	if not s then return 0, 0, true end
+	local s = SessionForCfg(cfg, mode.type)
+	local cs = s and SourceList(s)
+	if not cs then return 0, 0, true end
 	local top = 0
-	for _, src in ipairs(s.combatSources) do
+	for _, src in ipairs(cs) do
 		local total = Plain(src.totalAmount) or 0
 		local aps = Plain(src.amountPerSecond) or 0
 		local row = {
 			name = Plain(src.name) or "?",
 			cls = Plain(src.classFilename),
 			guid = Plain(src.sourceGUID),
+			spec = Plain(src.specIconID),
 			total = total,
 			aps = aps,
 		}
@@ -488,6 +346,11 @@ local function RowAt(dock, i)
 	r.edge:SetPoint("TOPLEFT", r, "TOPLEFT", 0, -1)
 	r.edge:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 1)
 	r.edge:SetVertexColor(0.92, 0.68, 0.20, 0.0)
+	-- spec icon from specIconID (Details reads the same field); hidden
+	-- when the client does not expose one - never a placeholder square
+	r.icon = r:CreateTexture(nil, "ARTWORK")
+	r.icon:SetSize(10, 10)
+	r.icon:SetPoint("LEFT", r, "LEFT", 3, 0)
 	-- OUTLINE on row text: the class-colored fill behind it makes plain
 	-- 9pt dim text nearly unreadable
 	r.name = S.Font(r, 9, S.colors.text, "OUTLINE")
@@ -499,6 +362,13 @@ local function RowAt(dock, i)
 	r.val:SetPoint("RIGHT", r, "RIGHT", -4, 0)
 	r.val:SetJustifyH("RIGHT")
 	r.val:SetWordWrap(false)
+	-- left-click opens the spell breakdown for this source
+	r:EnableMouse(true)
+	r:SetScript("OnMouseUp", function(self, btn)
+		if btn == "LeftButton" and self.src then
+			ShowSpells(dock, self.src)
+		end
+	end)
 	dock.rows[i] = r
 	return r
 end
@@ -513,6 +383,7 @@ local function PlayerGUID()
 end
 
 local SetScroll -- forward: UpdateDock clamps the offset, defined below
+local ShowSpells -- forward: row clicks open the spell breakdown
 
 -- collapsed = a slim strip on the loot-facing edge: the dock's anchor
 -- holds its RIGHT side, so shrinking the width folds the window toward
@@ -529,7 +400,6 @@ local function ApplyFold(d, cfg)
 	if d.hint then d.hint:Hide() end
 	if d.bar then d.bar:Hide() end
 	if d.thumb then d.thumb:Hide() end
-	if d.native then NativeShown(d.native, not c) end
 	if c then
 		d:SetSize(FOLD_W, HEADER_H + 4 + db.height + 6)
 		if d.strip then
@@ -548,16 +418,11 @@ local function UpdateDock(d, cfg)
 	ApplyFold(d, cfg)
 	if cfg.collapsed then return end
 	d.title:SetText(mode.label)
-	d.seg:SetText(mode.key == "threat" and ""
-		or (cfg.segment == "overall" and L["Overall"] or L["Current fight"]))
-
-	-- native path: a Blizzard session window renders this metric and
-	-- updates itself (combat-safe, real-time, own scrolling)
-	if mode.key ~= "threat" and ApplyNative(d, cfg, mode) then
-		d.contentH = 1
-		return
-	end
-	if d.native then NativeShown(d.native, false) end
+	local segLbl = cfg.segment == "session"
+		and (cfg.segName or ("#" .. tostring(cfg.segId)))
+		or (cfg.segment == "overall" and L["Overall"] or L["Current fight"])
+	d.seg:SetText(mode.key == "threat" and "" or segLbl)
+	d.mode = mode -- row clicks read metric+segment for the spell view
 
 	local n, top, err
 	if mode.key == "threat" then
@@ -565,7 +430,7 @@ local function UpdateDock(d, cfg)
 	elseif cfg.segment == "overall" then
 		n, top, err = CollectOverall(mode)
 	else
-		n, top, err = CollectMeter(mode, cfg.segment)
+		n, top, err = CollectMeter(mode, cfg)
 	end
 
 	local h = db.barHeight
@@ -582,6 +447,19 @@ local function UpdateDock(d, cfg)
 		local v = mode.perSec and src.aps or src.total
 		local frac = (IsN(v) and IsN(top) and top > 0) and min(v / top, 1) or 0
 		r.fill:SetWidth(max((db.width - 10) * frac, frac > 0 and 2 or 0.001))
+		r.src = src
+		if src.spec then
+			r.icon:SetTexture(src.spec)
+			r.icon:Show()
+			r.name:ClearAllPoints()
+			r.name:SetPoint("LEFT", r, "LEFT", 16, 0)
+			r.name:SetPoint("RIGHT", r, "RIGHT", -64, 0)
+		else
+			r.icon:Hide()
+			r.name:ClearAllPoints()
+			r.name:SetPoint("LEFT", r, "LEFT", 4, 0)
+			r.name:SetPoint("RIGHT", r, "RIGHT", -64, 0)
+		end
 		local cr, cg, cb = ClassColor(src.cls)
 		r.fill:SetVertexColor(cr, cg, cb, 0.85)
 		r.edge:SetVertexColor(0.92, 0.68, 0.20,
@@ -661,6 +539,178 @@ SetScroll = function(d, v)
 	UpdateThumb(d)
 end
 
+-- spell breakdown: left-click a row -> the player's top spells for the
+-- dock's metric+segment, via GetCombatSessionSourceFrom* (the same read
+-- Details uses for its own spell views). Spell ids/names can be secret -
+-- every field goes through Plain before it reaches a texture or font
+local spellWin
+local SPELL_ROWS = 12
+
+local function SpellRow(win, i)
+	local r = win.rows[i]
+	if r then return r end
+	r = CreateFrame("Frame", nil, win)
+	r:SetHeight(16)
+	r.bg = r:CreateTexture(nil, "BACKGROUND")
+	r.bg:SetAllPoints()
+	r.bg:SetTexture(BLANK)
+	r.bg:SetVertexColor(0.03, 0.04, 0.06, 0.7)
+	r.fill = r:CreateTexture(nil, "ARTWORK")
+	r.fill:SetTexture(BLANK)
+	r.fill:SetPoint("LEFT", r, "LEFT", 1, 0)
+	r.fill:SetPoint("TOP", r, "TOP", 0, -1)
+	r.fill:SetPoint("BOTTOM", r, "BOTTOM", 0, 1)
+	r.fill:SetVertexColor(0.92, 0.68, 0.20, 0.25)
+	r.icon = r:CreateTexture(nil, "ARTWORK", nil, 2)
+	r.icon:SetSize(12, 12)
+	r.icon:SetPoint("LEFT", r, "LEFT", 3, 0)
+	r.name = S.Font(r, 9, S.colors.text, "OUTLINE")
+	r.name:SetPoint("LEFT", r, "LEFT", 19, 0)
+	r.name:SetPoint("RIGHT", r, "RIGHT", -56, 0)
+	r.name:SetJustifyH("LEFT")
+	r.name:SetWordWrap(false)
+	r.val = S.Font(r, 9, S.colors.textDim, "OUTLINE")
+	r.val:SetPoint("RIGHT", r, "RIGHT", -4, 0)
+	r.val:SetJustifyH("RIGHT")
+	win.rows[i] = r
+	return r
+end
+
+local function BuildSpellWin()
+	spellWin = CreateFrame("Frame", "SentiUIMeterSpells", UIParent,
+		"BackdropTemplate")
+	S.Template(spellWin, "raised")
+	spellWin:SetClampedToScreen(true)
+	spellWin:SetFrameStrata("DIALOG")
+	spellWin:EnableMouse(true)
+	spellWin.title = S.Font(spellWin, 10, S.colors.accent)
+	spellWin.title:SetPoint("TOPLEFT", spellWin, "TOPLEFT", 8, -6)
+	spellWin.title:SetPoint("RIGHT", spellWin, "RIGHT", -24, 0)
+	spellWin.title:SetJustifyH("LEFT")
+	spellWin.sub = S.Font(spellWin, 8, S.colors.textDim)
+	spellWin.sub:SetPoint("TOPLEFT", spellWin.title, "BOTTOMLEFT", 0, -2)
+	spellWin.sub:SetJustifyH("LEFT")
+	local ln = S.Line(spellWin, S.colors.accent)
+	ln:SetPoint("TOPLEFT", spellWin, "TOPLEFT", 8, -32)
+	ln:SetPoint("TOPRIGHT", spellWin, "TOPRIGHT", -8, -32)
+	local cls = CreateFrame("Button", nil, spellWin)
+	cls:SetSize(14, 14)
+	cls:SetPoint("TOPRIGHT", spellWin, "TOPRIGHT", -4, -4)
+	local cfs = S.Font(cls, 10, S.colors.textDim)
+	cfs:SetPoint("CENTER")
+	cfs:SetText("x")
+	cls:SetScript("OnClick", function() spellWin:Hide() end)
+	spellWin.rows = {}
+	if S.EscClosable then S.EscClosable(spellWin) end
+	spellWin:Hide()
+end
+
+-- the per-source spell container: FromID for a picked session, FromType
+-- for live/overall. Returns nil when the client does not expose it
+local function SourceSpells(cfg, mode, guid)
+	if not DM or type(guid) ~= "string" then return nil end
+	local ok, s
+	if cfg.segment == "session" and IsN(cfg.segId)
+		and DM.GetCombatSessionSourceFromID then
+		ok, s = pcall(DM.GetCombatSessionSourceFromID,
+			cfg.segId, mode.type, guid)
+	elseif DM.GetCombatSessionSourceFromType then
+		local st = (cfg.segment == "overall") and SEG_OVERALL or SEG_CURRENT
+		ok, s = pcall(DM.GetCombatSessionSourceFromType,
+			st, mode.type, guid)
+	end
+	if not ok or type(s) ~= "table" then return nil end
+	if IsSecret(s) or (S.IsSecretTable and S.IsSecretTable(s)) then
+		return nil
+	end
+	return s
+end
+
+local function SpellName(sp)
+	local n = Plain(sp.creatureName)
+	if n then return n end
+	local id = Plain(sp.spellID)
+	if id and C_Spell and C_Spell.GetSpellInfo then
+		local ok, info = pcall(C_Spell.GetSpellInfo, id)
+		if ok and type(info) == "table" and type(info.name) == "string" then
+			return info.name
+		end
+	end
+	return id and ("#" .. tostring(id)) or "?"
+end
+
+local spellScratch = {}
+
+ShowSpells = function(d, src)
+	local cfg, mode = d.cfg, d.mode
+	if not (cfg and mode and mode.type and src.guid) then return end
+	if not spellWin then BuildSpellWin() end
+	local s = SourceSpells(cfg, mode, src.guid)
+	spellWin.title:SetText(tostring(src.name or "?"))
+	local segLbl = cfg.segment == "session"
+		and (cfg.segName or ("#" .. tostring(cfg.segId)))
+		or (cfg.segment == "overall" and L["Overall"] or L["Current fight"])
+	spellWin.sub:SetText(mode.label .. " - " .. segLbl)
+
+	wipe(spellScratch)
+	if s then
+		local cs = s.combatSpells
+		if type(cs) == "table"
+			and not (S.IsSecretTable and S.IsSecretTable(cs)) then
+			for _, sp in ipairs(cs) do
+				local total = Plain(sp.totalAmount)
+				if total then
+					spellScratch[#spellScratch + 1] = {
+						name = SpellName(sp),
+						icon = Plain(sp.spellID),
+						total = total,
+						aps = Plain(sp.amountPerSecond) or 0,
+					}
+				end
+			end
+		end
+	end
+	sort(spellScratch, function(a, b) return a.total > b.total end)
+
+	local n = min(#spellScratch, SPELL_ROWS)
+	local top = n > 0 and spellScratch[1].total or 0
+	for i = 1, n do
+		local sp = spellScratch[i]
+		local r = SpellRow(spellWin, i)
+		r:ClearAllPoints()
+		r:SetPoint("TOPLEFT", spellWin, "TOPLEFT", 6, -(36 + (i - 1) * 17))
+		r:SetPoint("TOPRIGHT", spellWin, "TOPRIGHT", -6, -(36 + (i - 1) * 17))
+		r.fill:SetWidth(max(210 * min(sp.total / top, 1), 2))
+		local tex
+		if sp.icon and C_Spell and C_Spell.GetSpellTexture then
+			local okT, t = pcall(C_Spell.GetSpellTexture, sp.icon)
+			if okT then tex = t end
+		end
+		if tex then r.icon:SetTexture(tex) r.icon:Show()
+		else r.icon:Hide() end
+		r.name:SetText(sp.name)
+		r.val:SetText(Abbrev(sp.total))
+		r:Show()
+	end
+	for i = n + 1, #spellWin.rows do spellWin.rows[i]:Hide() end
+	if n == 0 then
+		local r = SpellRow(spellWin, 1)
+		r:ClearAllPoints()
+		r:SetPoint("TOPLEFT", spellWin, "TOPLEFT", 6, -36)
+		r:SetPoint("TOPRIGHT", spellWin, "TOPRIGHT", -6, -36)
+		r.fill:SetWidth(0.001)
+		r.icon:Hide()
+		r.name:SetText(L["No spell data"])
+		r.val:SetText("")
+		r:Show()
+	end
+	spellWin:SetHeight(36 + max(n, 1) * 17 + 10)
+	spellWin:SetWidth(230)
+	spellWin:ClearAllPoints()
+	spellWin:SetPoint("TOPRIGHT", d, "TOPLEFT", -4, 0)
+	spellWin:Show()
+end
+
 -- mode/segment menu: one shared popup, rows built once - opening only
 -- re-marks the checks against the dock it currently serves
 local menu
@@ -709,8 +759,12 @@ local function BuildMenu()
 		b:SetScript("OnClick", function(self)
 			local cfg = menu.cfg
 			if not cfg then menu:Hide() return end
-			if self.row.mode then cfg.mode = self.row.mode
-			else cfg.segment = self.row.seg end
+			if self.row.mode then
+				cfg.mode = self.row.mode
+			else
+				cfg.segment = self.row.seg
+				cfg.segId, cfg.segName = nil, nil
+			end
 			UpdateDock(menu.dock, cfg)
 			menu:Hide()
 		end)
@@ -724,41 +778,34 @@ local function BuildMenu()
 	y = y + 8
 	Item({ label = L["Current fight"], seg = "current" })
 	Item({ label = L["Overall"], seg = "overall" })
-	local ln2 = S.Line(menu, S.colors.border)
-	ln2:SetPoint("TOPLEFT", menu, "TOPLEFT", 8, -(y + 2))
-	ln2:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -8, -(y + 2))
-	y = y + 8
+	-- session-history rows are pooled and laid out by ShowMenu; the
+	-- separator + tail buttons get anchored below whatever it produced
+	menu.sessY = y
+	menu.sessRows = {}
+	menu.line2 = S.Line(menu, S.colors.border)
+	-- tail buttons are re-anchored by ShowMenu below the session rows
+	local function Tail(txt, accent, fn)
+		local b = CreateFrame("Button", nil, menu)
+		b:SetHeight(18)
+		local hl2 = b:CreateTexture(nil, "HIGHLIGHT")
+		hl2:SetAllPoints()
+		hl2:SetColorTexture(0.92, 0.68, 0.20, 0.08)
+		b.fs = S.Font(b, 10, accent and S.colors.accent or S.colors.textDim)
+		b.fs:SetPoint("LEFT", 8, 0)
+		b.fs:SetText(txt)
+		b:SetScript("OnClick", fn)
+		return b
+	end
 	-- "+ New window": turns the next pool dock on and chains it to the
 	-- left of the shown ones (toward the action bars); hidden once all
 	-- four docks are live
-	local add = CreateFrame("Button", nil, menu)
-	add:SetHeight(18)
-	add:SetPoint("TOPLEFT", menu, "TOPLEFT", 6, -y)
-	add:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -6, -y)
-	local addHl = add:CreateTexture(nil, "HIGHLIGHT")
-	addHl:SetAllPoints()
-	addHl:SetColorTexture(0.92, 0.68, 0.20, 0.08)
-	add.fs = S.Font(add, 10, S.colors.accent)
-	add.fs:SetPoint("LEFT", 8, 0)
-	add.fs:SetText("+ " .. L["New window"])
-	add:SetScript("OnClick", function()
+	local add = Tail("+ " .. L["New window"], true, function()
 		AddDock()
 		menu:Hide()
 	end)
 	menu.addBtn = add
-	y = y + 19
 	-- "Reset data": same prompt the instance-join check raises
-	local rst = CreateFrame("Button", nil, menu)
-	rst:SetHeight(18)
-	rst:SetPoint("TOPLEFT", menu, "TOPLEFT", 6, -y)
-	rst:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -6, -y)
-	local rstHl = rst:CreateTexture(nil, "HIGHLIGHT")
-	rstHl:SetAllPoints()
-	rstHl:SetColorTexture(0.92, 0.68, 0.20, 0.08)
-	rst.fs = S.Font(rst, 10, S.colors.textDim)
-	rst.fs:SetPoint("LEFT", 8, 0)
-	rst.fs:SetText(L["Reset data"])
-	rst:SetScript("OnClick", function()
+	local rst = Tail(L["Reset data"], false, function()
 		menu:Hide()
 		if StaticPopup_Show then
 			StaticPopup_Show("SENTIUI_METERS_RESET")
@@ -767,31 +814,76 @@ local function BuildMenu()
 		end
 	end)
 	menu.resetBtn = rst
-	y = y + 19
 	-- "Close window": same effect as the title x - turns this dock off
-	local cls = CreateFrame("Button", nil, menu)
-	cls:SetHeight(18)
-	cls:SetPoint("TOPLEFT", menu, "TOPLEFT", 6, -y)
-	cls:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -6, -y)
-	local clsHl = cls:CreateTexture(nil, "HIGHLIGHT")
-	clsHl:SetAllPoints()
-	clsHl:SetColorTexture(0.92, 0.68, 0.20, 0.08)
-	cls.fs = S.Font(cls, 10, S.colors.textDim)
-	cls.fs:SetPoint("LEFT", 8, 0)
-	cls.fs:SetText(L["Close window"])
-	cls:SetScript("OnClick", function()
+	local cls = Tail(L["Close window"], false, function()
 		if menu.dock and menu.dock.cfg then
 			menu.dock.cfg.enabled = false
 		end
 		menu:Hide()
 		Core.RefreshAll()
 	end)
-	y = y + 19
-	menu.baseH = y + 6
-	menu:SetSize(170, menu.baseH)
+	menu.tail = { add, rst, cls }
+	menu:SetSize(170, 400)
 	menu:SetScript("OnHide", function() menu.dock, menu.cfg = nil, nil end)
 	if S.EscClosable then S.EscClosable(menu) end
 	menu:Hide()
+end
+
+-- pooled session-history row: same look as the static Items, but laid
+-- out fresh each open (sessions come and go)
+local MAX_SESS_ROWS = 8
+local function SessRowAt(i)
+	local b = menu.sessRows[i]
+	if b then return b end
+	b = CreateFrame("Button", nil, menu)
+	b:SetHeight(18)
+	local hl = b:CreateTexture(nil, "HIGHLIGHT")
+	hl:SetAllPoints()
+	hl:SetColorTexture(0.92, 0.68, 0.20, 0.08)
+	b.fs = S.Font(b, 10, S.colors.text)
+	b.fs:SetPoint("LEFT", 8, 0)
+	b.chk = S.Font(b, 10, S.colors.accent)
+	b.chk:SetPoint("RIGHT", -4, 0)
+	b:SetScript("OnClick", function(self)
+		local cfg = menu.cfg
+		if not cfg then menu:Hide() return end
+		if self.row then
+			cfg.segment = "session"
+			cfg.segId = self.row.segId
+			cfg.segName = self.row.segName
+			UpdateDock(menu.dock, cfg)
+		end
+		menu:Hide()
+	end)
+	menu.sessRows[i] = b
+	return b
+end
+
+-- past sessions newest-first; names/ids can be secret so both go
+-- through Plain
+local function SessionList()
+	local list = {}
+	if not (DM and DM.GetAvailableCombatSessions) then return list end
+	local ok, l = pcall(DM.GetAvailableCombatSessions)
+	if not ok or type(l) ~= "table"
+		or (S.IsSecretTable and S.IsSecretTable(l)) then
+		return list
+	end
+	for idx = #l, 1, -1 do
+		local info = l[idx]
+		if type(info) == "table" and not IsSecret(info)
+			and not (S.IsSecretTable and S.IsSecretTable(info)) then
+			local id = Plain(info.sessionID)
+			if id then
+				list[#list + 1] = {
+					id = id,
+					name = Plain(info.name) or (L["Session"] .. " " .. id),
+				}
+			end
+		end
+		if #list >= MAX_SESS_ROWS then break end
+	end
+	return list
 end
 
 local function ShowMenu(dock, cfg)
@@ -806,11 +898,46 @@ local function ShowMenu(dock, cfg)
 			(on and S.colors.accent or S.colors.text).g,
 			(on and S.colors.accent or S.colors.text).b)
 	end
-	-- "+ New window" only while a pool slot is still off; the menu
-	-- shrinks by a row when it is hidden
+	-- session history under the two fixed segment rows
+	local list = SessionList()
+	local y = menu.sessY
+	for i = 1, MAX_SESS_ROWS do
+		local b = SessRowAt(i)
+		local s = list[i]
+		if s then
+			b.row = { segId = s.id, segName = s.name }
+			b.fs:SetText(s.name)
+			local on = cfg.segment == "session" and cfg.segId == s.id
+			b.chk:SetText(on and "v" or "")
+			local c = on and S.colors.accent or S.colors.textDim
+			b.fs:SetTextColor(c.r, c.g, c.b)
+			b:ClearAllPoints()
+			b:SetPoint("TOPLEFT", menu, "TOPLEFT", 6, -y)
+			b:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -6, -y)
+			b:Show()
+			y = y + 19
+		else
+			b:Hide()
+		end
+	end
+	menu.line2:ClearAllPoints()
+	menu.line2:SetPoint("TOPLEFT", menu, "TOPLEFT", 8, -(y + 2))
+	menu.line2:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -8, -(y + 2))
+	y = y + 8
+	-- "+ New window" only while a pool slot is still off
 	local hasFree = NextFreeDock() ~= nil
-	menu.addBtn:SetShown(hasFree)
-	menu:SetHeight(menu.baseH - (hasFree and 0 or 19))
+	for _, btn in ipairs(menu.tail) do
+		if btn == menu.addBtn and not hasFree then
+			btn:Hide()
+		else
+			btn:ClearAllPoints()
+			btn:SetPoint("TOPLEFT", menu, "TOPLEFT", 6, -y)
+			btn:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -6, -y)
+			btn:Show()
+			y = y + 19
+		end
+	end
+	menu:SetHeight(y + 6)
 	menu:ClearAllPoints()
 	menu:SetPoint("TOPLEFT", dock, "BOTTOMLEFT", 0, -2)
 	menu:Show()
@@ -914,13 +1041,13 @@ local function BuildDock(i)
 		if not GameTooltip then return end
 		GameTooltip:SetOwner(self, "ANCHOR_TOP")
 		GameTooltip:AddLine(L["Right-click: meter settings"], 0.55, 0.57, 0.62)
+		GameTooltip:AddLine(L["Left-click a row: spell details"], 0.55, 0.57, 0.62)
 		GameTooltip:Show()
 	end)
 	d:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	d:SetScript("OnHide", function()
 		if menu and menu.dock == d then menu:Hide() end
-		-- the native window is parked over us, not parented: take it down
-		if d.native then NativeShown(d.native, false) end
+		if spellWin and spellWin:IsShown() then spellWin:Hide() end
 	end)
 
 	-- fixed size from the start: width/height are settings, the list
@@ -969,10 +1096,7 @@ local function RefreshAll()
 	for i, d in ipairs(docks) do
 		local cfg = db["dock" .. i]
 		d:SetShown(cfg.enabled == true)
-		if cfg.enabled then
-			EnsureNative(d, i)
-			UpdateDock(d, cfg)
-		elseif d.native then NativeShown(d.native, false) end
+		if cfg.enabled then UpdateDock(d, cfg) end
 	end
 end
 Core.RefreshAll = RefreshAll
@@ -1048,10 +1172,7 @@ function Core.Enable(mod)
 	-- width slimmed down in 0.1.4: migrate installs still parked on the
 	-- old default (a hand-picked width is left alone)
 	if db.width == 210 then db.width = 160 end
-	for i = 1, MAX_DOCKS do
-		local d = BuildDock(i)
-		EnsureNative(d, i)
-	end
+	for i = 1, MAX_DOCKS do BuildDock(i) end
 	Layout()
 	for i, d in ipairs(docks) do
 		S.Movers.Register(d, "meter." .. i, L["Meter"] .. " " .. i)

@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.0",
+		date = "2026-11-23",
+		changes = {
+			"Reworked the Details way: no more embedded Blizzard session windows at all - every dock renders C_DamageMeter data itself, so the Blizzard_DamageMeter error class is gone for good. New on top: spec icons on rows (specIconID), a real session history in the right-click menu (named past fights via GetAvailableCombatSessions), and a spell breakdown window on left-clicking a player row (top spells per metric+segment via GetCombatSessionSourceFrom*). Secret-table guards now cover combatSources, session lists and spell containers.",
+		},
+		changesDE = {
+			"Auf die Details-Art umgebaut: gar keine eingebetteten Blizzard-Session-Fenster mehr - jedes Dock rendert C_DamageMeter-Daten selbst, die komplette Blizzard_DamageMeter-Fehlerklasse ist damit weg. Obendrauf neu: Spec-Icons in den Zeilen (specIconID), echte Session-History im Rechtsklick-Menü (benannte Kämpfe via GetAvailableCombatSessions) und ein Zauber-Breakdown-Fenster per Linksklick auf eine Spielerzeile (Top-Zauber pro Metrik+Segment via GetCombatSessionSourceFrom*). Secret-Table-Guards decken jetzt combatSources, Session-Listen und Spell-Container ab.",
+		},
+	},
+	{
 		version = "0.2.3",
 		date = "2026-11-23",
 		changes = {
