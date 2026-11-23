@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.39 - 2026-11-24
+
+- FBL sync channel: 'invalid channel name' spam gone. JoinSync retried the 18-char preferred name every cycle (up to 30 times per session), printing the system error each pass. Names that miss their join check twice are now remembered in db.sync.badNames and skipped on all later attempts, converging on the FBLsync fallback like the standalone; if every name ever turns bad the marks reset and retry (transient failures).
+
 ## 0.5.38 - 2026-11-24
 
 - FBL send crash + false rejections: the channel drain could run before anything was queued (sendQueue nil, 'attempt to index upvalue'), and an over-strict SendAddonMessage result check treated a delivered send as failed, dropping whole payloads ('106 blocks rejected'). The queue now normalizes before drain and the send counts as sent on pcall success, matching the standalone.

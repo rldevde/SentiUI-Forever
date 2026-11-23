@@ -2,6 +2,15 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.39",
+		changes = {
+			"FBL sync channel: 'invalid channel name' spam gone. JoinSync retried the 18-char preferred name every cycle (up to 30 times per session), printing the system error each pass. Names that miss their join check twice are now remembered in db.sync.badNames and skipped on all later attempts, converging on the FBLsync fallback like the standalone; if every name ever turns bad the marks reset and retry (transient failures).",
+		},
+		changesDE = {
+			"FBL-Sync-Channel: 'Ungueltiger Channelname'-Spam weg. JoinSync versuchte den 18-Zeichen-Primaernamen in jedem Zyklus erneut (bis zu 30 Mal pro Session), jedes Mal mit Systemfehler. Namen, die ihren Join-Check zweimal verfehlen, werden jetzt in db.sync.badNames gemerkt und bei allen spaeteren Versuchen uebersprungen - konvergiert aufs FBLsync-Fallback wie der Standalone; werden alle Namen schlecht, werden die Markierungen zurueckgesetzt und erneut versucht (transiente Fehler).",
+		},
+	},
+	{
 		version = "0.5.38",
 		changes = {
 			"FBL send crash + false rejections: the channel drain could run before anything was queued (sendQueue nil, 'attempt to index upvalue'), and an over-strict SendAddonMessage result check treated a delivered send as failed, dropping whole payloads ('106 blocks rejected'). The queue now normalizes before drain and the send counts as sent on pcall success, matching the standalone.",

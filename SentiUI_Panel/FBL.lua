@@ -701,9 +701,37 @@ local OnJoined -- defined below
 local DataHash, QueueChannelSend, SendVersionPing, ProbeChanAddon -- sync block below
 
 local joinTries = 0
+local joinMisses = {} -- name -> failed DoJoin cycles this session
+
+-- channel names this client refuses (over its name-length limit):
+-- every DoJoin prints "invalid channel name", so a name that misses
+-- twice is persisted and never tried again - same rule the standalone
+-- applies when converging on the short fallback name
+local function ChanBad(name)
+	local s = DB().sync
+	return s and s.badNames and s.badNames[name] or nil
+end
+local function ChanMarkBad(name)
+	local s = DB().sync
+	if not s then return end
+	s.badNames = s.badNames or {}
+	s.badNames[name] = true
+	Log("info", format(L["Sync channel name '%s' refused; skipping it"], name))
+end
+
 local function JoinSync()
 	if chanNum or joinTries > 30 then return end
-	local names = { "ForeverBlackListed", "FBLsync" }
+	local names = {}
+	for _, name in ipairs({ "ForeverBlackListed", "FBLsync" }) do
+		if not ChanBad(name) then names[#names + 1] = name end
+	end
+	if not names[1] then
+		-- both names once marked bad: that was likely a transient
+		-- failure, not invalid names - clear the marks and retry all
+		local s = DB().sync
+		if s then s.badNames = nil end
+		names = { "ForeverBlackListed", "FBLsync" }
+	end
 	for _, name in ipairs(names) do
 		local n = ChanNum(name)
 		if n then
@@ -717,22 +745,33 @@ local function JoinSync()
 		C_Timer.After(1, JoinSync)
 		return
 	end
-	DoJoin(names[1])
+	local n1 = names[1]
+	DoJoin(n1)
 	C_Timer.After(3, function()
-		local n = ChanNum(names[1])
+		local n = ChanNum(n1)
 		if n then
-			chanNum, chanName = n, names[1]
+			chanNum, chanName = n, n1
 			OnJoined()
 			return
 		end
-		DoJoin(names[2])
+		joinMisses[n1] = (joinMisses[n1] or 0) + 1
+		if joinMisses[n1] >= 2 then ChanMarkBad(n1) end
+		local n2 = names[2]
+		if not n2 then
+			joinTries = joinTries + 1
+			C_Timer.After(5, JoinSync)
+			return
+		end
+		DoJoin(n2)
 		C_Timer.After(3, function()
-			local n2 = ChanNum(names[2])
-			if n2 then
-				chanNum, chanName = n2, names[2]
+			local n2num = ChanNum(n2)
+			if n2num then
+				chanNum, chanName = n2num, n2
 				OnJoined()
 				return
 			end
+			joinMisses[n2] = (joinMisses[n2] or 0) + 1
+			if joinMisses[n2] >= 2 then ChanMarkBad(n2) end
 			joinTries = joinTries + 1
 			C_Timer.After(5, JoinSync)
 		end)
