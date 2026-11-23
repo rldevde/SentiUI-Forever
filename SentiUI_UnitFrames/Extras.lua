@@ -311,13 +311,30 @@ function X.UpdateState(f)
 		sum:ClearAllPoints()
 		sum:SetPoint("CENTER", f, "CENTER", 0, 0)
 	end
-	-- offline: dim the whole frame
-	local okC, con = pcall(UnitIsConnected, f.unit)
-	local off = okC and ns.Plain(con) == false
+	-- offline: dim the whole frame. ns.IsOffline double-checks via
+	-- UnitIsVisible; the 3s hold catches the false reads the client hands
+	-- out while a member is zoning
+	local off = ns.IsOffline(f.unit)
+	if off and not f._offline then
+		f._offSince = f._offSince or GetTime()
+		if GetTime() - f._offSince < 3 then off = false end
+	else
+		f._offSince = nil
+	end
 	if off ~= f._offline then
 		f._offline = off
 		if f.Health then f.Health:SetAlpha(off and 0.4 or 1) end
-		if f.NameText and off then f.NameText:SetText("|cff888888offline|r") end
+		if f.NameText then
+			if off then
+				f._nameOff = true
+				f.NameText:SetText("|cff888888offline|r")
+			elseif f._nameOff then
+				-- restore the name: it stayed "offline" before
+				f._nameOff = nil
+				local okN, nm = pcall(UnitName, f.unit)
+				if okN and type(nm) == "string" then f.NameText:SetText(nm) end
+			end
+		end
 	end
 end
 

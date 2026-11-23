@@ -190,6 +190,19 @@ function ns.HealthColor(unit)
 	return ns.ReactionColor(unit)
 end
 
+-- offline check -------------------------------------------------------------------
+-- UnitIsConnected returns plainly-false for genuinely online members on
+-- this client (reads stay false for some units until relog). A unit we
+-- can actually see is by definition online, so the false read only
+-- counts when the unit is out of sight.
+function ns.IsOffline(unit)
+	local okC, conn = pcall(UnitIsConnected, unit)
+	if not (okC and ns.Plain(conn) == false) then return false end
+	local okV, vis = pcall(UnitIsVisible, unit)
+	if okV and ns.Plain(vis) == true then return false end
+	return true
+end
+
 -- status text ---------------------------------------------------------------------
 function ns.StatusText(unit)
 	local ok, dead = pcall(UnitIsDeadOrGhost, unit)
@@ -198,10 +211,7 @@ function ns.StatusText(unit)
 		if okG and ns.Plain(ghost) then return L["Ghost"], 0.8, 0.8, 0.8 end
 		return L["Dead"], 0.85, 0.3, 0.3
 	end
-	local okC, conn = pcall(UnitIsConnected, unit)
-	-- only plainly-false counts: a secret connected flag read as nil
-	-- and marked everyone offline
-	if okC and ns.Plain(conn) == false then return L["Offline"], 0.6, 0.6, 0.6 end
+	if ns.IsOffline(unit) then return L["Offline"], 0.6, 0.6, 0.6 end
 	local okA, afk = pcall(UnitIsAFK, unit)
 	if okA and ns.Plain(afk) then return L["AFK"], 0.9, 0.7, 0.2 end
 	local okD, dnd = pcall(UnitIsDND, unit)

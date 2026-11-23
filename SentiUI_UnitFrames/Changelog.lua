@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.37",
+		date = "2026-11-23",
+		changes = {
+			"Members no longer stick on 'offline' while online: UnitIsConnected can return plainly-false for visible units on this client, so the check now double-checks via UnitIsVisible (a unit we can see is online by definition), holds the flag for 3s to survive zoning flicker, and the name text is restored when the member reads connected again.",
+		},
+		changesDE = {
+			"Mitglieder bleiben nicht mehr auf 'offline' kleben, obwohl sie online sind: UnitIsConnected kann auf diesem Client für sichtbare Einheiten fälschlich false liefern - der Check prüft jetzt per UnitIsVisible gegen (eine sichtbare Einheit ist per Definition online), hält das Flag 3s gegen Zonen-Flackern und der Namenstext wird restauriert, sobald das Mitglied wieder als verbunden gelesen wird.",
+		},
+	},
+	{
 		version = "0.2.36",
 		date = "2026-11-23",
 		changes = {

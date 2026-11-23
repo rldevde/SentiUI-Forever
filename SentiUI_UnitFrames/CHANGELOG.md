@@ -1,5 +1,9 @@
 # SentiUI Unit Frames
 
+## 0.2.37 - 2026-11-23
+
+- Members no longer stick on "offline" while online: `UnitIsConnected` can return plainly-false for visible units on this client, so the check now double-checks via `UnitIsVisible` (a unit we can see is online by definition), holds the flag for 3s to survive zoning flicker, and the name text is restored when the member reads connected again.
+
 ## 0.2.36 - 2026-11-23
 
 - Castbar visual pass (player/target — also covers interact casts like opening chests): raised panel with the same 0.70-alpha gold border as the frames above, darker unfilled area + top-fade glass sheen, spell icon now sits in its own inset tile, and the uninterruptible shield moved onto the icon corner (Blizzard-style badge).
