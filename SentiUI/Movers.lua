@@ -79,6 +79,17 @@ local function Place(frame, point, x, y)
 	frame:SetPoint(point, UIParent, point, x / f2u, y / f2u)
 end
 
+-- raw-anchor fallback for when rect math is impossible: GetCenter/GetSize
+-- can come back secret inside hardware handlers (drag/key callbacks) on
+-- this client. The frame's own first anchor against UIParent stores and
+-- restores verbatim - same units out, same units in.
+local function RawAnchor(frame)
+	local ok, a1, rel, a3, x, y = pcall(frame.GetPoint, frame, 1)
+	if not ok or not a1 or rel ~= UIParent then return nil end
+	if S.IsSecret(a1) or S.IsSecret(x) or S.IsSecret(y) then return nil end
+	return a1, a3 or a1, x or 0, y or 0
+end
+
 -- registration -------------------------------------------------------------------------
 -- opts.scale:  truthy = mouse wheel on the handle scales the frame
 -- opts.proxy:  the frame is placed by something else; the handle moves and
@@ -136,7 +147,12 @@ function M.Apply(key)
 	if e.proxy then applyScale(e) return end
 	local pos = S.DB.Positions()[key]
 	S.RunOutOfCombat(function()
-		if type(pos) == "table" and pos.point then
+		if type(pos) == "table" and pos.point and pos.raw then
+			-- verbatim anchor replay (the secret-reads fallback wrote it)
+			pcall(e.frame.ClearAllPoints, e.frame)
+			pcall(e.frame.SetPoint, e.frame, pos.point, UIParent,
+				pos.rel or pos.point, pos.x or 0, pos.y or 0)
+		elseif type(pos) == "table" and pos.point then
 			pcall(Place, e.frame, pos.point, pos.x or 0, pos.y or 0)
 		elseif type(pos) == "table" and type(pos.x) == "number" then
 			-- legacy center-offset positions from the first mover pass
@@ -161,18 +177,30 @@ local function save(e)
 	-- proxy movers carry their position on the handle, not the frame
 	local src = (e.proxy and e.handle) or e.frame
 	local point, x, y = NearestAnchor(src)
-	if not point then return end -- unreadable rect: keep the old position
-	S.DB.Positions()[e.key] = { point = point, x = x, y = y }
+	if point then
+		S.DB.Positions()[e.key] = { point = point, x = x, y = y }
+	else
+		-- rect reads came back secret: store the raw UIParent anchor
+		-- instead - losing the position is the snap-back bug, a slightly
+		-- different anchor shape is not
+		local p, rp, rx, ry = RawAnchor(src)
+		if not p then return end -- truly unreadable: keep the old position
+		S.DB.Positions()[e.key] =
+			{ point = p, rel = rp, x = rx, y = ry, raw = true }
+	end
 	if e.onMoved then S.SafeCall("mover:" .. e.key, e.onMoved, e.key) end
 	S.Fire("MoversChanged")
 end
 
 -- public save for registered frames that are dragged directly, outside
 -- move mode (e.g. bag windows by their title bar): persists the position
--- through the mover DB so Apply/Reset stay authoritative
+-- through the mover DB so Apply/Reset stay authoritative. The write is
+-- deferred one tick because callers run inside drag handlers, where
+-- rect reads on this client answer secret and the save would skip.
 function M.Save(key)
 	local e = entries[key]
-	if e then save(e) end
+	if not e then return end
+	C_Timer.After(0, function() save(e) end)
 end
 
 function M.Reset(key)
@@ -298,9 +326,11 @@ end
 local function Nudge(e, dx, dy)
 	if InCombatLockdown() then return end
 	local point, x, y = NearestAnchor(e.frame)
-	if not point then return end
-	Place(e.frame, point, x + dx, y + dy)
-	save(e)
+	if point then
+		Place(e.frame, point, x + dx, y + dy)
+	end
+	-- keyboard callbacks share the secret-read problem: write next tick
+	C_Timer.After(0, function() save(e) end)
 end
 
 local ARROWS = { UP = { 0, 1 }, DOWN = { 0, -1 }, LEFT = { -1, 0 }, RIGHT = { 1, 0 } }
@@ -335,22 +365,46 @@ local function makeHandle(e)
 			h:SetMovable(true)
 			h:StartMoving()
 		else
-			e.frame:SetMovable(true)
-			e.frame:StartMoving()
+			-- a frame born under combat lockdown is protected and
+			-- StartMoving throws - then the HANDLE drags instead and the
+			-- frame is parked on its drop spot
+			local ok = pcall(e.frame.SetMovable, e.frame, true)
+			ok = ok and pcall(e.frame.StartMoving, e.frame)
+			if not ok then
+				e._hDrag = true
+				h:SetMovable(true)
+				h:StartMoving()
+			end
 		end
 	end)
 	h:SetScript("OnDragStop", function()
 		if InCombatLockdown() then return end
 		if e.proxy then
 			h:StopMovingOrSizing()
-			save(e)
+			-- defer the write one tick: rect reads inside the hardware
+			-- handler answer secret on this client and the save skips -
+			-- a skipped save is exactly how a moved frame snaps back
+			C_Timer.After(0, function() save(e) end)
+		elseif e._hDrag then
+			e._hDrag = nil
+			h:StopMovingOrSizing()
+			C_Timer.After(0, function()
+				-- park the frame where the handle landed
+				local pt, x, y = NearestAnchor(h)
+				if pt then
+					pcall(Place, e.frame, pt, x, y)
+				end
+				save(e)
+				RefreshHandle(e)
+			end)
 		else
 			e.frame:StopMovingOrSizing()
-			-- a failing snap must not take the save down with it - a
-			-- skipped save is exactly how a moved frame snaps back
-			pcall(snapFrame, e)
-			save(e)
-			RefreshHandle(e)
+			C_Timer.After(0, function()
+				-- a failing snap must not take the save down with it
+				pcall(snapFrame, e)
+				save(e)
+				RefreshHandle(e)
+			end)
 		end
 	end)
 	h:SetScript("OnMouseDown", function(_, button)

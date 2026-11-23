@@ -25,6 +25,18 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.3.40",
+		date = "2026-11-23",
+		changes = {
+			"Mover snap-back fix: dragged frames returned to their default position because rect reads (GetCenter/GetSize) answer secret inside the drag/keyboard hardware handlers on this client, so the save silently skipped. Saves now run one tick later where reads are plain, fall back to storing the raw UIParent anchor when the rect is still unreadable, and M.Save (window title drags) defers the same way.",
+			"Protected frames can be moved now: when a frame refuses StartMoving (born under combat lockdown) the drag handle moves instead and the frame is parked on its drop spot.",
+		},
+		changesDE = {
+			"Mover-Ruecksprung-Fix: gezogene Frames sprangen auf die Standardposition zurueck, weil Rect-Reads (GetCenter/GetSize) innerhalb der Drag-/Tastatur-Hardware-Handler auf diesem Client secret antworten und das Speichern still uebersprang. Saves laufen jetzt einen Tick spaeter wo die Reads normal sind, fallen im Notfall auf den rohen UIParent-Anker zurueck, und M.Save (Fenster-Titel-Drags) deferred genauso.",
+			"Geschuetzte Frames sind jetzt verschiebbar: verweigert ein Frame StartMoving (unter Combat-Lockdown geboren), zieht stattdessen der Drag-Handle und der Frame wird auf dessen Zielposition geparkt.",
+		},
+	},
+	{
 		version = "0.3.39",
 		date = "2026-11-22",
 		changes = {

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.40 - 2026-11-23
+
+- Mover snap-back fix: dragged frames returned to their default position because rect reads (GetCenter/GetSize) answer secret inside the drag/keyboard hardware handlers on this client, so the save silently skipped. Saves now run one tick later where reads are plain, fall back to storing the raw UIParent anchor when the rect is still unreadable, and M.Save (window title drags) defers the same way.
+- Protected frames can be moved now: when a frame refuses StartMoving (born under combat lockdown) the drag handle moves instead and the frame is parked on its drop spot.
+
 ## 0.3.39 - 2026-11-22
 
 - Design system overhaul: `S.Template` now gives `raised`/`gold` panels a soft Sentinel gold border tint. `PillReady` re-enabled — when `make_edges.py` has been run all panels get smooth rounded corners via edgeFile backdrop (no pixelated raster arcs). `S.SetBorderLit` restores the saved border colour on hover-off. `S.TabChip` shows a gold border when selected.
