@@ -32,6 +32,7 @@ ns.Core = Core
 local db
 local docks = {}
 local ticker
+local accStore, seenStore -- SavedVariables: running totals + last reads
 
 local function IsN(v) return type(v) == "number" and not IsSecret(v) end
 local function Plain(v)
@@ -96,7 +97,128 @@ local function SessionFor(mtype, segment)
 	return s
 end
 
+local function SessionByID(id, mtype)
+	if not (DM and DM.GetCombatSessionFromID and id) then return nil end
+	local ok, s = pcall(DM.GetCombatSessionFromID, id, mtype)
+	if not ok or type(s) ~= "table" or type(s.combatSources) ~= "table" then
+		return nil
+	end
+	return s
+end
+
+local function SessDur(v)
+	if not (DM and DM.GetSessionDurationSeconds) then return 0 end
+	local ok, d = pcall(DM.GetSessionDurationSeconds, v)
+	if ok and IsN(d) then return d end
+	return 0
+end
+
 local scratch = {}
+
+-- the running "overall" is OUR OWN accumulator fed by every session the
+-- client reports - expired IDs plus the live current one. Totals persist
+-- in SavedVariables, so the list survives reloads; only positive deltas
+-- are added, so re-reading the same session never double counts.
+local function AccFor(mkey)
+	local a = accStore[mkey]
+	if not a then a = { dur = 0, rows = {} }; accStore[mkey] = a end
+	if not a.rows then a.rows = {} end
+	return a
+end
+
+local function UpdateAccum(mkey, mtype)
+	local acc = AccFor(mkey)
+	local seen = seenStore[mkey] or {}
+	local newSeen = {}
+	local hadSessions = next(seen) ~= nil
+	local liveSessions = 0
+	local function Feed(skey, session, dur)
+		local prev = seen[skey]
+		local rec = { dur = dur or 0 }
+		local dd = (dur or 0) - (prev and prev.dur or 0)
+		if dd > 0 then acc.dur = (acc.dur or 0) + dd end
+		for _, src in ipairs(session.combatSources) do
+			local total = Plain(src.totalAmount)
+			if total then
+				local key = Plain(src.sourceGUID) or Plain(src.name) or "?"
+				rec[key] = total
+				local d = total - (prev and prev[key] or 0)
+				if d > 0 then
+					local row = acc.rows[key]
+					if not row then
+						row = {
+							name = Plain(src.name) or "?",
+							cls = Plain(src.classFilename),
+							total = 0,
+							self_ = Plain(src.isLocalPlayer) == true or nil,
+						}
+						acc.rows[key] = row
+					end
+					row.total = row.total + d
+					local nm = Plain(src.name)
+					if nm then row.name = nm end
+				end
+			end
+		end
+		newSeen[skey] = rec
+	end
+	if DM and DM.GetAvailableCombatSessions then
+		local ok, list = pcall(DM.GetAvailableCombatSessions)
+		if ok and type(list) == "table" then
+			for _, info in ipairs(list) do
+				local id = info and Plain(info.sessionID)
+				if id then
+					liveSessions = liveSessions + 1
+					local s = SessionByID(id, mtype)
+					if s then
+						local d = Plain(info.durationSeconds) or SessDur(id)
+						Feed("s" .. tostring(id), s, d)
+					end
+				end
+			end
+		end
+	end
+	local cur = SessionFor(mtype, "current")
+	if cur then Feed("cur", cur, SessDur(SEG_CURRENT)) end
+	-- full external reset: every session we remembered is gone and the
+	-- client stores nothing - drop the accumulated totals as well
+	if hadSessions and liveSessions == 0 and not cur then
+		acc.dur = 0
+		wipe(acc.rows)
+	end
+	seenStore[mkey] = newSeen
+end
+
+-- overall = accumulated totals across all fights, counting live
+local function CollectOverall(mode)
+	wipe(scratch)
+	if not (mode.type and DM) then return 0, 0, true end
+	UpdateAccum(mode.key, mode.type)
+	local acc = accStore[mode.key]
+	local dur = (acc and acc.dur) or 0
+	local top = 0
+	for key, row in pairs(acc and acc.rows or {}) do
+		local r = {
+			name = row.name,
+			cls = row.cls,
+			guid = (type(key) == "string" and key:sub(1, 7) == "Player-")
+				and key or nil,
+			total = row.total or 0,
+			aps = dur > 0 and (row.total or 0) / dur or 0,
+			self_ = row.self_,
+		}
+		scratch[#scratch + 1] = r
+		local v = mode.perSec and r.aps or r.total
+		if v > top then top = v end
+	end
+	sort(scratch, function(a, b)
+		local va = mode.perSec and a.aps or a.total
+		local vb = mode.perSec and b.aps or b.total
+		return va > vb
+	end)
+	return #scratch, top, false
+end
+
 -- fills scratch with { name, cls, guid, total, aps }; returns count, max
 local function CollectMeter(mode, segment)
 	wipe(scratch)
@@ -228,6 +350,8 @@ local function UpdateDock(d, cfg)
 	local n, top, err
 	if mode.key == "threat" then
 		n, top, err = CollectThreat()
+	elseif cfg.segment == "overall" then
+		n, top, err = CollectOverall(mode)
 	else
 		n, top, err = CollectMeter(mode, cfg.segment)
 	end
@@ -328,7 +452,7 @@ end
 -- mode/segment menu: one shared popup, rows built once - opening only
 -- re-marks the checks against the dock it currently serves
 local menu
-local AddDock, NextFreeDock -- forward: menu rows call both below
+local AddDock, NextFreeDock, ResetMeters -- forward: menu rows call these
 
 local function BuildMenu()
 	menu = CreateFrame("Frame", "SentiUIMeterMenu", UIParent,
@@ -410,6 +534,27 @@ local function BuildMenu()
 		menu:Hide()
 	end)
 	menu.addBtn = add
+	y = y + 19
+	-- "Reset data": same prompt the instance-join check raises
+	local rst = CreateFrame("Button", nil, menu)
+	rst:SetHeight(18)
+	rst:SetPoint("TOPLEFT", menu, "TOPLEFT", 6, -y)
+	rst:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -6, -y)
+	local rstHl = rst:CreateTexture(nil, "HIGHLIGHT")
+	rstHl:SetAllPoints()
+	rstHl:SetColorTexture(0.92, 0.68, 0.20, 0.08)
+	rst.fs = S.Font(rst, 10, S.colors.textDim)
+	rst.fs:SetPoint("LEFT", 8, 0)
+	rst.fs:SetText(L["Reset data"])
+	rst:SetScript("OnClick", function()
+		menu:Hide()
+		if StaticPopup_Show then
+			StaticPopup_Show("SENTIUI_METERS_RESET")
+		else
+			ResetMeters()
+		end
+	end)
+	menu.resetBtn = rst
 	y = y + 19
 	menu.baseH = y + 6
 	menu:SetSize(170, menu.baseH)
@@ -569,14 +714,79 @@ AddDock = function()
 	RefreshAll()
 end
 
+-- wipe: the client's sessions AND our own accumulated overall rows
+ResetMeters = function()
+	if DM and DM.ResetAllCombatSessions then
+		pcall(DM.ResetAllCombatSessions)
+	end
+	if accStore then wipe(accStore) end
+	if seenStore then wipe(seenStore) end
+	RefreshAll()
+end
+
+-- any stored data worth a reset prompt?
+local function HasMeterData()
+	for _, a in pairs(accStore or {}) do
+		if a.rows then
+			for _, r in pairs(a.rows) do
+				if (r.total or 0) > 0 then return true end
+			end
+		end
+	end
+	if DM and DM.GetAvailableCombatSessions then
+		local ok, l = pcall(DM.GetAvailableCombatSessions)
+		if ok and type(l) == "table" and #l > 0 then return true end
+	end
+	local s = SessionFor(DT.DamageDone, "current")
+	return s ~= nil and #s.combatSources > 0
+end
+
+-- entering an instance asks once whether to reset the meter lists;
+-- the flag releases when the player leaves so the next entry asks again
+local resetAsked
+local function CheckInstance()
+	local inInst = IsInInstance and IsInInstance() or false
+	if inInst and not resetAsked and HasMeterData() then
+		resetAsked = true
+		if StaticPopup_Show then
+			StaticPopup_Show("SENTIUI_METERS_RESET")
+		elseif S.Print then
+			S.Print(L["Meter data - reset via the window menu."])
+		end
+	elseif not inInst then
+		resetAsked = false
+	end
+end
+
 function Core.Enable(mod)
 	db = mod.db
+	-- persisted running totals + per-session last reads (the accumulator
+	-- is SavedVariables on purpose: lists must survive reloads)
+	db.acc = db.acc or {}
+	db.seen = db.seen or {}
+	accStore, seenStore = db.acc, db.seen
 	for i = 1, MAX_DOCKS do BuildDock(i) end
 	Layout()
 	for i, d in ipairs(docks) do
 		S.Movers.Register(d, "meter." .. i, L["Meter"] .. " " .. i)
 	end
 	RefreshAll()
+	-- reset prompt on instance entry (the client keeps sessions across
+	-- reloads, so without a wipe the lists would never clear)
+	if StaticPopupDialogs then
+		StaticPopupDialogs["SENTIUI_METERS_RESET"] = {
+			text = L["Reset damage meter data?"],
+			button1 = YES or "Yes",
+			button2 = NO or "No",
+			OnAccept = ResetMeters,
+			timeout = 0,
+			whileDead = true,
+			hideOnEscape = true,
+			preferredIndex = 3,
+		}
+	end
+	S.RegisterEvent("PLAYER_ENTERING_WORLD", CheckInstance)
+	S.RegisterEvent("ZONE_CHANGED_NEW_AREA", CheckInstance)
 	-- the chat panels may not exist yet when we enable; retry the
 	-- default anchor once they had time to spawn (saved positions win)
 	C_Timer.After(3, Layout)

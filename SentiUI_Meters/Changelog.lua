@@ -4,6 +4,20 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.3",
+		date = "2026-11-23",
+		changes = {
+			"Running overall: the 'Overall' segment is now a real accumulated total - every session the client reports (expired fights plus the live one) is summed per source and keeps counting through new fights. Interrupts, dispels, deaths and every other metric accumulate the same way.",
+			"Lists survive reloads: the accumulator lives in the saved variables, so overall data is still there after /reload or relog instead of resetting.",
+			"Reset prompt: entering an instance with stored meter data asks whether to reset the lists (Yes = C_DamageMeter.ResetAllCombatSessions + the saved accumulator). The window menu also got a 'Reset data' entry that raises the same prompt.",
+		},
+		changesDE = {
+			"Durchzaehlender Gesamtwert: das Segment 'Gesamt' ist jetzt eine echte Summe - jede Session die der Client meldet (abgelaufene Kaempfe plus der laufende) wird pro Quelle aufsummiert und zaehlt ueber Kaempfe hinweg weiter. Unterbrechungen, Bannungen, Tode und jede andere Metrik summieren genauso.",
+			"Listen ueberleben Reloads: der Akkumulator liegt in den SavedVariables, Gesamt-Daten bleiben nach /reload oder Relog erhalten statt zurueckzusetzen.",
+			"Reset-Abfrage: beim Betreten einer Instanz mit vorhandenen Meter-Daten fragt ein Dialog, ob die Listen zurueckgesetzt werden sollen (Ja = C_DamageMeter.ResetAllCombatSessions + gespeicherter Akkumulator). Das Fenstermenue bekam ebenfalls einen 'Daten zuruecksetzen'-Eintrag mit demselben Dialog.",
+		},
+	},
+	{
 		version = "0.1.2",
 		date = "2026-11-23",
 		changes = {

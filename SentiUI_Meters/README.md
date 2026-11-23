@@ -15,7 +15,9 @@ Each window is configured on its own: right-click a window's title for the
 metric and segment menu (current fight / overall), or use the SentiUI
 options page (SentiUI > Meters). A `+ New window` entry at the bottom of
 that menu turns on the next free window (up to four); it docks onto the
-left edge of the last shown one, toward the action bars.
+left edge of the last shown one, toward the action bars. `Reset data`
+wipes all lists after a confirmation prompt - the same prompt pops up on
+instance entry while stored data exists.
 
 ## Layout
 
@@ -32,6 +34,9 @@ left edge of the last shown one, toward the action bars.
 
 ## Notes
 
+- Overall is a real accumulated total: every session the client reports
+  (expired fights + the live one) is summed per source into saved
+  variables - it keeps counting through fights and survives /reload.
 - Secret-value safe: meter answers can be secret on this client; such rows
   are skipped and a "Data hidden" hint shows instead.
 - Threat mode needs an attackable target; without one the window shows

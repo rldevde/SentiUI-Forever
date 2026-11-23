@@ -1,5 +1,11 @@
 # SentiUI Meters
 
+## 0.1.3 - 2026-11-23
+
+- Running overall: the 'Overall' segment is now a real accumulated total - every session the client reports (expired fights plus the live one) is summed per source and keeps counting through new fights. Interrupts, dispels, deaths and every other metric accumulate the same way.
+- Lists survive reloads: the accumulator lives in the saved variables, so overall data is still there after /reload or relog instead of resetting.
+- Reset prompt: entering an instance with stored meter data asks whether to reset the lists (Yes = C_DamageMeter.ResetAllCombatSessions + the saved accumulator). The window menu also got a 'Reset data' entry that raises the same prompt.
+
 ## 0.1.2 - 2026-11-23
 
 - More windows: the meter menu got a '+ New window' entry that turns on the next pool dock (up to four) and chains it onto the left edge of the previous shown one, toward the action bars - each with its own metric and segment like the first two.
