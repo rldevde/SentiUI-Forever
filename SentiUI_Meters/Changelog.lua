@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.2",
+		date = "2026-11-23",
+		changes = {
+			"Fixed the Blizzard_DamageMeter 'secret durationSeconds' error: Blizzard's session-timer path compares a secret number and throws whenever it runs inside our tainted call (Show -> UpdateShownState -> UpdateSessionTimerState). The timer is stripped chrome for us anyway, so windows we own get the whole session-timer path stubbed out before Show() can reach it.",
+		},
+		changesDE = {
+			"Den Blizzard_DamageMeter-Fehler 'secret durationSeconds' behoben: Blizzards Session-Timer-Pfad vergleicht eine Secret-Number und wirft, sobald er in unserem getainteten Call läuft (Show -> UpdateShownState -> UpdateSessionTimerState). Der Timer ist für uns ohnehin gestrippte Chrome - unsere Fenster bekommen den kompletten Session-Timer-Pfad stillgelegt, bevor Show() ihn erreichen kann.",
+		},
+	},
+	{
 		version = "0.2.1",
 		date = "2026-11-23",
 		changes = {

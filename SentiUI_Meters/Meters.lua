@@ -138,6 +138,26 @@ local function StripNativeChrome(w)
 	end
 end
 
+local function noop() end
+
+-- SetSessionDuration compares combatSession.durationSeconds - a SECRET
+-- number - and throws whenever that path runs inside our tainted call
+-- (w:Show -> UpdateShownState -> UpdateSessionTimerState). The session
+-- timer is stripped chrome for us anyway, so disable the whole path on
+-- windows we own: instance fields shadow the mixin methods, and every
+-- step is called via self: dispatch so the stubs intercept it
+local function NeutralizeSessionTimer(w)
+	for _, m in ipairs({
+		"SetSessionDuration", "ShowSessionTimerFromCombatSession",
+		"ShowSessionTimer", "HideSessionTimer", "UpdateSessionTimerState",
+	}) do
+		if w[m] ~= nil then pcall(function() w[m] = noop end) end
+	end
+	if w.SessionTimer and w.SessionTimer.Hide then
+		pcall(w.SessionTimer.Hide, w.SessionTimer)
+	end
+end
+
 local function NativeLooks(w)
 	if not DMGR then return end
 	if type(DMGR.SetUseClassColor) == "function" then
@@ -161,6 +181,7 @@ local function EmbedNative(d, i)
 	local w = AcquireWindow(i)
 	if not w then return nil end
 	d.native = w
+	NeutralizeSessionTimer(w) -- before Show(): its OnShow walks the timer
 	pcall(w.ClearAllPoints, w)
 	pcall(w.SetPoint, w, "TOPLEFT", d.view, "TOPLEFT", 0, 0)
 	pcall(w.SetPoint, w, "BOTTOMRIGHT", d.view, "BOTTOMRIGHT", 0, 0)

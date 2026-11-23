@@ -1,5 +1,9 @@
 # SentiUI Meters
 
+## 0.2.2 - 2026-11-23
+
+- Fixed the `Blizzard_DamageMeter` "secret durationSeconds" error: Blizzard's session-timer path compares a secret number and throws whenever it runs inside our tainted call (`Show → UpdateShownState → UpdateSessionTimerState`). The timer is stripped chrome for us anyway, so windows we own get the whole session-timer path stubbed out before `Show()` can reach it.
+
 ## 0.2.1 - 2026-11-23
 
 - Hardened every call into the Blizzard DamageMeter objects: session-window enumeration, entry-frame walks, children/regions, anchoring and Show/Hide are all pcall'd now — an error raised inside Blizzard code showed up as a `Blizzard_DamageMeter` error, not ours. `SetSession` also falls back to the bare `(type)` signature if the `(type, id)` form is rejected.
