@@ -70,6 +70,151 @@ local function ModeFor(key)
 	return ModeByKey[key] or MODES[1]
 end
 
+-- native session windows -----------------------------------------------------
+-- Blizzard's own DamageMeter session windows update themselves with
+-- trusted code - they refresh in combat where our Lua rows can't. Each
+-- dock claims one and anchors it inside its view; threat mode keeps the
+-- custom renderer (no DamageMeterType exists for it).
+local DMGR = DamageMeter -- the Blizzard manager global (may be nil early)
+
+local function AcquireWindow(i)
+	if not (DMGR and type(DMGR.ForEachSessionWindow) == "function") then
+		return nil
+	end
+	-- diff the set: ShowNewSessionWindow's return is unreliable, the new
+	-- window simply appears in the enumeration
+	local before = {}
+	DMGR:ForEachSessionWindow(function(w)
+		if w then before[w] = true end
+	end)
+	if type(DMGR.ShowNewSessionWindow) == "function" then
+		pcall(DMGR.ShowNewSessionWindow, DMGR)
+	end
+	local found
+	DMGR:ForEachSessionWindow(function(w)
+		if w and not before[w] and not w._sentiDock and not found then
+			found = w
+		end
+	end)
+	if not found then
+		-- nothing new spawned (pool cap?) - reuse an untagged window
+		DMGR:ForEachSessionWindow(function(w)
+			if w and not w._sentiDock and not found then found = w end
+		end)
+	end
+	if found then found._sentiDock = i end
+	return found
+end
+
+-- the session window ships its own header/dropdown/chrome; we keep only
+-- the direct child that hosts the entry rows and fade the rest
+local function StripNativeChrome(w)
+	local keep
+	if type(w.ForEachEntryFrame) == "function" then
+		w:ForEachEntryFrame(function(e)
+			if keep then return end
+			local p = e and e.GetParent and e:GetParent()
+			while p and p.GetParent and p:GetParent() and p:GetParent() ~= w do
+				p = p:GetParent()
+			end
+			if p and p:GetParent() == w then keep = p end
+		end)
+	end
+	for _, c in ipairs({ w:GetChildren() }) do
+		if c ~= keep and type(c) == "table" then
+			pcall(c.SetAlpha, c, 0)
+			pcall(c.EnableMouse, c, false)
+		end
+	end
+	for _, r in ipairs({ w:GetRegions() }) do
+		if r and r.SetAlpha then pcall(r.SetAlpha, r, 0) end
+	end
+end
+
+local function NativeLooks(w)
+	if not DMGR then return end
+	if type(DMGR.SetUseClassColor) == "function" then
+		pcall(DMGR.SetUseClassColor, DMGR, true)
+	end
+	if type(DMGR.SetShowBarIcons) == "function" then
+		pcall(DMGR.SetShowBarIcons, DMGR, true)
+	end
+	if type(DMGR.SetBarHeight) == "function" then
+		pcall(DMGR.SetBarHeight, DMGR, db.barHeight)
+	end
+	if type(DMGR.SetBarSpacing) == "function" then
+		pcall(DMGR.SetBarSpacing, DMGR, db.spacing)
+	end
+	if w.RefreshLayout then pcall(w.RefreshLayout, w) end
+end
+
+-- parked OVER the dock's view (no reparent - the manager may re-anchor
+-- its children internally); it follows our frame through its anchors
+local function EmbedNative(d, i)
+	local w = AcquireWindow(i)
+	if not w then return nil end
+	d.native = w
+	w:ClearAllPoints()
+	w:SetPoint("TOPLEFT", d.view, "TOPLEFT", 0, 0)
+	w:SetPoint("BOTTOMRIGHT", d.view, "BOTTOMRIGHT", 0, 0)
+	if w.SetFrameLevel and d.view.GetFrameLevel then
+		pcall(w.SetFrameLevel, w, d.view:GetFrameLevel() + 5)
+	end
+	StripNativeChrome(w)
+	NativeLooks(w)
+	w:Show()
+	return w
+end
+
+-- Show/Hide on a Blizzard session window is protected under lockdown;
+-- queue it once per desired state instead of spamming protected calls
+-- from the ticker
+local function NativeShown(w, on)
+	if not w or w._wantShown == on then return end
+	w._wantShown = on
+	S.RunOutOfCombat(function()
+		if on then w:Show() else w:Hide() end
+	end)
+end
+
+-- applies the dock's metric+segment to its native window; threat (no
+-- DamageMeterType) and missing windows return false = custom renderer
+local function ApplyNative(d, cfg, mode)
+	local w = d.native
+	if not w then return false end
+	if not mode.type then NativeShown(w, false) return false end
+	if d._nMode ~= cfg.mode or d._nSeg ~= cfg.segment then
+		d._nMode, d._nSeg = cfg.mode, cfg.segment
+		pcall(w.SetDamageMeterType, w, mode.type)
+		local st = (cfg.segment == "overall") and SEG_OVERALL or SEG_CURRENT
+		if type(w.SetSession) == "function" then
+			pcall(w.SetSession, w, st, 0)
+		end
+	end
+	NativeShown(w, true)
+	for _, r in ipairs(d.rows) do r:Hide() end
+	d.hint:Hide()
+	if d.bar then d.bar:Hide() end
+	if d.thumb then d.thumb:Hide() end
+	return true
+end
+
+-- native window acquisition is protected work (spawning + anchoring a
+-- Blizzard frame) and DamageMeter may load after us - retry lazily
+local function EnsureNative(d, i, tries)
+	if d.native then return end
+	DMGR = DMGR or DamageMeter
+	if not (DMGR and type(DMGR.ForEachSessionWindow) == "function") then
+		if (tries or 0) < 10 then
+			C_Timer.After(3, function() EnsureNative(d, i, (tries or 0) + 1) end)
+		end
+		return
+	end
+	S.RunOutOfCombat(function()
+		if not d.native then EmbedNative(d, i) end
+	end)
+end
+
 -- class color for a source; classFilename can be missing on pets/secret
 local function ClassColor(cls)
 	if type(cls) == "string" then
@@ -358,6 +503,7 @@ local function ApplyFold(d, cfg)
 	if d.hint then d.hint:Hide() end
 	if d.bar then d.bar:Hide() end
 	if d.thumb then d.thumb:Hide() end
+	if d.native then NativeShown(d.native, not c) end
 	if c then
 		d:SetSize(FOLD_W, HEADER_H + 4 + db.height + 6)
 		if d.strip then
@@ -378,6 +524,14 @@ local function UpdateDock(d, cfg)
 	d.title:SetText(mode.label)
 	d.seg:SetText(mode.key == "threat" and ""
 		or (cfg.segment == "overall" and L["Overall"] or L["Current fight"]))
+
+	-- native path: a Blizzard session window renders this metric and
+	-- updates itself (combat-safe, real-time, own scrolling)
+	if mode.key ~= "threat" and ApplyNative(d, cfg, mode) then
+		d.contentH = 1
+		return
+	end
+	if d.native then NativeShown(d.native, false) end
 
 	local n, top, err
 	if mode.key == "threat" then
@@ -739,6 +893,8 @@ local function BuildDock(i)
 	d:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	d:SetScript("OnHide", function()
 		if menu and menu.dock == d then menu:Hide() end
+		-- the native window is parked over us, not parented: take it down
+		if d.native then NativeShown(d.native, false) end
 	end)
 
 	-- fixed size from the start: width/height are settings, the list
@@ -787,7 +943,10 @@ local function RefreshAll()
 	for i, d in ipairs(docks) do
 		local cfg = db["dock" .. i]
 		d:SetShown(cfg.enabled == true)
-		if cfg.enabled then UpdateDock(d, cfg) end
+		if cfg.enabled then
+			EnsureNative(d, i)
+			UpdateDock(d, cfg)
+		elseif d.native then NativeShown(d.native, false) end
 	end
 end
 Core.RefreshAll = RefreshAll
@@ -863,7 +1022,10 @@ function Core.Enable(mod)
 	-- width slimmed down in 0.1.4: migrate installs still parked on the
 	-- old default (a hand-picked width is left alone)
 	if db.width == 210 then db.width = 160 end
-	for i = 1, MAX_DOCKS do BuildDock(i) end
+	for i = 1, MAX_DOCKS do
+		local d = BuildDock(i)
+		EnsureNative(d, i)
+	end
 	Layout()
 	for i, d in ipairs(docks) do
 		S.Movers.Register(d, "meter." .. i, L["Meter"] .. " " .. i)

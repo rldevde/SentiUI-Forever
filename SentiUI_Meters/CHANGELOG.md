@@ -1,5 +1,9 @@
 # SentiUI Meters
 
+## 0.2.0 - 2026-11-23
+
+- Native meter windows: every dock now hosts one of Blizzard's own DamageMeter session windows (DamageMeter:ShowNewSessionWindow) parked inside its view - the client's trusted code refreshes the rows itself, so the meter updates live in combat and scrolls natively. The window's own chrome is stripped, class colours + bar metrics applied, metric and segment per dock via SetDamageMeterType/SetSession. Threat stays on the custom renderer (no DamageMeterType exists for it); docks without a native window fall back to it as well.
+
 ## 0.1.6 - 2026-11-23
 
 - Fold + close: every window title now carries a '>' fold button and an 'x' close button (the menu got a 'Close window' row too). Folding shrinks the window to a slim gold-caret strip on its loot-facing edge; clicking the strip unfolds it. Closing disables the dock - '+ New window' or the Meters options brings it back.

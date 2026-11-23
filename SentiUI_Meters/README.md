@@ -1,9 +1,12 @@
 # SentiUI Meters
 
 Dockable meter windows for SentiUI. Up to four small panels sit beside the
-loot chat panel at the bottom of the screen, each rendering its own metric
-from the client's built-in damage meter data (`C_DamageMeter`) - no combat
-log parsing and no external meter addon required.
+loot chat panel at the bottom of the screen. Each hosts one of Blizzard's
+own `DamageMeter` session windows inside a SentiUI frame - the client's
+trusted code refreshes the rows itself, so the meter updates live in
+combat and scrolls natively. No combat log parsing and no external meter
+addon required; the Threat mode runs on a custom renderer
+(`UnitDetailedThreatSituation`) since no damage-meter type exists for it.
 
 ## Metrics per window
 

@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.0",
+		date = "2026-11-23",
+		changes = {
+			"Native meter windows: every dock now hosts one of Blizzard's own DamageMeter session windows (DamageMeter:ShowNewSessionWindow) parked inside its view - the client's trusted code refreshes the rows itself, so the meter updates live in combat and scrolls natively. The window's own chrome is stripped, class colours + bar metrics applied, metric and segment per dock via SetDamageMeterType/SetSession. Threat stays on the custom renderer (no DamageMeterType exists for it); docks without a native window fall back to it as well.",
+		},
+		changesDE = {
+			"Native Meter-Fenster: jedes Dock hostet jetzt ein eigenes Blizzard-DamageMeter-Session-Window (DamageMeter:ShowNewSessionWindow) in seiner View - der Trusted-Code des Clients aktualisiert die Zeilen selbst, der Meter laeuft dadurch live im Kampf und scrollt nativ. Das eigene Chrome des Fensters wird entfernt, Klassenfarben + Balkenmasse gesetzt, Metrik und Segment pro Dock via SetDamageMeterType/SetSession. Bedrohung bleibt auf dem eigenen Renderer (kein DamageMeterType dafuer); Docks ohne natives Fenster fallen ebenfalls darauf zurueck.",
+		},
+	},
+	{
 		version = "0.1.6",
 		date = "2026-11-23",
 		changes = {
