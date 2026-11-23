@@ -81,29 +81,14 @@ local function AcquireWindow(i)
 	if not (DMGR and type(DMGR.ForEachSessionWindow) == "function") then
 		return nil
 	end
-	-- diff the set: ShowNewSessionWindow's return is unreliable, the new
-	-- window simply appears in the enumeration. Every call into Blizzard
-	-- objects is pcall'd: an error raised inside THEIR code gets
-	-- attributed to Blizzard_DamageMeter, not to us
-	local before = {}
-	pcall(DMGR.ForEachSessionWindow, DMGR, function(w)
-		if w then before[w] = true end
-	end)
-	if type(DMGR.ShowNewSessionWindow) == "function" then
-		pcall(DMGR.ShowNewSessionWindow, DMGR)
-	end
+	-- adopt only, never spawn: a window born under our taint (from a
+	-- ShowNewSessionWindow call we made) keeps it, and every secret
+	-- comparison its handlers hit afterwards gets blamed on us. Windows
+	-- Blizzard spawned itself run untainted - those are safe to dock
 	local found
 	pcall(DMGR.ForEachSessionWindow, DMGR, function(w)
-		if w and not before[w] and not w._sentiDock and not found then
-			found = w
-		end
+		if w and not w._sentiDock and not found then found = w end
 	end)
-	if not found then
-		-- nothing new spawned (pool cap?) - reuse an untagged window
-		pcall(DMGR.ForEachSessionWindow, DMGR, function(w)
-			if w and not w._sentiDock and not found then found = w end
-		end)
-	end
 	if found then found._sentiDock = i end
 	return found
 end
@@ -159,20 +144,15 @@ local function NeutralizeSessionTimer(w)
 end
 
 local function NativeLooks(w)
-	if not DMGR then return end
-	if type(DMGR.SetUseClassColor) == "function" then
-		pcall(DMGR.SetUseClassColor, DMGR, true)
-	end
-	if type(DMGR.SetShowBarIcons) == "function" then
-		pcall(DMGR.SetShowBarIcons, DMGR, true)
-	end
-	if type(DMGR.SetBarHeight) == "function" then
-		pcall(DMGR.SetBarHeight, DMGR, db.barHeight)
-	end
-	if type(DMGR.SetBarSpacing) == "function" then
-		pcall(DMGR.SetBarSpacing, DMGR, db.spacing)
-	end
-	if w.RefreshLayout then pcall(w.RefreshLayout, w) end
+	-- the manager/window setters run Blizzard refresh paths in OUR taint
+	-- and can throw on secret reads; the same settings live as plain
+	-- fields on the window - write those and flag a refresh instead, so
+	-- the manager's own (untainted) pass picks them up
+	w.useClassColor = true
+	w.showBarIcons = true
+	w.barHeight = db.barHeight
+	w.barSpacing = db.spacing
+	w.needsSourceWindowRefresh = true
 end
 
 -- parked OVER the dock's view (no reparent - the manager may re-anchor
@@ -190,18 +170,21 @@ local function EmbedNative(d, i)
 	end
 	StripNativeChrome(w)
 	NativeLooks(w)
-	pcall(w.Show, w)
+	pcall(w.SetAlpha, w, 1)
+	pcall(w.EnableMouse, w, true)
 	return w
 end
 
--- Show/Hide on a Blizzard session window is protected under lockdown;
--- queue it once per desired state instead of spamming protected calls
--- from the ticker
+-- Show/Hide on a session window would walk Blizzard's OnShow chain
+-- (UpdateShownState -> secret compares) inside our taint. Visibility is
+-- driven by SetAlpha + EnableMouse instead - pure widget calls that can
+-- never reach their Lua; the window keeps refreshing underneath
 local function NativeShown(w, on)
 	if not w or w._wantShown == on then return end
 	w._wantShown = on
 	S.RunOutOfCombat(function()
-		if on then pcall(w.Show, w) else pcall(w.Hide, w) end
+		pcall(w.SetAlpha, w, on and 1 or 0)
+		pcall(w.EnableMouse, w, on == true)
 	end)
 end
 
@@ -211,17 +194,23 @@ local function ApplyNative(d, cfg, mode)
 	local w = d.native
 	if not w then return false end
 	if not mode.type then NativeShown(w, false) return false end
+	-- a window the manager itself keeps hidden can't render - our own
+	-- renderer takes the dock until Blizzard shows it again
+	if w.IsShown then
+		local okS, shown = pcall(w.IsShown, w)
+		if okS and Plain(shown) == false then
+			NativeShown(w, false)
+			return false
+		end
+	end
 	if d._nMode ~= cfg.mode or d._nSeg ~= cfg.segment then
 		d._nMode, d._nSeg = cfg.mode, cfg.segment
-		pcall(w.SetDamageMeterType, w, mode.type)
-		local st = (cfg.segment == "overall") and SEG_OVERALL or SEG_CURRENT
-		if type(w.SetSession) == "function" then
-			-- session-id argument shape differs between builds; try the
-			-- documented (type, id) form and fall back to bare (type)
-			if not pcall(w.SetSession, w, st, 0) then
-				pcall(w.SetSession, w, st)
-			end
-		end
+		-- plain fields, not methods: SetSession/SetDamageMeterType run
+		-- secret-reading refresh paths inside our taint
+		w.damageMeterType = mode.type
+		w.sessionType = (cfg.segment == "overall") and SEG_OVERALL or SEG_CURRENT
+		w.sessionID = 0
+		w.needsSourceWindowRefresh = true
 	end
 	NativeShown(w, true)
 	for _, r in ipairs(d.rows) do r:Hide() end
@@ -243,7 +232,12 @@ local function EnsureNative(d, i, tries)
 		return
 	end
 	S.RunOutOfCombat(function()
-		if not d.native then EmbedNative(d, i) end
+		if d.native then return end
+		if not EmbedNative(d, i) then
+			-- no spare window right now: keep a slow retry going, the
+			-- manager may create another session window later
+			C_Timer.After(15, function() EnsureNative(d, i) end)
+		end
 	end)
 end
 

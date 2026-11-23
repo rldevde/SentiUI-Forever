@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.3",
+		date = "2026-11-23",
+		changes = {
+			"DamageMeter errors eliminated at the root: docks now only ADOPT session windows Blizzard spawned itself (windows born under our taint keep it, and every secret comparison their handlers hit gets blamed on us). Metric/segment/look are written as plain window fields + needsSourceWindowRefresh so the manager's own untainted pass applies them, and dock visibility drives SetAlpha/EnableMouse instead of Show/Hide - no call into Blizzard internals remains that could reach a secret read. Docks without a spare window fall back to the custom renderer and keep retrying.",
+		},
+		changesDE = {
+			"DamageMeter-Fehler an der Wurzel beseitigt: Docks adoptieren nur noch Session-Fenster, die Blizzard selbst gespawnt hat (Fenster unter unserem Taint geboren behalten ihn, und jeder Secret-Vergleich ihrer Handler wird uns zugeschrieben). Metrik/Segment/Optik werden als plain Window-Fields + needsSourceWindowRefresh geschrieben, sodass Blizzards eigener untainter Pass sie übernimmt; die Sichtbarkeit läuft über SetAlpha/EnableMouse statt Show/Hide - es bleibt kein Call in Blizzard-Interna, der einen Secret-Read erreichen könnte. Docks ohne freies Fenster fallen auf den eigenen Renderer zurück und probieren weiter.",
+		},
+	},
+	{
 		version = "0.2.2",
 		date = "2026-11-23",
 		changes = {

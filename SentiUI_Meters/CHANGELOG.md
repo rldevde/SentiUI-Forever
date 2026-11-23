@@ -1,5 +1,9 @@
 # SentiUI Meters
 
+## 0.2.3 - 2026-11-23
+
+- DamageMeter errors eliminated at the root: docks now only **adopt** session windows Blizzard spawned itself (windows born under our taint keep it, and every secret comparison their handlers hit gets blamed on us). Metric/segment/look are written as plain window fields + `needsSourceWindowRefresh` so the manager's own untainted pass applies them, and dock visibility drives `SetAlpha`/`EnableMouse` instead of `Show`/`Hide` — no call into Blizzard internals remains that could reach a secret read. Docks without a spare window fall back to the custom renderer and keep retrying.
+
 ## 0.2.2 - 2026-11-23
 
 - Fixed the `Blizzard_DamageMeter` "secret durationSeconds" error: Blizzard's session-timer path compares a secret number and throws whenever it runs inside our tainted call (`Show → UpdateShownState → UpdateSessionTimerState`). The timer is stripped chrome for us anyway, so windows we own get the whole session-timer path stubbed out before `Show()` can reach it.
