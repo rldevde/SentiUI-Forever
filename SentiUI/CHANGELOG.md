@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1 - 2026-11-23
+
+- Comms log maps the raw channel notices `YOU_CHANGED` / `NOT_MEMBER` / `WRONG_PASSWORD` to readable localized text instead of showing the event token.
+
 ## 0.4.0 - 2026-11-23
 
 - New shared comms layer (`S.Comms`): the suite joins a common `SentiUI` channel on login, rejoins automatically when lost and answers addon messages on the `SUIv1` prefix.

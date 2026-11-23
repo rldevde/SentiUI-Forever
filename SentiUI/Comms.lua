@@ -324,6 +324,9 @@ S.RegisterEvent("CHAT_MSG_CHANNEL_NOTICE", function(_, typ, sender, _, cname, ta
 	elseif typ == "MODERATOR" then text = format(S.L["%s is now moderator"], sender or "?")
 	elseif typ == "NOT_MODERATOR" or typ == "MODERATOR_REMOVED" then
 		text = format(S.L["%s is no longer moderator"], sender or "?")
+	elseif typ == "YOU_CHANGED" then text = S.L["channel slot changed"]
+	elseif typ == "NOT_MEMBER" then text = S.L["not a channel member"]
+	elseif typ == "WRONG_PASSWORD" then text = S.L["wrong channel password"]
 	else text = tostring(typ) .. " " .. tostring(sender or "")
 	end
 	Comms.AddLog("notice", text)

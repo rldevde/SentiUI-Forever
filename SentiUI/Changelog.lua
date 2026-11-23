@@ -25,6 +25,16 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.4.1",
+		date = "2026-11-23",
+		changes = {
+			"Comms log maps the raw channel notices YOU_CHANGED / NOT_MEMBER / WRONG_PASSWORD to readable localized text instead of showing the event token.",
+		},
+		changesDE = {
+			"Das Comms-Log übersetzt die rohen Channel-Notices YOU_CHANGED / NOT_MEMBER / WRONG_PASSWORD in lesbaren lokalisierten Text statt dem Event-Token.",
+		},
+	},
+	{
 		version = "0.4.0",
 		date = "2026-11-23",
 		changes = {
