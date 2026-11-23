@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.39",
+		date = "2026-11-23",
+		changes = {
+			"Party members joining no longer stick on 'offline': the client keeps conn=false through the join handshake, so new roster names now get a 30s join grace before the offline label may show. Friends and guild rosters act as extra online sources when the raid roster does not cover party members, and a slow 4s revalidation repaints offline-marked frames so a silently healing conn clears the state without an event.",
+		},
+		changesDE = {
+			"Beitretende Gruppenmitglieder kleben nicht mehr auf 'offline': der Client hält conn=false durch den Join-Handshake, neue Roster-Namen bekommen deshalb 30s Join-Gnadenfrist, bevor das Offline-Label erscheinen darf. Freundes- und Gildenroster liefern zusätzliche Online-Quellen, wo der Raid-Roster Party-Mitglieder nicht abdeckt, und ein langsamer 4s-Revalidation-Ticker repaintet offline-markierte Frames, damit ein still heilender conn auch ohne Event gelöscht wird.",
+		},
+	},
+	{
 		version = "0.2.38",
 		date = "2026-11-23",
 		changes = {

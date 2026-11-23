@@ -1,5 +1,9 @@
 # SentiUI Unit Frames
 
+## 0.2.39 - 2026-11-23
+
+- Party members joining no longer stick on "offline": the client keeps `conn=false` through the join handshake, so new roster names get a 30s join grace before the offline label may show. Friends and guild rosters act as extra online sources where the raid roster does not cover party members, and a slow 4s revalidation repaints offline-marked frames so a silently healing `conn` clears the state without an event.
+
 ## 0.2.38 - 2026-11-23
 
 - Offline check gets a second opinion for out-of-sight members too: when `UnitIsConnected` reads false for a raid member we cannot see, the raid roster's own `online` flag decides before the frame greys out.

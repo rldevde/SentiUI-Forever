@@ -200,22 +200,51 @@ function ns.IsOffline(unit)
 	if not (okC and ns.Plain(conn) == false) then return false end
 	local okV, vis = pcall(UnitIsVisible, unit)
 	if okV and ns.Plain(vis) == true then return false end
+	local okU, uname = pcall(GetUnitName, unit, true)
+	local bare = okU and type(uname) == "string" and uname:match("^(.-)%-")
+		or uname
+	if not (type(bare) == "string" and bare ~= "") then return true end
 	-- out of sight: the raid roster carries a server-driven online flag -
 	-- worth a second opinion before trusting the false read
 	if IsInRaid and IsInRaid() and GetRaidRosterInfo then
-		local okU, uname = pcall(GetUnitName, unit, true)
-		local bare = okU and type(uname) == "string" and uname:match("^(.-)%-") or uname
-		if type(bare) == "string" and bare ~= "" then
-			local okN, n = pcall(GetNumGroupMembers)
-			n = okN and ns.Plain(n) or 0
-			for i = 1, n do
-				local okR, name, _, _, _, _, _, online = pcall(GetRaidRosterInfo, i)
-				if not okR or type(name) ~= "string" then break end
-				if name == uname or name:match("^(.-)%-") == bare then
-					return online ~= true -- the roster's word wins
-				end
+		local okN, n = pcall(GetNumGroupMembers)
+		n = okN and ns.Plain(n) or 0
+		for i = 1, n do
+			local okR, name, _, _, _, _, _, online =
+				pcall(GetRaidRosterInfo, i)
+			if not okR or type(name) ~= "string" then break end
+			if name == uname or name:match("^(.-)%-") == bare then
+				return online ~= true -- the roster's word wins
 			end
 		end
+	end
+	-- party members have no roster API - corroborate elsewhere: friends
+	-- and guild lists carry a real online flag too
+	if C_FriendList and C_FriendList.GetFriendInfo then
+		local okF, fi = pcall(C_FriendList.GetFriendInfo, bare)
+		if okF and type(fi) == "table" and fi.connected ~= nil then
+			return fi.connected ~= true
+		end
+	end
+	if IsInGuild and IsInGuild() and GetGuildRosterInfo
+		and GetNumGuildMembers then
+		local okN, gn = pcall(GetNumGuildMembers)
+		gn = okN and ns.Plain(gn) or 0
+		for i = 1, math.min(gn, 500) do
+			local okG, gname, _, _, _, _, _, _, _, online =
+				pcall(GetGuildRosterInfo, i)
+			if not okG or type(gname) ~= "string" then break end
+			if gname == uname or gname:match("^(.-)%-") == bare then
+				return online ~= true
+			end
+		end
+	end
+	-- join grace: a member who just appeared still runs the connection
+	-- handshake - conn stays false for a while. Believe "online" for the
+	-- first 30s of roster life rather than showing offline instantly
+	local joined = ns.joinAt and (ns.joinAt[uname] or ns.joinAt[bare])
+	if joined and GetTime and (GetTime() - joined) < 30 then
+		return false
 	end
 	return true
 end
@@ -348,6 +377,51 @@ function ns.RegisterBusEvent(event, fn)
 		pcall(bus.RegisterEvent, bus, event)
 	end
 	list[#list + 1] = fn
+end
+
+-- join tracking for the offline grace: stamp each member name when it
+-- first appears in the roster (conn=false is unreliable during the join
+-- handshake, especially for party members with no roster fallback)
+ns.joinAt = {}
+local rosterNames = {}
+ns.RegisterBusEvent("GROUP_ROSTER_UPDATE", function()
+	local now = GetTime and GetTime() or 0
+	local seen = {}
+	local inRaid = IsInRaid and IsInRaid()
+	local n = 0
+	if GetNumGroupMembers then
+		-- includes the player for raids; the missing partyN tail on a
+		-- party just yields no name and is skipped
+		local okN, cnt = pcall(GetNumGroupMembers)
+		n = (okN and ns.Plain(cnt)) or 0
+	end
+	for i = 1, n do
+		local unit = inRaid and ("raid" .. i) or ("party" .. i)
+		local ok, nm = pcall(GetUnitName, unit, true)
+		if ok and type(nm) == "string" then
+			seen[nm] = true
+			if not rosterNames[nm] then ns.joinAt[nm] = now end
+		end
+	end
+	local ok, me = pcall(GetUnitName, "player", true)
+	if ok and type(me) == "string" then seen[me] = true end
+	for nm in pairs(rosterNames) do
+		if not seen[nm] then ns.joinAt[nm] = nil end
+	end
+	rosterNames = seen
+end)
+
+-- stale-offline revalidation: conn heals silently sometimes - poll
+-- marked frames on a slow ticker so the state clears without an event
+if C_Timer and C_Timer.NewTicker then
+	C_Timer.NewTicker(4, function()
+		for i = 1, #ns.frames do
+			local f = ns.frames[i]
+			if f._offline and f.Refresh then
+				S.SafeCall("uf:offcheck", f.Refresh, f)
+			end
+		end
+	end)
 end
 
 -- all spawned unit frames (single + group children), for global repaints
