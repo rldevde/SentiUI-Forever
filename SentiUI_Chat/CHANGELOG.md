@@ -1,5 +1,9 @@
 # SentiUI Chat
 
+## 0.2.39 - 2026-11-23
+
+- Chat tabs keep their Sentinel skin permanently: the tab style only ran once per frame (the styled-flag early-return sat before the tab pass), but the engine re-paints the tab's Selected/Highlight art on every dock/hover/select and the gray Blizzard bevels crept back. StyleTab now re-runs on every watchdog tick (it is fully idempotent) and also kills a NineSlice on newer tab templates.
+
 ## 0.2.38 - 2026-11-23
 
 - Input bar only appears while typing now: this client never hides its editbox (IsShown is always true), so the bar tracks HasFocus instead - shows when the box gains focus, hides when focus leaves.

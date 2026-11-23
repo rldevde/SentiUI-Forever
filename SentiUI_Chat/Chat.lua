@@ -443,6 +443,10 @@ function Core.StyleTab(tab)
 		local t = tab[k] or (tn and _G[tn .. k])
 		if t then t:SetTexture(nil) t:SetAlpha(0) end
 	end
+	-- newer tab templates draw the bevel through a NineSlice instead of
+	-- named texture regions - kill it the same way
+	local ns9 = tab.NineSlice
+	if type(ns9) == "table" and ns9.SetAlpha then pcall(ns9.SetAlpha, ns9, 0) end
 	-- dark inset background behind the tab label — same dark fill as the
 	-- blade chips; keeps the tab readable against the game world
 	if not tab.suiTabBG then
@@ -745,6 +749,12 @@ function Core.StyleChatFrame(frame)
 	if stb then stb:SetAlpha(0) stb:EnableMouse(false) end
 	if frame.Selection then frame.Selection:SetAlpha(0) end
 
+	-- the engine re-paints the tab's own art on every dock/hover/select
+	-- pass, so the kill must re-run every tick, not just once: the whole
+	-- StyleTab pass is idempotent (bg is created once, regions re-alpha)
+	local tab = name and _G[name .. "Tab"]
+	if tab then Core.StyleTab(tab) end
+
 	-- everything below runs once per frame
 	if Core.styled[frame] then return end
 	Core.styled[frame] = true
@@ -806,8 +816,6 @@ function Core.StyleChatFrame(frame)
 		end
 	end
 
-	local tab = name and _G[name .. "Tab"]
-	if tab then Core.StyleTab(tab) end
 	Core.StyleEditBox(frame)
 	Core.PositionEditBox(frame)
 

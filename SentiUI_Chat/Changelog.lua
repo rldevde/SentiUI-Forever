@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.39",
+		date = "2026-11-23",
+		changes = {
+			"Chat tabs keep their Sentinel skin permanently: the tab style only ran once per frame but the engine re-paints the Selected/Highlight art on every dock/hover/select - StyleTab now re-runs every watchdog tick and kills a NineSlice on newer tab templates.",
+		},
+		changesDE = {
+			"Chat-Tabs behalten jetzt dauerhaft den Sentinel-Skin: der Tab-Style lief nur einmal pro Frame, die Engine malt die Selected-/Highlight-Art aber bei jedem Dock/Hover/Select neu - StyleTab laeuft jetzt bei jedem Watchdog-Tick und killt bei neueren Tab-Templates auch die NineSlice.",
+		},
+	},
+	{
 		version = "0.2.38",
 		date = "2026-11-23",
 		changes = {
