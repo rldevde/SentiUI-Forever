@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.18",
+		date = "2026-11-23",
+		changes = {
+			"Fixed the shell-path Lua error on enable: the fallback backdrop read c.b instead of c.bg.b, feeding nil into SetBackdropColor.",
+		},
+		changesDE = {
+			"Lua-Fehler im Shell-Pfad beim Enable behoben: das Fallback-Backdrop las c.b statt c.bg.b und fütterte nil in SetBackdropColor.",
+		},
+	},
+	{
 		version = "0.2.17",
 		date = "2026-11-23",
 		changes = {

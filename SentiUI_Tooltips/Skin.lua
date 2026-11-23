@@ -106,7 +106,7 @@ function Skin.Tip(tip)
 		shell:SetFrameLevel(1)
 		shell:SetBackdrop(BACKDROP)
 		local c = S.colors
-		shell:SetBackdropColor(c.bg.r, c.bg.g, c.b, c.bg.a)
+		shell:SetBackdropColor(c.bg.r, c.bg.g, c.bg.b, c.bg.a)
 		shell:SetBackdropBorderColor(TIP_BORDER.r, TIP_BORDER.g, TIP_BORDER.b, 1)
 		tip.__sentiShell = shell
 	end

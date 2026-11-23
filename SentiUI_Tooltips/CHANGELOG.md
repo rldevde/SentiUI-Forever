@@ -1,5 +1,9 @@
 # SentiUI Tooltips
 
+## 0.2.18 - 2026-11-23
+
+- Fixed the shell-path Lua error on enable: the fallback backdrop read `c.b` instead of `c.bg.b`, feeding `nil` into `SetBackdropColor`.
+
 ## 0.2.17 - 2026-11-23
 
 - Tooltip border actually visible now: the shared panel border (#222838) is nearly black and disappeared completely on dark tooltips over dark world areas - it read as "the right edge is missing". Tooltips now use a lifted steel edge (#525C78) that stays visible everywhere; class/quality border tints still override it per-tip.
