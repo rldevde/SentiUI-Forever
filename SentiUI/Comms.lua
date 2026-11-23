@@ -171,7 +171,52 @@ local function Peer(name)
 	return e
 end
 
+local Older -- defined further down (numeric n.n.n compare)
+
 local announcePending
+-- session dedupe: each peer hears "you are outdated" from us at most once
+local notified = {}
+
+-- a peer's manifest is behind ours: whisper them the modules they should
+-- update (addon message, invisible to chat). Their client prints it
+-- locally - the same happens to us when we are the one behind
+local function NotifyOutdated(sender, mods)
+	if notified[sender] or type(mods) ~= "table" then return end
+	local own = Comms.ModuleVersions()
+	local parts = {}
+	for name, v in pairs(own) do
+		local pv = mods[name]
+		if pv == nil or Older(pv, v) then
+			parts[#parts + 1] = name:gsub("^SentiUI_", "") .. "@" .. tostring(v)
+			if #parts >= 8 then break end
+		end
+	end
+	if #parts == 0 then return end
+	notified[sender] = true
+	local f = C_ChatInfo and C_ChatInfo.SendAddonMessage or SendAddonMessage
+	if f then pcall(f, PREFIX, "SUIver;n;" .. table.concat(parts, ","), "WHISPER", sender) end
+end
+
+-- a peer tells US we are behind: list the modules with ours vs theirs
+local function OnNotify(msg)
+	local own = Comms.ModuleVersions()
+	local out = {}
+	for piece in msg:sub(10):gmatch("[^,]+") do
+		local a, v = piece:match("^(.-)@(.*)$")
+		if a then
+			local mine = own[a] or own["SentiUI_" .. a]
+			if not mine or Older(mine, v) then
+				out[#out + 1] = format("%s: %s -> %s",
+					a == "SentiUI" and a or "SentiUI_" .. a,
+					tostring(mine or S.L["none"]), v)
+			end
+		end
+	end
+	if #out > 0 then
+		S.Print(format(S.L["SentiUI update available: %s"], table.concat(out, ", ")))
+	end
+end
+
 local function OnVersionMessage(msg, sender)
 	local kind = msg:match("^SUIver;(%w+)")
 	if kind == "q" then
@@ -184,11 +229,13 @@ local function OnVersionMessage(msg, sender)
 		end
 		return
 	end
+	if kind == "n" then OnNotify(msg) return end
 	if sender == "?" or sender == Comms.OwnName() then return end
 	local e = Peer(sender)
 	e.at = time()
 	if kind == "v" then
 		e.mods.SentiUI = msg:match("^SUIver;v;(.*)$") or "?"
+		NotifyOutdated(sender, e.mods)
 	elseif kind == "m" then
 		local seq, tot, chunk = msg:match("^SUIver;m;(%d+)/(%d+);(.*)$")
 		seq, tot = tonumber(seq), tonumber(tot)
@@ -203,6 +250,7 @@ local function OnVersionMessage(msg, sender)
 					if a then e.mods[a] = v end
 				end
 				e.parts = nil
+				NotifyOutdated(sender, e.mods)
 			end
 		end
 	end
@@ -223,7 +271,7 @@ end
 
 -- how far a peer is behind: count modules we have that they lack or run
 -- older (string compare - versions are n.n.n numerals on this suite)
-local function Older(a, b)
+Older = function(a, b)
 	local na, nb = {}, {}
 	for x in tostring(a or ""):gmatch("%d+") do na[#na + 1] = tonumber(x) end
 	for x in tostring(b or ""):gmatch("%d+") do nb[#nb + 1] = tonumber(x) end

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.3 - 2026-11-23
+
+- Outdated peers now get told: when a received manifest shows older or missing SentiUI modules, the peer is whispered an addon message with the modules to update (`SUIver;n`). Their client prints `SentiUI update available: mod: old -> new` locally — the same fires on our side when a peer's suite is newer than ours. One notice per peer per session, no spam.
+
 ## 0.4.2 - 2026-11-23
 
 - Comms version exchange is now fully automatic both ways: a query broadcasts every 30 min so peers re-send their manifests (peers who joined before us or whose announce we missed), and a `JOINED` notice triggers a jittered re-announce so newcomers learn our version even if their own query fails.

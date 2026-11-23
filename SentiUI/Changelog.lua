@@ -25,6 +25,16 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.4.3",
+		date = "2026-11-23",
+		changes = {
+			"Outdated peers now get told: when a received manifest shows older or missing SentiUI modules, the peer is whispered an addon message with the modules to update (SUIver;n). Their client prints 'SentiUI update available: mod: old -> new' locally - the same fires on our side when a peer's suite is newer than ours. One notice per peer per session, no spam.",
+		},
+		changesDE = {
+			"Veraltete Peers werden jetzt benachrichtigt: zeigt ein empfangenes Manifest ältere oder fehlende SentiUI-Module, bekommt der Peer eine Addon-Message mit den zu aktualisierenden Modulen geflüstert (SUIver;n). Sein Client zeigt lokal 'SentiUI-Update verfügbar: mod: alt -> neu' - dasselbe passiert bei uns, wenn ein Peer neuer ist. Eine Meldung pro Peer pro Sitzung, kein Spam.",
+		},
+	},
+	{
 		version = "0.4.2",
 		date = "2026-11-23",
 		changes = {
