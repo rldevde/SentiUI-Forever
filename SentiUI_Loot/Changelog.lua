@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.18",
+		date = "2026-11-23",
+		changes = {
+			"Blizzard loot window gone for good: LootFrame now gets its loot events unregistered (LOOT_OPENED/LOOT_READY/LOOT_SLOT_*) so it never learns about loot - the alpha/mouse kill stays as belt. LOOT_BIND_CONFIRM stays registered so BoP pickups still auto-confirm; disabling our window re-registers everything.",
+		},
+		changesDE = {
+			"Blizzard-Lootfenster endgueltig weg: LootFrame werden jetzt die Loot-Events abgemeldet (LOOT_OPENED/LOOT_READY/LOOT_SLOT_*) - es erfaehrt nie vom Looten, der Alpha-/Maus-Kill bleibt als Sicherung. LOOT_BIND_CONFIRM bleibt registriert, damit BoP-Aufnahmen weiter bestaetigt werden; beim Abschalten unseres Fensters wird alles re-registriert.",
+		},
+	},
+	{
 		version = "0.2.17",
 		date = "2026-11-23",
 		changes = {

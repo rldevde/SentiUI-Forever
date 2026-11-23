@@ -798,9 +798,26 @@ end
 -- flashes open and dies). Alpha + mouse-kill instead. Called on every
 -- window update: the show watcher alone misses a frame that was created
 -- (and shown) before the watch registered
+local LOOT_FRAME_EVENTS = {
+	"LOOT_OPENED", "LOOT_READY", "LOOT_SLOT_CHANGED", "LOOT_SLOT_CLEARED",
+}
+
+-- the real kill: the frame only opens when it hears the loot events, so
+-- take its ears. LOOT_BIND_CONFIRM stays registered on purpose - it is
+-- what auto-confirms BoP pickups on this client
+local function SilenceBlizzardLoot(on)
+	local lf = _G.LootFrame
+	if type(lf) ~= "table" or not lf.UnregisterEvent then return end
+	for _, ev in ipairs(LOOT_FRAME_EVENTS) do
+		if on then pcall(lf.UnregisterEvent, lf, ev)
+		else pcall(lf.RegisterEvent, lf, ev) end
+	end
+end
+
 local function KillBlizzardLoot()
 	local lf = _G.LootFrame
 	if type(lf) ~= "table" or not (db and db.lootWindow) then return end
+	SilenceBlizzardLoot(true)
 	lf:SetAlpha(0)
 	lf:EnableMouse(false)
 end
@@ -1082,6 +1099,7 @@ function Core.SettingChanged(mod, path)
 			KillBlizzardLoot()
 		else
 			-- give the game's frame back when our window turns off
+			SilenceBlizzardLoot(false)
 			local lf = _G.LootFrame
 			if lf then
 				lf:SetAlpha(1)
