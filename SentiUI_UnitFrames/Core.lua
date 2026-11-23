@@ -204,6 +204,15 @@ function ns.IsOffline(unit)
 	local bare = okU and type(uname) == "string" and uname:match("^(.-)%-")
 		or uname
 	if not (type(bare) == "string" and bare ~= "") then return true end
+	-- join grace FIRST: every source below (raid roster, friends, guild)
+	-- runs on its own update cadence and reports a joiner as offline
+	-- during the handshake - believing any of them early is how "online"
+	-- members still flashed offline. For the first 30s of roster life the
+	-- false conn read is simply distrusted
+	local joined = ns.joinAt and (ns.joinAt[uname] or ns.joinAt[bare])
+	if joined and GetTime and (GetTime() - joined) < 30 then
+		return false
+	end
 	-- out of sight: the raid roster carries a server-driven online flag -
 	-- worth a second opinion before trusting the false read
 	if IsInRaid and IsInRaid() and GetRaidRosterInfo then
@@ -238,13 +247,6 @@ function ns.IsOffline(unit)
 				return online ~= true
 			end
 		end
-	end
-	-- join grace: a member who just appeared still runs the connection
-	-- handshake - conn stays false for a while. Believe "online" for the
-	-- first 30s of roster life rather than showing offline instantly
-	local joined = ns.joinAt and (ns.joinAt[uname] or ns.joinAt[bare])
-	if joined and GetTime and (GetTime() - joined) < 30 then
-		return false
 	end
 	return true
 end
@@ -409,12 +411,26 @@ ns.RegisterBusEvent("GROUP_ROSTER_UPDATE", function()
 		if not seen[nm] then ns.joinAt[nm] = nil end
 	end
 	rosterNames = seen
+	-- repaint the group frames so the offline state re-evaluates under
+	-- the new grace timestamps; coalesced - mass joins fire a burst of
+	-- roster updates and a repaint per event would hitch
+	if not ns._rosterRepaint and C_Timer and C_Timer.NewTimer then
+		ns._rosterRepaint = C_Timer.NewTimer(0.5, function()
+			ns._rosterRepaint = nil
+			for i = 1, #ns.frames do
+				local f = ns.frames[i]
+				if f.isGroup and f.Refresh then
+					S.SafeCall("uf:roster", f.Refresh, f)
+				end
+			end
+		end)
+	end
 end)
 
 -- stale-offline revalidation: conn heals silently sometimes - poll
--- marked frames on a slow ticker so the state clears without an event
+-- marked frames on a short ticker so the state clears without an event
 if C_Timer and C_Timer.NewTicker then
-	C_Timer.NewTicker(4, function()
+	C_Timer.NewTicker(1, function()
 		for i = 1, #ns.frames do
 			local f = ns.frames[i]
 			if f._offline and f.Refresh then

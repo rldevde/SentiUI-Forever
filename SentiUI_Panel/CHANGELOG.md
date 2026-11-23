@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.38 - 2026-11-24
+
+- FBL send crash + false rejections: the channel drain could run before anything was queued (sendQueue nil, 'attempt to index upvalue'), and an over-strict SendAddonMessage result check treated a delivered send as failed, dropping whole payloads ('106 blocks rejected'). The queue now normalizes before drain and the send counts as sent on pcall success, matching the standalone.
+
 ## 0.5.37 - 2026-11-23
 
 - FBL sync transport fix: SentiUI's blacklist never reached ForeverBlackListed users. The module sent every channel message via SendAddonMessage 'CHANNEL' - a path this client does not route to custom channels, and the wrapper hid the failure, so 'Blacklist sent' printed while nothing went out. The panel now mirrors the standalone's model: a self-echo probe detects whether addon traffic reaches the channel; when it does not, sends fall back to SendChatMessage, which is hardware-gated and therefore drains inside the real input events (Sync buttons, removal request). Version pings and pull requests park in pending slots until a transport exists, ADDON_ACTION_BLOCKED during a chat send disables the chat path for the session, and F.Debug now reports the probed transport state.

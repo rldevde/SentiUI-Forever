@@ -2,6 +2,15 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.40",
+		changes = {
+			"Offline status delay fixes: the 30s join grace now runs BEFORE the friend/guild roster corroboration - those flags update on their own cadence and reported joiners as offline, so guildies and friends still flashed offline despite the grace. Roster updates now repaint all group frames (coalesced over 0.5s so mass joins do not hitch), and the stale-offline revalidation ticker polls every second instead of every four.",
+		},
+		changesDE = {
+			"Offline-Status-Delay-Fixes: Die 30s-Join-Gnadenfrist greift jetzt VOR der Freundes-/Gilden-Korrobation - deren Flags aktualisieren in eigenem Takt und meldeten Joiner als offline, sodass Gildenmitglieder und Freunde trotz Gnadenfrist weiter offline blinkten. Roster-Updates repainten jetzt alle Gruppen-Frames (auf 0,5s gebuendelt, damit Mass-Joins nicht ruckeln), und der Stale-Offline-Ticker pollt jede Sekunde statt alle vier.",
+		},
+	},
+	{
 		version = "0.2.39",
 		date = "2026-11-23",
 		changes = {

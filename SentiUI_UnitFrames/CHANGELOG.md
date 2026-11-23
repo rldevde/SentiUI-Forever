@@ -1,5 +1,9 @@
 # SentiUI Unit Frames
 
+## 0.2.40 - 2026-11-24
+
+- Offline status delay fixes: the 30s join grace now runs BEFORE the friend/guild roster corroboration - those flags update on their own cadence and reported joiners as offline, so guildies and friends still flashed offline despite the grace. Roster updates now repaint all group frames (coalesced over 0.5s so mass joins do not hitch), and the stale-offline revalidation ticker polls every second instead of every four.
+
 ## 0.2.39 - 2026-11-23
 
 - Party members joining no longer stick on "offline": the client keeps `conn=false` through the join handshake, so new roster names get a 30s join grace before the offline label may show. Friends and guild rosters act as extra online sources where the raid roster does not cover party members, and a slow 4s revalidation repaints offline-marked frames so a silently healing `conn` clears the state without an event.

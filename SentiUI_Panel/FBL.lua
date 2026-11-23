@@ -1182,12 +1182,11 @@ local function ChanSend(text)
 	if chanAddonOK then
 		local f = C_ChatInfo and C_ChatInfo.SendAddonMessage or SendAddonMessage
 		if not f then return false end
+		-- fire-and-forget like the standalone: the result enum is
+		-- unreliable on this client (a non-Success enum still delivered
+		-- the probe), so only a raised error or explicit false counts
 		local ok, res = pcall(f, PREFIX, text, "CHANNEL", chanNum)
-		if not ok or res == false then return false end
-		if Enum and Enum.SendAddonMessageResult then
-			return res == nil or res == Enum.SendAddonMessageResult.Success
-		end
-		return true
+		return ok and res ~= false
 	end
 	-- chat fallback: hardware-gated, only inside RunHardware contexts
 	if chatBlocked or not hw then return false end
@@ -1465,6 +1464,7 @@ local function DrainSend()
 	-- channel sends are combat-restricted on this client; the ticker
 	-- keeps running and resumes once combat ends
 	if InCombatLockdown and InCombatLockdown() then return end
+	sendQueue = sendQueue or {} -- nil until the first QueueChannelSend
 	if not (chanNum and (sendQueue[1] or verPending or pullPending)) then
 		if sendTicker then sendTicker:Cancel() sendTicker = nil end
 		return
