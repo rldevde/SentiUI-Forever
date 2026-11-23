@@ -120,18 +120,13 @@ function Items.SetDimmed(b, dim)
 	b:SetAlpha(dim and 0.18 or 1)
 end
 
--- clicks: none of our own - the template's OnClick is the game's trusted
--- handler and covers pickup, use, sell, bank moves, splits and
--- link/dressup by itself.
-
-local function Tip(b)
-	GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
-	local ok = pcall(GameTooltip.SetBagItem, GameTooltip, b.bag, b.slot)
-	if not ok and b.info and b.info.hyperlink then
-		pcall(GameTooltip.SetHyperlink, GameTooltip, b.info.hyperlink)
-	end
-	GameTooltip:Show()
-end
+-- clicks AND scripts: none of our own. Any addon handler planted on a
+-- template button (SetScript, HookScript, size-change hooks) marks its
+-- script table addon-owned on this client, and the next protected call
+-- inside the click dispatch (UseContainerItem) is then blamed on us.
+-- The template covers everything natively: OnClick does pickup, use,
+-- sell, bank moves, splits and link/dressup; its own OnEnter shows the
+-- bag-item tooltip; the mixin drag path does pickup.
 
 -- slot factory ----------------------------------------------------------------
 function Items.Get(bag, slot, host)
@@ -173,7 +168,9 @@ function Items.Get(bag, slot, host)
 	b:SetBackdropBorderColor(0.16, 0.18, 0.25, 0.9)
 	-- clicks stay untouched: the template registered and handles them
 
-	-- own icon texture on top; the template's iconTexture stays empty
+	-- own icon texture on top; the template's iconTexture stays empty.
+	-- No S.IconRound here: it hooks the button's OnSizeChanged, which is
+	-- an addon script on the button - see the script-taint note above.
 	b.icon = b:CreateTexture(nil, "ARTWORK")
 	b.icon:SetPoint("TOPLEFT", 2, -2)
 	b.icon:SetPoint("BOTTOMRIGHT", -2, 2)
@@ -218,19 +215,6 @@ function Items.Get(bag, slot, host)
 	-- the modern mixin reads self.BagID/self.SlotID (parent GetID was the
 	-- old path); without them its pickup/drag runs on a nil bag
 	b.BagID, b.SlotID = bag, slot
-	-- drag-pickup fallback: if the template's OnDragStart does not fire
-	-- on this client, this still lifts the item so it can be moved or
-	-- thrown out; a real pickup on the cursor first keeps it single
-	b:RegisterForDrag("LeftButton")
-	b:HookScript("OnDragStart", function(self)
-		-- runs after the template: only picks up if nothing did
-		if GetCursorInfo() then return end
-		if C_Container and C_Container.PickupContainerItem then
-			pcall(C_Container.PickupContainerItem, self.bag, self.slot)
-		end
-	end)
-	b:SetScript("OnEnter", Tip)
-	b:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	Items.slots[key] = b
 	return b
 end

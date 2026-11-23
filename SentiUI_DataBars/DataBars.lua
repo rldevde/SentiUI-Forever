@@ -123,8 +123,8 @@ local function DefaultAnchor(key, bar)
 		local p = _G.SentiUILeftChatPanel
 		if p then
 			-- flush on the panel's top edge, width follows the panel
-			bar:SetPoint("BOTTOMLEFT", p, "TOPLEFT", 0, 1)
-			bar:SetPoint("BOTTOMRIGHT", p, "TOPRIGHT", 0, 1)
+			bar:SetPoint("BOTTOMLEFT", p, "TOPLEFT", 0, 0)
+			bar:SetPoint("BOTTOMRIGHT", p, "TOPRIGHT", 0, 0)
 		else
 			bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 6, 250)
 			bar:SetWidth(db.width)
@@ -132,8 +132,8 @@ local function DefaultAnchor(key, bar)
 	else
 		local rp = _G.SentiUIRightChatPanel
 		if rp and rp:IsShown() then
-			bar:SetPoint("BOTTOMLEFT", rp, "TOPLEFT", 0, 1)
-			bar:SetPoint("BOTTOMRIGHT", rp, "TOPRIGHT", 0, 1)
+			bar:SetPoint("BOTTOMLEFT", rp, "TOPLEFT", 0, 0)
+			bar:SetPoint("BOTTOMRIGHT", rp, "TOPRIGHT", 0, 0)
 		else
 			local xp = Core.bars.xp
 			if xp then bar:SetPoint("BOTTOMLEFT", xp, "TOPLEFT", 0, 2)
@@ -185,6 +185,8 @@ local function MakeBar(key, label)
 	-- SentiUI signature: accent hairline across the top edge + a spark at the
 	-- leading edge of the fill
 	local line = S.Line(f, ACCENT)
+	-- flush full width: the gold edge IS the bar's top edge, not a shorter
+	-- strip inside it - the 5px inset read as a shrunken golden section
 	line:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
 	line:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
 	local spark = main:CreateTexture(nil, "OVERLAY")
@@ -199,6 +201,13 @@ local function MakeBar(key, label)
 		spark:SetPoint("TOP", main:GetStatusBarTexture(), "TOPRIGHT")
 		spark:SetPoint("BOTTOM", main:GetStatusBarTexture(), "BOTTOMRIGHT")
 	end
+
+	-- dark-glass gloss across the fill area, matching the unit frame /
+	-- castbar look: a soft top highlight inset past the border
+	local gloss = f:CreateTexture(nil, "ARTWORK")
+	gloss:SetPoint("TOPLEFT", 1, -1)
+	gloss:SetPoint("BOTTOMRIGHT", f, "TOPRIGHT", -1, -math.max(3, db.height * 0.45))
+	gloss:SetColorTexture(1, 1, 1, 0.10)
 
 	f.main, f.rested, f.quest, f.text, f.spark = main, rested, quest, text, spark
 	f.key = key

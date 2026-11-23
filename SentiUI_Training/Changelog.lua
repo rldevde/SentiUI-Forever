@@ -2,6 +2,26 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.11",
+		date = "2026-11-22",
+		changes = {
+			"Close button replaced with the shared S.Widgets.Close — consistent Sentinel look instead of the raw hand-built x text button.",
+		},
+		changesDE = {
+			"Schliessen-Button durch das gemeinsame S.Widgets.Close ersetzt — einheitliches Sentinel-Aussehen statt des manuell gebauten x-Text-Buttons.",
+		},
+	},
+	{
+		version = "0.2.10",
+		date = "2026-11-22",
+		changes = {
+			"Filter chips use the shared Sentinel tab chip now: dark inset body with a 2px accent blade on the left edge that glows on hover and burns on the active chip - one design language across the whole suite instead of scattered boxes.",
+		},
+		changesDE = {
+			"Die Filter-Chips nutzen jetzt den gemeinsamen Sentinel-Tab-Chip: dunkler Inset-Koerper mit 2px Akzent-Klinge an der linken Kante, die bei Hover glimmt und auf dem aktiven Chip brennt - eine Designsprache fuer die ganze Suite statt verstreuter Kaestchen.",
+		},
+	},
+	{
 		version = "0.2.9",
 		date = "2026-11-22",
 		changes = {

@@ -269,6 +269,8 @@ local function Attach(frame, holder, point)
 		end
 	end)
 end
+Extras.Attach = Attach
+Extras.MakeHolder = MakeHolder
 
 -- frames that only need a movable home: global name, mover key, title,
 -- holder anchor / offset / size and the point the frame hangs from

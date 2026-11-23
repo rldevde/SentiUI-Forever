@@ -137,6 +137,18 @@ local function FitName(p, name)
 	end) then pcall(p.name.SetText, p.name, name) end
 end
 
+-- "is this plate's unit the current target" - sticky against unreadable
+-- reads: UnitIsUnit can come back secret/nil on this client, and a bare
+-- "== true" would flicker the gold edge dark↔gold on every bad tick.
+-- p._target keeps the last readable answer instead.
+local function TargetFlag(p)
+	local ok, v = pcall(UnitIsUnit, p.unit, "target")
+	local pv = ok and plain(v)
+	if pv == true then p._target = true
+	elseif pv == false then p._target = false end
+	return p._target == true
+end
+
 local function IsPlayerUnit(unit)
 	local isP = plain(UnitIsPlayer(unit))
 	if isP == nil then
@@ -177,18 +189,116 @@ local function FillColor(p, unit)
 	return ReactionColor(unit)
 end
 
+-- a 1px border that follows the rounded box silhouette: four edge strips
+-- plus quarter arcs (the window accent-edge recipe) - the old square
+-- BackdropTemplate edge was the pixelated look. box:SetEdgeColor recolors
+-- the whole outline for the target highlight.
+local EDGE_C = { r = 0.13, g = 0.16, b = 0.22 }
+-- square 1px border: four straight strips, no corner arcs - the
+-- rounded look rastered arcs that read as chevrons on thin bars
+local function EdgeFrame(host, thick)
+	thick = thick or 1
+	local e = CreateFrame("Frame", nil, host)
+	e:SetAllPoints()
+	e:SetFrameLevel(host:GetFrameLevel() + 2)
+	e.parts = {}
+	local function tex()
+		local t = e:CreateTexture(nil, "OVERLAY")
+		t:SetTexture(BLANK)
+		-- 1px strips on driver-scaled plates alias away when snapped to
+		-- the pixel grid - let them rasterize freely instead
+		if t.SetSnapToPixelGrid then pcall(t.SetSnapToPixelGrid, t, false) end
+		e.parts[#e.parts + 1] = t
+		return t
+	end
+	-- top and bottom own the corner pixels; the sides are inset by
+	-- `thick` so no two strips share a pixel and z-fight at the corners
+	local top = tex()
+	top:SetPoint("TOPLEFT") top:SetPoint("TOPRIGHT") top:SetHeight(thick)
+	local bottom = tex()
+	bottom:SetPoint("BOTTOMLEFT") bottom:SetPoint("BOTTOMRIGHT")
+	bottom:SetHeight(thick)
+	local left = tex()
+	left:SetPoint("TOPLEFT", 0, -thick) left:SetPoint("BOTTOMLEFT", 0, thick)
+	left:SetWidth(thick)
+	local right = tex()
+	right:SetPoint("TOPRIGHT", 0, -thick) right:SetPoint("BOTTOMRIGHT", 0, thick)
+	right:SetWidth(thick)
+	return e
+end
+
+-- aggro ring colors keyed by the role-aware Threat.ColorKey:
+-- bad  = mob is on you as dps / loose mob as tank - pulsing red
+-- warn = about to pull - static orange
+-- good = held/safe - no ring (the threat-colored fill already shows it)
+local AGGRO_EDGE = {
+	bad = { 0.95, 0.20, 0.22 },
+	warn = { 0.98, 0.60, 0.15 },
+}
+
+local function UpdateAggro(p)
+	local g = p.aggro
+	if not g then return end
+	local db = ns.Cfg()
+	if not db.threat or p.friendly or not p.hpBox:IsShown() then
+		g:SetScript("OnUpdate", nil)
+		g:Hide()
+		return
+	end
+	local key = ns.Threat.ColorKey(ns.Threat.State(p.unit))
+	local c = key and AGGRO_EDGE[key]
+	if not c then
+		g:SetScript("OnUpdate", nil)
+		g:Hide()
+		return
+	end
+	for _, t in ipairs(g.parts) do
+		t:SetVertexColor(c[1], c[2], c[3], 1)
+	end
+	if key == "bad" then
+		-- soft pulse so "you have aggro" pops out of a pack of plates;
+		-- OnUpdate stops on its own when the frame hides
+		g:SetScript("OnUpdate", function(self, dt)
+			self._t = (self._t or 0) + dt
+			local a = 0.45 + 0.55 * math.abs(math.sin(self._t * 6))
+			for _, t in ipairs(self.parts) do t:SetAlpha(a) end
+		end)
+	else
+		g:SetScript("OnUpdate", nil)
+		for _, t in ipairs(g.parts) do t:SetAlpha(0.9) end
+	end
+	g:Show()
+end
+
 -- factory ----------------------------------------------------------------------
 function Plate.Create(parent)
 	local p = CreateFrame("Frame", nil, parent)
 	p:EnableMouse(false)
 
-	-- health bar box
-	local box = CreateFrame("Frame", nil, p, "BackdropTemplate")
-	box:SetBackdrop({ bgFile = BLANK, edgeFile = BLANK, edgeSize = 1,
-		insets = { left = 1, right = 1, top = 1, bottom = 1 } })
-	box:SetBackdropColor(0.03, 0.035, 0.05, 0.9)
-	box:SetBackdropBorderColor(0.13, 0.16, 0.22, 1)
+	-- health bar box: flat square panel + square 1px edge
+	local box = CreateFrame("Frame", nil, p)
+	local boxBg = box:CreateTexture(nil, "BACKGROUND")
+	boxBg:SetAllPoints()
+	boxBg:SetColorTexture(0.03, 0.035, 0.05, 0.9)
+	box.edge = EdgeFrame(box)
+	function box:SetEdgeColor(r, g, b, a)
+		self.edge._col = { r, g, b, a or 1 }
+		for _, t in ipairs(self.edge.parts) do
+			t:SetVertexColor(r, g, b, a or 1)
+		end
+	end
+	box:SetEdgeColor(EDGE_C.r, EDGE_C.g, EDGE_C.b, 1)
 	p.hpBox = box
+
+	-- aggro effect ring: a second edge fully OUTSIDE the box silhouette
+	-- (-2px ring, 2px strips) so it never covers the gold target edge
+	local aggro = EdgeFrame(box, 2)
+	aggro:ClearAllPoints()
+	aggro:SetPoint("TOPLEFT", box, "TOPLEFT", -2, 2)
+	aggro:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", 2, -2)
+	aggro:SetFrameLevel(box:GetFrameLevel() + 4)
+	aggro:Hide()
+	p.aggro = aggro
 
 	local hp = CreateFrame("StatusBar", nil, box)
 	hp:SetPoint("TOPLEFT", 1, -1)
@@ -205,7 +315,7 @@ function Plate.Create(parent)
 	hpGloss:SetAllPoints()
 	hpGloss:SetTexture(BLANK)
 	if CreateColor then
-		hpGloss:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0.14), CreateColor(1, 1, 1, 0))
+		hpGloss:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0.18), CreateColor(1, 1, 1, 0))
 	end
 	p.hp = hp
 
@@ -233,12 +343,25 @@ function Plate.Create(parent)
 	p.raidIcon:SetSize(14, 14)
 	p.raidIcon:SetPoint("RIGHT", p.name, "LEFT", -2, 0)
 
-	-- cast bar box under the health bar
-	local cbox = CreateFrame("Frame", nil, p, "BackdropTemplate")
-	cbox:SetBackdrop({ bgFile = BLANK, edgeFile = BLANK, edgeSize = 1,
-		insets = { left = 1, right = 1, top = 1, bottom = 1 } })
-	cbox:SetBackdropColor(0.03, 0.035, 0.05, 0.9)
-	cbox:SetBackdropBorderColor(0.13, 0.16, 0.22, 1)
+	-- skull glyph for "??"-level bosses (media replaces the ?? text)
+	local skull = S.Tex and S.Tex("BossSkull")
+	if skull then
+		p.bossSkull = p:CreateTexture(nil, "OVERLAY")
+		p.bossSkull:SetTexture(skull)
+		p.bossSkull:SetSize(14, 14)
+		p.bossSkull:SetPoint("BOTTOMRIGHT", box, "TOPRIGHT", -1, 2)
+		p.bossSkull:Hide()
+	end
+
+	-- cast bar box under the health bar - same flat square panel + edge
+	local cbox = CreateFrame("Frame", nil, p)
+	local cboxBg = cbox:CreateTexture(nil, "BACKGROUND")
+	cboxBg:SetAllPoints()
+	cboxBg:SetColorTexture(0.03, 0.035, 0.05, 0.9)
+	cbox.edge = EdgeFrame(cbox)
+	for _, t in ipairs(cbox.edge.parts) do
+		t:SetVertexColor(EDGE_C.r, EDGE_C.g, EDGE_C.b, 1)
+	end
 	p.castBox = cbox
 
 	p.castIcon = cbox:CreateTexture(nil, "ARTWORK")
@@ -254,13 +377,42 @@ function Plate.Create(parent)
 	castGloss:SetAllPoints()
 	castGloss:SetTexture(BLANK)
 	if CreateColor then
-		castGloss:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0.12), CreateColor(1, 1, 1, 0))
+		castGloss:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0.16), CreateColor(1, 1, 1, 0))
 	end
 	p.cast = cast
+
+	-- spark riding the fill's right edge; same recipe as the unit-frame
+	-- cast bar, anchored to the statusbar texture so it follows the fill
+	local spark = cast:CreateTexture(nil, "OVERLAY", nil, 3)
+	local sparkTex = S.Tex and S.Tex("BarSpark")
+	if sparkTex then
+		spark:SetTexture(sparkTex)
+		spark:SetSize(8, 16)
+	else
+		spark:SetTexture(BLANK)
+		spark:SetSize(2, 12)
+	end
+	spark:SetVertexColor(1, 0.88, 0.55, 0.9)
+	spark:SetBlendMode("ADD")
+	spark:SetPoint("CENTER", cast:GetStatusBarTexture(), "RIGHT")
 
 	p.castText = S.Font(cast, 9, nil, "OUTLINE")
 	p.castText:SetDrawLayer("OVERLAY", 2)
 	p.castText:SetJustifyH("LEFT")
+
+	-- remaining cast time, right aligned inside the bar
+	p.castTime = S.Font(cast, 8, S.colors.textDim, "OUTLINE")
+	p.castTime:SetDrawLayer("OVERLAY", 2)
+	p.castTime:SetJustifyH("RIGHT")
+	cast.timeText = p.castTime -- read by Cast.lua's fill drivers
+
+	-- uninterruptible badge on the cast icon, like the unit-frame shield
+	p.castShield = cbox:CreateTexture(nil, "OVERLAY", nil, 2)
+	p.castShield:SetTexture((S.Tex and S.Tex("CastShield"))
+		or "Interface\\Icons\\Spell_Holy_DevotionAura")
+	p.castShield:SetSize(11, 11)
+	p.castShield:SetPoint("CENTER", p.castIcon, "CENTER", 0, 0)
+	p.castShield:Hide()
 
 	p:Hide()
 	return p
@@ -304,7 +456,10 @@ function Plate.Layout(p)
 	p.cast:SetPoint("BOTTOMRIGHT", p.castBox, "BOTTOMRIGHT", -1, 1)
 	p.castText:ClearAllPoints()
 	p.castText:SetPoint("LEFT", p.cast, "LEFT", 3, 0)
-	p.castText:SetPoint("RIGHT", p.cast, "RIGHT", -3, 0)
+	-- the timer claims the last ~20 px of the bar
+	p.castText:SetPoint("RIGHT", p.cast, "RIGHT", -24, 0)
+	p.castTime:ClearAllPoints()
+	p.castTime:SetPoint("RIGHT", p.cast, "RIGHT", -3, 0)
 	p.castBox:SetShown(false)
 
 	p.hpText:SetShown(db.healthText and not friendlyNameOnly)
@@ -334,6 +489,7 @@ function Plate.Update(p)
 	p.attack = attack
 	if p.friendly and not db.friendlyBars then p:Hide() return end
 	Plate.Layout(p)
+	UpdateAggro(p) -- also clears the ring on friendly plates
 	if p.friendly and db.friendlyNameOnly then
 		p.hpBox:Hide()
 		-- name (+ guild) as the whole plate
@@ -355,9 +511,19 @@ function Plate.Update(p)
 	name = okN and name or select(2, pcall(UnitName, unit))
 	FitName(p, name)
 
-	-- tapped by another group: the name greys out with the bar
-	if Tapped(unit) then
+	-- current target reads gold on both the edge ring and the name so the
+	-- focus plate pops out of the pack; reused for the edge below
+	local isTarget = db.targetHighlight and TargetFlag(p)
+
+	-- name color: target accent > tapped grey > player class > white
+	if isTarget then
+		p.name:SetTextColor(ACC.r, ACC.g, ACC.b)
+	elseif Tapped(unit) then
 		p.name:SetTextColor(TAP_COLOR[1], TAP_COLOR[2], TAP_COLOR[3])
+	elseif db.classColors and IsPlayerUnit(unit) == true then
+		local r, g, b = ClassColor(unit)
+		if r ~= nil then pcall(p.name.SetTextColor, p.name, r, g, b, 1)
+		else p.name:SetTextColor(1, 1, 1) end
 	else
 		p.name:SetTextColor(1, 1, 1)
 	end
@@ -371,7 +537,12 @@ function Plate.Update(p)
 			if type(l) ~= "number" then return "" end
 			return (l <= 0 and "??" or l), l
 		end)
-		p.level:SetText(okL and txt or "")
+		local boss = okL and type(lvl) == "number" and lvl <= 0
+		if p.bossSkull then
+			p.bossSkull:SetShown(boss == true)
+			p.level:SetShown(not boss)
+		end
+		p.level:SetText(boss and "" or (okL and txt or ""))
 		local c = okL and S.LevelColor(unit, lvl)
 		if c then
 			pcall(p.level.SetTextColor, p.level, c.r, c.g, c.b, 1)
@@ -399,12 +570,11 @@ function Plate.Update(p)
 	local fr, fg, fb = FillColor(p, unit)
 	if fr ~= nil then pcall(p.hp.SetStatusBarColor, p.hp, fr, fg, fb) end
 
-	-- target accent border
-	local isTarget = plain(UnitIsUnit(unit, "target")) == true
-	if db.targetHighlight and isTarget then
-		p.hpBox:SetBackdropBorderColor(ACC.r, ACC.g, ACC.b, 1)
+	-- target accent border: square edge goes Sentinel gold
+	if isTarget then
+		p.hpBox:SetEdgeColor(ACC.r, ACC.g, ACC.b, 1)
 	else
-		p.hpBox:SetBackdropBorderColor(0.13, 0.16, 0.22, 1)
+		p.hpBox:SetEdgeColor(EDGE_C.r, EDGE_C.g, EDGE_C.b, 1)
 	end
 
 	-- raid target icon
@@ -429,10 +599,11 @@ function Plate.RefreshColors(p)
 	if db.healthText then hp_text(p, p.unit) end
 	local fr, fg, fb = FillColor(p, p.unit)
 	if fr ~= nil then pcall(p.hp.SetStatusBarColor, p.hp, fr, fg, fb) end
-	local isTarget = plain(UnitIsUnit(p.unit, "target")) == true
-	if db.targetHighlight and isTarget then
-		p.hpBox:SetBackdropBorderColor(ACC.r, ACC.g, ACC.b, 1)
+	local isTarget = db.targetHighlight and TargetFlag(p)
+	if isTarget then
+		p.hpBox:SetEdgeColor(ACC.r, ACC.g, ACC.b, 1)
 	else
-		p.hpBox:SetBackdropBorderColor(0.13, 0.16, 0.22, 1)
+		p.hpBox:SetEdgeColor(EDGE_C.r, EDGE_C.g, EDGE_C.b, 1)
 	end
+	UpdateAggro(p)
 end

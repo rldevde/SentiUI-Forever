@@ -2,6 +2,99 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.24",
+		date = "2026-11-23",
+		changes = {
+			"Gold target edge flicker fixed (3 causes): UnitIsUnit could return secret/nil and flip the edge dark every bad tick - the state is now sticky; EdgeFrame strips z-fought at the corners (sides now inset so each corner pixel has one owner); the aggro ring sat ON the gold edge and hid pieces when threat flapped - it now sits fully outside the box.",
+		},
+		changesDE = {
+			"Flackernde Goldkante am Ziel behoben (3 Ursachen): UnitIsUnit konnte secret/nil liefern und die Kante pro Tick dunkel flippen - der Zustand ist jetzt sticky; EdgeFrame-Strips haben an den Ecken gez-fightet (Seiten jetzt eingerueckt, jeder Eck-Pixel gehoert einem Strip); der Aggro-Ring lag AUF der Goldkante und verdeckte Stuecke - er sitzt jetzt komplett ausserhalb der Box.",
+		},
+	},
+	{
+		version = "0.1.23",
+		date = "2026-11-23",
+		changes = {
+			"Aggro effect ring on plates (like the unit-frame threat glow): a 2px edge 1px outside the health box pulses red when the mob is on you (or loose, as tank) and glows static orange when you are about to pull. Safe/held threat stays quiet - the threat-colored fill shows it already.",
+		},
+		changesDE = {
+			"Aggro-Effektring auf Plaketten (wie der Threat-Ring der Unit-Frames): eine 2px-Kante 1px ausserhalb der Lebensleiste pulsiert rot, wenn der Mob auf dir ist (als Tank: wenn er laeuft), und glueht statisch orange, wenn du gleich ziehst. Sichere Aggro bleibt ruhig - die Threat-Fuellung zeigt es schon.",
+		},
+	},
+	{
+		version = "0.1.22",
+		date = "2026-11-23",
+		changes = {
+			"Visual pass matching the Dark Glass unit frames: stronger glass sheen on health and cast bars, player names in class color, current target's name + edge in Sentinel gold.",
+			"Plate cast bar: remaining-time text on the right, shield badge on the cast icon for uninterruptible casts, BarSpark glow on the fill edge.",
+			"Empower casts now drive the plate cast bar.",
+		},
+		changesDE = {
+			"Optische Anpassung ans Dark-Glass-Design: staerkerer Glasreflex auf Lebens- und Cast-Leiste, Spielernamen in Klassenfarbe, Name + Rand des aktuellen Ziels in Sentinel-Gold.",
+			"Plaketten-Castleiste: Restzeit rechts, Schild-Badge auf dem Cast-Icon bei nicht unterbrechbaren Casts, BarSpark-Glanz am Fuellrand.",
+			"Empower-Casts treiben jetzt auch die Plaketten-Castleiste.",
+		},
+	},
+	{
+		version = "0.1.21",
+		date = "2026-11-22",
+		changes = {
+			"Plates are square now: all rounding gone (no arcs, no CornerCut, no Roundize) - flat dark panel + a plain square 1px border on health and cast boxes. Target highlight recolors the square edge gold.",
+		},
+		changesDE = {
+			"Plates sind jetzt eckig: alle Rundungen entfernt (keine Boegen, kein CornerCut, kein Roundize) - flaches dunkles Panel + schlichter eckiger 1px-Rand auf Lebens- und Cast-Boxen. Ziel-Highlight faerbt den eckigen Rand gold.",
+		},
+	},
+	{
+		version = "0.1.20",
+		date = "2026-11-22",
+		changes = {
+			"Plate edge ring on short bars: the border frame now clamps its corner inset to half the bar height and (re)builds strips+arcs via OnSizeChanged once the box has a real size - the radius-4 arcs no longer collapse into pointed marks on thin health bars.",
+		},
+		changesDE = {
+			"Plate-Kantenring auf kurzen Balken: der Border-Frame klemmt seinen Eck-Inset jetzt auf die halbe Balkenhoehe und (re)baut Streifen+Boegen ueber OnSizeChanged sobald die Box echte Masse hat - die Radius-4-Boegen fallen auf duennen Lebensbalken nicht mehr zu spitzen Markierungen zusammen.",
+		},
+	},
+	{
+		version = "0.1.19",
+		date = "2026-11-22",
+		changes = {
+			"Target ring overlay is back, now on the regenerated spec-correct TargetRing edgeFile (closed gold ring, true rounded corners) instead of the broken AI file.",
+		},
+		changesDE = {
+			"Ziel-Ring-Overlay ist zurueck, jetzt auf dem regenerierten spec-korrekten TargetRing-EdgeFile (geschlossener Goldring, echte runde Ecken) statt der defekten KI-Datei.",
+		},
+	},
+	{
+		version = "0.1.18",
+		date = "2026-11-22",
+		changes = {
+			"Reverted the TargetRing.tga overlay on plates: the file renders as pink corner stubs instead of a closed gold ring (art/slice issue in the generated file). The target highlight is back to recoloring the rounded edge gold.",
+		},
+		changesDE = {
+			"TargetRing.tga-Overlay auf Plates zurueckgenommen: die Datei rendert als pinke Eckstuecke statt als geschlossener Goldring (Art-/Slice-Problem in der generierten Datei). Die Ziel-Markierung faerbt wieder die gerundete Kante gold.",
+		},
+	},
+	{
+		version = "0.1.17",
+		date = "2026-11-22",
+		changes = {
+			"Generated media on plates: the target highlight uses the TargetRing.tga edgeFile - a true anti-aliased gold ring over the dark edge instead of recoloring the strips (recolor stays as fallback). '??'-level bosses show the BossSkull glyph instead of the ?? text.",
+		},
+		changesDE = {
+			"Generierte Media auf Plates: die Ziel-Markierung nutzt die TargetRing.tga-EdgeFile - ein echter geglatteter Goldring ueber der dunklen Kante statt Umfärbung der Streifen (Recolor bleibt Fallback). '??'-Boss-Level zeigen das BossSkull-Glyph statt des ??-Texts.",
+		},
+	},
+	{
+		version = "0.1.16",
+		changes = {
+			"Rounded plates: health and cast bar boxes used a square BackdropTemplate edge - the hard pixel border that read as jagged on an 11px bar. Both boxes now use the rounded raster panel (S.Roundize) plus a 1px edge built from strips and quarter arcs (S.EdgeArc), and the bar fills get rounded ends via S.CornerCut caps. The target highlight recolors the whole rounded outline instead of the old square border.",
+		},
+		changesDE = {
+			"Abgerundete Plates: Gesundheits- und Zauberleisten-Boxen nutzten eine eckige BackdropTemplate-Kante - der harte Pixelrand, der auf einer 11px-Leiste gezackt wirkte. Beide Boxen nutzen jetzt das gerundete Raster-Panel (S.Roundize) plus 1px-Rand aus Streifen und Viertelboegen (S.EdgeArc), die Leistenfuellung bekommt runde Enden ueber S.CornerCut-Kappen. Das Ziel-Highlight faerbt die gesamte gerundete Kontur statt der alten eckigen Kante.",
+		},
+	},
+	{
 		version = "0.1.15",
 		changes = {
 			"Dispatcher rollback: PLAYER_TARGET_CHANGED and RAID_TARGET_UPDATE are registered again and the raid icon moved back out of the volatile color pass.",

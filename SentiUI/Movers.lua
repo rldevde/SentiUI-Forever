@@ -363,16 +363,18 @@ local function makeHandle(e)
 		end
 	end)
 	-- arrow keys nudge the selected element by 1px (Shift: 10px); every
-	-- other key passes straight through
+	-- other key passes straight through. SetPropagateKeyboardInput is
+	-- restricted in combat on this client - bail there, pcall elsewhere
 	h:SetScript("OnKeyDown", function(f, key)
+		if InCombatLockdown() then return end
 		local a = ARROWS[key]
 		if a then
 			local step = IsShiftKeyDown() and 10 or 1
 			Nudge(e, a[1] * step, a[2] * step)
 			RefreshHandle(e)
-			f:SetPropagateKeyboardInput(false)
+			pcall(f.SetPropagateKeyboardInput, f, false)
 		else
-			f:SetPropagateKeyboardInput(true)
+			pcall(f.SetPropagateKeyboardInput, f, true)
 		end
 	end)
 	h:EnableMouseWheel(e.scale and true or false)
@@ -481,8 +483,9 @@ local function buildBar()
 	end)
 
 	local edge = S.Line(editBar, C.accent, 2)
-	edge:SetPoint("TOPLEFT", 0, 0)
-	edge:SetPoint("TOPRIGHT", 0, 0)
+	-- inset past the corner arc so the line ends on the straight edge
+	edge:SetPoint("TOPLEFT", 7, 0)
+	edge:SetPoint("TOPRIGHT", -7, 0)
 
 	local title = S.Font(editBar, 13, C.accent)
 	title:SetPoint("TOPLEFT", 12, -8)

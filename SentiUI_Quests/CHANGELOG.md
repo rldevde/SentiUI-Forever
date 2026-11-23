@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.9 - 2026-11-22
+
+- Quest share fix: SendChatMessage fired directly inside the UI_INFO_MESSAGE event dispatch - a forbidden call on this client. The party share now defers through C_Timer into its own pass, prefers C_ChatInfo.SendChatMessage, and bails in combat.
+
 ## 0.4.8 - 2026-11-22
 
 - AutoQuest fix: step detection ran only on dialog panel frame names, which never matched on this client - nothing auto-accepted or turned in. The QUEST_*/GOSSIP_* events now set a pending flag the 0.15s poll consumes outside the event dispatch, and the flag re-triggers a step on repeat visits (accept -> gossip -> accept chains).

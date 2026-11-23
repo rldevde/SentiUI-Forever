@@ -1564,23 +1564,12 @@ local function EditBox(parent, w, hint)
 	return e
 end
 
+-- filter chip: the shared Sentinel tab chip (blade + lit active)
 local function Chip(parent, label, onClick)
-	local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
-	b:SetHeight(20)
-	S.Template(b, "inset")
-	b.fs = ns.Font(b, 10, S.colors.textDim)
-	b.fs:SetPoint("CENTER")
-	b.fs:SetJustifyH("CENTER")
-	function b:SetLabel(t)
-		self.fs:SetText(t)
-		self:SetWidth((self.fs:GetStringWidth() or 40) + 18)
-	end
-	function b:SetActive(on)
-		local c = on and S.colors.accent or S.colors.textDim
-		self.fs:SetTextColor(c.r, c.g, c.b)
-		S.SetBorderLit(self, on == true)
-	end
-	b:SetLabel(label)
+	local b = S.TabChip(parent, 20)
+	b.autoWidth = true
+	function b:SetActive(on) self:SetSelected(on) end
+	b:SetLabel(label or "")
 	b:SetScript("OnClick", function() onClick(b) end)
 	return b
 end

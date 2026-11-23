@@ -1,5 +1,99 @@
 # SentiUI Chat
 
+## 0.2.38 - 2026-11-23
+
+- Input bar only appears while typing now: this client never hides its editbox (IsShown is always true), so the bar tracks HasFocus instead - shows when the box gains focus, hides when focus leaves.
+
+## 0.2.37 - 2026-11-23
+
+- Input bar is now slightly transparent to match the chat panel (55% fill when the panel runs transparent, 80% otherwise). The client never hides its editbox so the bar is a permanent fixture - it has to blend in, not sit as an opaque slab over the world.
+
+## 0.2.36 - 2026-11-23
+
+- Input bar now actually appears: the show/hide fast path read f.editBox directly, but that field is not populated on every chat window on this client - anyEbShown stayed false forever and the bar never showed. It now uses FindEditBox with the global fallback like the rest of the module.
+
+## 0.2.35 - 2026-11-23
+
+- Input bar no longer permanently visible: the bar shows only when an edit box is open, hidden otherwise - same rhythm as the Blizzard default.
+- Input bar restyled with the same panel template as the chat panels so it looks like a continuation of them, not a foreign element.
+
+## 0.2.34 - 2026-11-23
+
+- Edit bar completely rebuilt: previous versions rendered behind the panel (LOW strata invisible) or stacked conflicting layers. New bar lives at DIALOG strata level 5, slightly lighter dark fill (bgRaised), 1px border, gold hairline at top, 3px channel-coloured left strip. Fixed 26px height so the text, gold line and border all have room.
+
+## 0.2.33 - 2026-11-23
+
+- Edit bar now carries the gold top hairline the data bars use (inset past the corner arc), so the input strip reads as the same band family as the XP/rep bar above the panels.
+
+## 0.2.32 - 2026-11-23
+
+- Edit bar height now follows the Data Bars height setting (default 14px): the gold input strip, the XP bar and the rep bar all read as one uniform band. Gloss is anchored to the bar's center so it scales with the height.
+
+## 0.2.31 - 2026-11-23
+
+- Edit bar template switched from raised to inset: the thin gold wireframe on black read as a hollow rectangle. Now a dark recessed field - gold stays on the left accent strip and the corner ticks.
+
+## 0.2.30 - 2026-11-23
+
+- Edit bar restyled to the full Sentinel panel recipe: inner fade gradient (same as the chat panels), top-half gloss, left gold accent strip, corner ticks at the bottom, 26px tall and docked flush (1px gap) under the chat panel instead of floating loose.
+
+## 0.2.29 - 2026-11-23
+
+- The chat input is now a real styled bar: templating the Blizzard edit box directly rendered through its NineSlice as a thin black sliver. A dedicated SentiUIChatEditBar (dark raised fill, gold border, accent strip, 24px tall) sits behind the box; the box itself is transparent and fills it. Click the bar to focus, channel color now tints the bar's border.
+
+## 0.2.28 - 2026-11-23
+
+- Chat no longer jumps out of the panel on level up: the client re-anchors chat windows several seconds apart (banner, spec/spell toasts, floating text each trigger their own pass) and the old 1.5s burst only caught the first shove. The snap-back burst now runs 5s with full dock passes at 0.6s / 1.6s / 3s / 5s.
+
+## 0.2.27 - 2026-11-23
+
+- Scrollbars and scroll buttons no longer jump: Blizzard re-shows the chat ScrollBar, ScrollToBottomButton and the button-frame up/down arrows on scroll events, so they flickered back until the next 0.25s restyle tick. Each one now gets an OnShow -> Hide guard on top of alpha 0 - hidden for good.
+- Edit box no longer jumps on open: Blizzard's header/resize passes re-anchor the edit box for a frame or two before the anchor watchdog caught it. A per-frame fast path re-anchors a shown edit box the same frame.
+- Edit box polish: 6px text insets so the caret no longer hugs the border, plus the Sentinel gold accent strip on the left edge.
+
+## 0.2.26 - 2026-11-22
+
+- Chat tabs ride the generated `ChatTab`/`ChatTabActive` plates instead of a tinted blank fill — the active tab swaps to its own plate art, inactive tabs dim the same texture.
+
+## 0.2.25 - 2026-11-22
+
+- The loot window's floating channel tab is now hidden and taken off the mouse while the window lives inside the right chat panel - it poked out over the panel's top edge and clicking it toggled the whole chat frame off. Restored automatically if the window re-docks into a Blizzard dock.
+- Loot window detection hardened: the frame itself is remembered and matched, plus the German "Plündern" label - a loot window whose tab label did not match was never docked into the right panel and floated loose with its tab sticking out.
+
+## 0.2.24 - 2026-11-22
+
+- Chat tabs now have a dark inset background chip (80% opacity active, 55% inactive) so the tab label reads clearly against the game world.
+- Gold hairline at the tab bottom edge is now only visible on the active tab.
+- Chat copy frame close button replaced with the shared W.Close.
+- Bottom corner ticks fixed: the right tick hung 4px outside the panel edge; both are now mirrored and inset past the rounded corner arc.
+- The panel fade layer is inset 7px so it no longer shows a dark square wedge behind each rounded corner.
+
+## 0.2.23 - 2026-11-22
+
+- Chat sizes scale for real now: neither frame:SetFont nor the Font object path reach a ScrollingMessageFrame on this client - the game's own wrapper FCF_SetChatWindowFontSize(nil, frame, size) is the path that works, and every size change (settings, installer, watchdog) goes through it now. The outline still applies via the Font object path when it differs.
+- The watchdog re-pushes a drifted size only when the observed size actually moved, so a font API that never reflects the push cannot rebuild the chat lines every quarter second.
+- The installer chat step no longer bails on an unready module - an empty step was cached forever; the controls now always render and write settings the module picks up when it runs.
+
+## 0.2.22 - 2026-11-22
+
+- Chat font sizes now actually apply: frame.SetFont silently does nothing on this client, so every size change (settings, installer, watchdog) went into the database while the visible size stayed whatever the game had cached. Fonts go through a real Font object via SetFontObject now, verified with GetFont, plain SetFont as fallback - the same reliable path the rest of the suite uses. Tab texts included.
+- The watchdog no longer adopts a size that was never applied: a silent font failure used to be read back as a 'menu change' and overwrote the saved choice.
+- The loot chat window reopens when it was closed by hand: EnsureLootChat shows the found window again and the dock pass re-anchors it into the right panel.
+
+## 0.2.21 - 2026-11-22
+
+- New installer step 'Chat': font size and tab font size sliders, the loot chat window toggle and the panel backdrop dropdown. Everything applies live through the module's setting path - every chat window (general, loot, whispers ...) takes the size immediately and the loot window is created and docked on the spot.
+
+## 0.2.20 - 2026-11-22
+
+- Default chat background came back after every reload: the frame styling ran once per frame and Blizzard's chat init finished after it, repainting the default background and buttons over the styled frame. The chrome kill is idempotent now and re-runs in the watchdog for every frame, plus a NineSlice/backdrop kill for backgrounds that are not plain regions.
+- Font size arbitration after login: a mismatch seen in the first 15 seconds is Blizzard's chat-cache restore clobbering our application and gets put back to the saved size; a later mismatch is a live tab-menu change and is adopted into the settings. Before, the sync read the wrong GetFont return and never fired at all.
+- The own-timestamp switch now uses C_CVar.SetCVar - the legacy SetCVar global is not guaranteed on this client.
+
+## 0.2.19 - 2026-11-22
+
+- Chat font size now persists no matter where it is changed: a size set through Blizzard's tab menu is written back into the module settings (0.25s watchdog, no Blizzard hooks), so the next login applies your choice instead of resetting to the default 12.
+
 ## 0.2.18 - 2026-11-22
 
 - Loot lines now stay in the Loot window: every other chat window loses the loot, money and gain message groups - before, the same lines showed in the general chat and the Loot window at once.

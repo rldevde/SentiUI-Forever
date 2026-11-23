@@ -5,11 +5,12 @@
 local _, ns = ...
 local S = SentiUI
 local L = ns.L
-local Plain = ns.Plain
+local Plain, CanAccess = ns.Plain, ns.CanAccess
 local UF = ns.UF
 local BLANK = S.media.blank
 
 local max = math.max
+local format = string.format
 local CreateFrame = CreateFrame
 
 local X = {}
@@ -21,13 +22,22 @@ ns.Extras = X
 local function BuildPredOverlays(f)
 	-- incoming heal: lighter fill riding on the health fill
 	local pred = CreateFrame("StatusBar", nil, f.Health)
-	pred:SetStatusBarTexture(BLANK)
-	pred:SetStatusBarColor(0.35, 0.85, 0.45, 0.45)
+	-- the media fill carries its own green; tinting it green again would
+	-- double-darken - keep white and let the art show through
+	local incTex = S.Tex and S.Tex("IncomingHeal")
+	pred:SetStatusBarTexture(incTex or BLANK)
+	if incTex then
+		pred:SetStatusBarColor(1, 1, 1, 0.45)
+	else
+		pred:SetStatusBarColor(0.35, 0.85, 0.45, 0.45)
+	end
 	pred:SetAllPoints(f.Health)
 	pred:SetFrameLevel(f.Health:GetFrameLevel() + 1)
 	pred:Hide()
 	f.HealPred = pred
-	-- absorb shield: pale overlay on top of everything
+	-- absorb shield: pale overlay on top of everything. AbsorbBar.tga is
+	-- dark-based - multiplying it with the pale tint reads as a missing-
+	-- health shadow instead of a shield, so the flat pale band stays
 	local ab = CreateFrame("StatusBar", nil, f.Health)
 	ab:SetStatusBarTexture(BLANK)
 	ab:SetStatusBarColor(0.85, 0.85, 0.95, 0.35)
@@ -50,19 +60,35 @@ local function AnchorAfterFill(band, health)
 	return true
 end
 
+-- the band is anchored at the fill's right edge, so it only spans the
+-- MISSING health: its minmax must be the deficit (UnitHealthMissing), not
+-- UnitHealthMax - with max, the fill came out (max-cur)/max times too
+-- small, shrinking every prediction to a sliver. The value may be
+-- secret; it goes to the widget raw.
+local function HealthMissing(unit)
+	if UnitHealthMissing then
+		local ok, m = pcall(UnitHealthMissing, unit)
+		if ok and m ~= nil then return m end
+	end
+	local ok, m = pcall(UnitHealthMax, unit)
+	return ok and m or 0
+end
+
 function X.UpdatePrediction(f)
 	if not f.unit then return end
+	local miss = HealthMissing(f.unit)
 	if f.HealPred then
 		local on = ns.db.healPredict ~= false
 		local ok, inc = pcall(UnitGetIncomingHeals, f.unit)
-		if on and ok and inc ~= nil then
+		local plainMiss = Plain(miss)
+		if on and ok and inc ~= nil and plainMiss ~= 0 then
 			-- secret-safe: the amount is often secret - the widget takes
 			-- it raw and a 0-length fill is invisible anyway
 			local shown = pcall(function()
 				if not AnchorAfterFill(f.HealPred, f.Health) then
 					f.HealPred:SetAllPoints(f.Health)
 				end
-				f.HealPred:SetMinMaxValues(0, UnitHealthMax(f.unit))
+				f.HealPred:SetMinMaxValues(0, miss)
 				f.HealPred:SetValue(inc)
 			end)
 			f.HealPred:SetShown(shown)
@@ -80,7 +106,7 @@ function X.UpdatePrediction(f)
 				if not AnchorAfterFill(f.Absorb, f.Health) then
 					f.Absorb:SetAllPoints(f.Health)
 				end
-				f.Absorb:SetMinMaxValues(0, UnitHealthMax(f.unit))
+				f.Absorb:SetMinMaxValues(0, miss)
 				f.Absorb:SetValue(ab)
 			end)
 		elseif show then
@@ -88,7 +114,7 @@ function X.UpdatePrediction(f)
 				if not AnchorAfterFill(f.Absorb, f.Health) then
 					f.Absorb:SetAllPoints(f.Health)
 				end
-				f.Absorb:SetMinMaxValues(0, UnitHealthMax(f.unit))
+				f.Absorb:SetMinMaxValues(0, miss)
 				f.Absorb:SetValue(ab)
 			end)
 		end
@@ -402,6 +428,81 @@ function X.CreatePartyPets()
 			b.PetButton = pet
 		end
 	end
+end
+
+-- ===========================================================================
+-- Alternate power bar: replaces the parked PlayerPowerBarAlt. The engine
+-- reports the encounter resource through power index ALTERNATE_POWER_INDEX;
+-- values may be secret and go to the widget raw.
+-- ===========================================================================
+local altBar
+local ALT_INDEX = ALTERNATE_POWER_INDEX or 10
+
+local function AltBarInfo(unit)
+	if GetUnitPowerBarInfo then
+		local ok, info = pcall(GetUnitPowerBarInfo, unit)
+		if ok and CanAccess(info) then return info end
+	end
+	if UnitPowerBarInfo then
+		local ok, info = pcall(UnitPowerBarInfo, unit)
+		if ok and CanAccess(info) then return info end
+	end
+end
+
+function X.AltPowerActive()
+	if ns.db.altPower == false then return false end
+	if not UnitPowerMax then return false end
+	local ok, mx = pcall(UnitPowerMax, "player", ALT_INDEX)
+	if not ok or mx == nil then return false end
+	if S.IsSecret(mx) then return true end -- secret max: a power bar is active
+	return type(mx) == "number" and mx > 0
+end
+
+function X.UpdateAltPower()
+	if not altBar then return end
+	local info = AltBarInfo("player")
+	local mx = info and Plain(info.maxPower) or nil
+	local okM, mx2 = pcall(UnitPowerMax, "player", ALT_INDEX)
+	if mx == nil then mx = okM and mx2 or nil end
+	local okV, cur = pcall(UnitPower, "player", ALT_INDEX)
+	pcall(function()
+		altBar:SetMinMaxValues(0, mx)
+		altBar:SetValue(okV and cur or 0)
+	end)
+	local name = info and Plain(info.name) or nil
+	local pct = info and Plain(info.percentage) or nil
+	if type(name) == "string" and type(pct) == "number" then
+		altBar.label:SetText(format("%s  %.0f%%", name, pct * 100))
+	elseif type(name) == "string" and name ~= "" then
+		altBar.label:SetText(name)
+	else
+		altBar.label:SetText("")
+	end
+end
+
+function X.CreateAltPower()
+	if altBar then return end
+	local holder = CreateFrame("Frame", "SentiUI_UF_AltPower", UIParent)
+	holder:SetSize(220, 16)
+	holder:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, 260)
+	S.Template(holder, "panel")
+	local bar = ns.Bar(holder, 1, 1)
+	bar:SetPoint("TOPLEFT", holder, "TOPLEFT", 3, -3)
+	bar:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -3, 3)
+	bar:SetStatusBarColor(0.25, 0.55, 1, 0.9)
+	bar.label = ns.Font(holder, 10)
+	bar.label:SetPoint("CENTER", bar, "CENTER")
+	altBar = bar
+	X.altHolder = holder
+	holder:Hide()
+	S.Movers.Register(holder, "uf.altpower", L["Alt power bar"], { x = 0, y = -160 })
+	C_Timer.NewTicker(0.25, function()
+		-- poll: UNIT_POWER events for the alt index do not fire reliably on
+		-- this client; the ticker keeps secret max reads out of Lua math
+		local has = X.AltPowerActive()
+		holder:SetShown(has)
+		if has then X.UpdateAltPower() end
+	end)
 end
 
 -- ===========================================================================

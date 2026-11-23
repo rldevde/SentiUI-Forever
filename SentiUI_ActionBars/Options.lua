@@ -125,6 +125,8 @@ ns.OPTIONS = {
 					items = {
 						{ type = "toggle", key = "extras.enabled", label = L["Enable extra buttons"], reload = true,
 							desc = L["Turns every action bar change off after a reload."] },
+						{ type = "toggle", key = "cooldownViewers", label = L["Cooldown viewers"], reload = true,
+							desc = L["Un-park the Cooldown Manager viewers and give them the SentiUI skin plus movable positions."] },
 						{ type = "text", label = L["Every bar is a registered mover: unlock move mode and drag it. Right-click a handle to reset."] },
 						{ type = "button", label = L["Move frames"], text = L["Unlock"],
 							func = function() SentiUI.Movers.SetUnlocked(true) end },

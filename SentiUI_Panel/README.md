@@ -18,6 +18,9 @@ SentiUI core.
 - Right-click on a plugin: options menu (label/icon, move, zone, bar,
   hide, plugin-specific actions)
 - Shift+drag a plugin: reorder inside a zone or move between bars
+- Installer step "Bottom bar plugins": a scrollable checklist that picks
+  which plugins show on the bottom bar (live, editable later under
+  SentiUI > Panel > Plugins)
 
 ## Plugins (32)
 

@@ -11,6 +11,7 @@ ns.UI = UI
 local L = ns.L
 local W = ns.Widgets
 local Store = ns.Store
+local S = SentiUI
 
 local FRAME_NAME = "SentiAccountInfoFrame"
 local WIDTH, HEIGHT = 960, 620
@@ -92,12 +93,7 @@ end
 
 local function PaintNav()
 	for index, button in pairs(frame.navButtons) do
-		local active = index == frame.selectedTab
-		button.edge:SetShown(active)
-		button:SetBackdropColor(active and W.BG_RAISED[1] or W.BG_INSET[1],
-			active and W.BG_RAISED[2] or W.BG_INSET[2],
-			active and W.BG_RAISED[3] or W.BG_INSET[3], active and 1 or 0.6)
-		W.Color(button.text, active and W.GOLD or W.TEXT)
+		button:SetSelected(index == frame.selectedTab)
 	end
 end
 
@@ -195,31 +191,10 @@ local function CreateHeader()
 end
 
 local function CreateNavButton(index, parent, label)
-	local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
-	button:SetHeight(NAV_H)
-	button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 })
-	button:SetBackdropColor(W.BG_INSET[1], W.BG_INSET[2], W.BG_INSET[3], 0.6)
-	button:SetBackdropBorderColor(0, 0, 0, 0)
-	button:SetHighlightTexture("Interface\\Buttons\\WHITE8x8")
-	button:GetHighlightTexture():SetVertexColor(0.92, 0.68, 0.20, 0.08)
-
-	button.edge = button:CreateTexture(nil, "BORDER")
-	button.edge:SetPoint("TOPLEFT")
-	button.edge:SetPoint("BOTTOMLEFT")
-	button.edge:SetWidth(3)
-	button.edge:SetColorTexture(0.92, 0.68, 0.20, 1)
-	button.edge:Hide()
-
-	button.icon = button:CreateTexture(nil, "ARTWORK")
-	button.icon:SetSize(15, 15)
-	button.icon:SetPoint("LEFT", 10, 0)
-	button.icon:SetTexture(PAGE_ICONS[index])
-	button.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-
-	button.text = W.Text(button, "GameFontHighlight", W.TEXT)
-	button.text:SetPoint("LEFT", 32, 0)
-	button.text:SetText(label)
-
+	-- the shared Sentinel tab chip: blade + lit active, with the page icon
+	local button = S.TabChip(parent, NAV_H)
+	button:SetIcon(PAGE_ICONS[index])
+	button:SetLabel(label)
 	button:SetScript("OnClick", function()
 		SelectPage(index)
 	end)

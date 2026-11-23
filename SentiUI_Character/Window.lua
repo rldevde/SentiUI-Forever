@@ -42,15 +42,17 @@ function W.Build()
 	head:SetHeight(46)
 	S.Template(head, "inset")
 
-	f.title = S.Font(head, 15, nil, "OUTLINE")
-	f.title:SetPoint("LEFT", 12, 0)
+	-- the title wears the class color, like the sheet it replaces
+	f.title = S.Font(head, 15, PlayerColor(), "OUTLINE")
+	f.title:SetPoint("LEFT", 14, 0)
 
 	f.sub = S.Font(head, 10, C.textDim)
 	f.sub:SetPoint("LEFT", f.title, "RIGHT", 8, -2)
 
-	local close = CreateFrame("Button", nil, head, "UIPanelCloseButton")
-	close:SetPoint("TOPRIGHT", -4, -4)
-	close:SetSize(22, 22)
+	-- Sentinel close chip instead of the Blizzard ornate X: same rounded
+	-- language as the rest of the window, accent on hover
+	local close = S.Widgets.Close(head, function() f:Hide() end)
+	close:SetPoint("TOPRIGHT", -6, -6)
 
 	-- tab strip -----------------------------------------------------------
 	local tabs = CreateFrame("Frame", nil, f)
@@ -75,9 +77,18 @@ function W.Build()
 	W.leftCol:SetPoint("TOPLEFT", char, "TOPLEFT", 8, 0)
 	W.leftCol:SetSize(205, 400)
 
+	-- framed portrait panel behind the model so it reads as part of the
+	-- window design instead of a floating 3D render on the dark page
+	local modelBG = CreateFrame("Frame", nil, char)
+	modelBG:SetPoint("TOPLEFT", W.leftCol, "TOPRIGHT", 6, -28)
+	modelBG:SetSize(200, 320)
+	S.Template(modelBG, "inset")
+	modelBG:SetFrameLevel(char:GetFrameLevel())
+
 	W.model = CreateFrame("PlayerModel", nil, char)
 	W.model:SetPoint("TOPLEFT", W.leftCol, "TOPRIGHT", 6, -28)
 	W.model:SetSize(200, 320)
+	W.model:SetFrameLevel(modelBG:GetFrameLevel() + 2)
 	W.model:SetScript("OnMouseDown", function(m, btn)
 		if btn == "LeftButton" then m.dragX = GetCursorPosition() end
 	end)
@@ -138,13 +149,12 @@ function W.Build()
 	f.dura = S.Font(foot, 11, C.textDim)
 	f.dura:SetPoint("RIGHT", -12, 0)
 
-	-- equipment-set picker, only when the client has sets
-	f.sets = CreateFrame("Button", nil, foot)
-	f.sets:SetSize(90, 20)
+	-- equipment-set picker, only when the client has sets - a small
+	-- Sentinel chip in the footer center
+	f.sets = S.TabChip(foot, 20)
 	f.sets:SetPoint("CENTER", 0, 0)
-	f.sets.txt = S.Font(f.sets, 11, C.accent2)
-	f.sets.txt:SetAllPoints()
-	f.sets.txt:SetJustifyH("CENTER")
+	f.sets:SetLabel("")
+	f.sets.label:SetTextColor(C.accent2.r, C.accent2.g, C.accent2.b)
 	f.sets:SetScript("OnClick", function(btn) ns.Win.OpenSetsMenu(btn) end)
 	f.sets:Hide()
 
@@ -179,20 +189,12 @@ function W.BuildTabs()
 	for i, id in ipairs(W.pageOrder) do
 		local b = W.tabBtns[i]
 		if not b then
-			b = CreateFrame("Button", nil, tabs, "BackdropTemplate")
-			b:SetHeight(22)
-			S.Template(b, "inset")
-			b.txt = S.Font(b, 11)
-			b.txt:SetPoint("CENTER")
-			b:SetScript("OnEnter", function(bb) S.SetBorderLit(bb, true) end)
-			b:SetScript("OnLeave", function(bb)
-				S.SetBorderLit(bb, bb.pageId == W.currentPage)
-			end)
+			b = S.TabChip(tabs, 22)
 			W.tabBtns[i] = b
 		end
 		b.pageId = id
-		b.txt:SetText(id == "character" and L["Character"] or ns.Pages.defs[id].label)
-		b:SetWidth((b.txt:GetStringWidth() or 40) + 18)
+		b:SetLabel(id == "character" and L["Character"] or ns.Pages.defs[id].label)
+		b:SetWidth((b.label:GetStringWidth() or 40) + 22)
 		b:ClearAllPoints()
 		b:SetPoint("LEFT", x, 0)
 		b:SetScript("OnClick", function() W.ShowPage(id) end)
@@ -210,11 +212,7 @@ function W.ShowPage(id)
 	W.charPage:SetShown(id == "character")
 	for pid, pf in pairs(W.pageFrames) do pf:SetShown(pid == id) end
 	for _, b in ipairs(W.tabBtns) do
-		local on = b.pageId == id
-		b.txt:SetTextColor(on and C.accent.r or C.textDim.r,
-			on and C.accent.g or C.textDim.g, on and C.accent.b or C.textDim.b)
-		S.Template(b, on and "raised" or "inset")
-		S.SetBorderLit(b, on)
+		b:SetSelected(b.pageId == id)
 	end
 	local def = ns.Pages.defs[id]
 	if def and def.Refresh and W.pageFrames[id]:IsShown() then
@@ -292,7 +290,7 @@ local function FooterText(f)
 	local hasSets = C_EquipmentSet and C_EquipmentSet.GetEquipmentSetIDs
 		and #C_EquipmentSet.GetEquipmentSetIDs() > 0
 	f.sets:SetShown(hasSets and true or false)
-	if hasSets then f.sets.txt:SetText(L["Sets"] .. " ▾") end
+	if hasSets then f.sets:SetLabel(L["Sets"] .. " ▾") end
 
 	local cur, max = ns.Slots.TotalDurability()
 	if max and max > 0 then

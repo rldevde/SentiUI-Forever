@@ -4,6 +4,8 @@ if GetLocale() ~= "deDE" then return end
 local L = ns.L
 
 L["Chat"] = "Chat"
+L["Set the chat font size and the panels. Every chat window (general, loot, whispers ...) follows the same size."] = "Stelle die Chat-Schriftgröße und die Panels ein. Jedes Chatfenster (Allgemein, Beute, Flüstern ...) folgt derselben Größe."
+L["Changes apply immediately and are saved."] = "Änderungen greifen sofort und werden gespeichert."
 L["Left Chat"] = "Linker Chat"
 L["Right Chat"] = "Rechter Chat"
 L["Chat history"] = "Chatverlauf"

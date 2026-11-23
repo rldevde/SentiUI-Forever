@@ -1,5 +1,100 @@
 # Changelog
 
+## 0.3.39 - 2026-11-22
+
+- Design system overhaul: `S.Template` now gives `raised`/`gold` panels a soft Sentinel gold border tint. `PillReady` re-enabled — when `make_edges.py` has been run all panels get smooth rounded corners via edgeFile backdrop (no pixelated raster arcs). `S.SetBorderLit` restores the saved border colour on hover-off. `S.TabChip` shows a gold border when selected.
+
+## 0.3.38 - 2026-11-22
+
+- Short-frame chevron fix: `S.EdgeArc` now clamps its radius to half the host height at build time — a radius taller than the frame made the top and bottom quarter arcs overlap into pointed brackets instead of a smooth pill end.
+
+## 0.3.37 - 2026-11-22
+
+- Media pipeline disabled on request: `S.Tex()` returns nil and the pill-edge probe reports false, so every consumer falls back to its code-drawn look — panels and tooltips get the programmatic rounded-9slice raster again, the gold window edge is strips+arcs, bars/glyphs/widgets use blank fills and native art. No generated texture is loaded anywhere; the `Media\Textures` files stay on disk but unused.
+
+## 0.3.36 - 2026-11-22
+
+- Regenerated the edge-file media in-house (`make_edges.py`): the AI-delivered TGAs put a squashed full ring in slice 0, left the right/top/bottom edge slices empty and drew diagonal brackets in the corner slices — which is exactly why edges rendered as a fat band on one side plus corner stubs. The new `PillEdge`, `SquareEdge`, `TooltipEdge`, `GoldEdge`, `TargetRing`, `ThreatGlow` and `GlowEdge` follow the real 8-slice spec (L,R,T,B + TL,TR,BL,BR corners), supersampled for true anti-aliased lines — every panel, tooltip, threat ring and target ring now gets a proper closed border.
+
+## 0.3.35 - 2026-11-22
+
+- Own widgets ride the generated media: checkboxes use the `CheckEmpty`/`CheckOn` widget art (dark box, gold check) instead of an inset template + accent square, dropdowns show the `DropdownArrow` glyph instead of a text 'v', and slider thumbs carry the `SliderThumb` grip glyph.
+
+## 0.3.34 - 2026-11-22
+
+- Media wiring: new `S.Tex(name)` registry probes each shipped texture once via `GetFileIDFromPath` and returns the path only when the client resolves it — every consumer keeps a programmatic fallback. Tooltips now ride the `TooltipEdge.tga` edgeFile for a real border instead of the 1px flat edge.
+
+## 0.3.33 - 2026-11-22
+
+- Full texture suite: `make_media.py` now generates all 88 SentiUI interface textures into `Media/Textures/` — window/tooltip/glow/target edge files (8-slice 128x16, seamless rounded and square corners), panel/raised/inset fills, status-bar fills (flat, gloss, striped, segmented), control glyphs (checkbox, radio, slider, arrows, gear, lock), icon/button frames and masks, unit-frame overlays (absorb, incoming heal, threat glow, range fade), role/dispel/status icons, and suite furniture (minimap border, action-bar plates, chat tabs, toast card, logo mark). Every asset ships as uncompressed 32bpp BGRA TGA plus a PNG preview; tintable art is white+alpha so it recolors cleanly to the gold accent. A `_ContactSheet.png` in the same folder shows the whole set for review.
+
+## 0.3.32 - 2026-11-22
+
+- Rounded-edge media pipeline: `make_media.py` generates `Media/Textures/PillEdge.tga` — an 8-slice edgeFile with an anti-aliased quarter ring, a ~1px border and a dark inner band that doubles as a subtle inner shadow. Once generated, `S.Template` switches every panel, button, chip and skinned window from the programmed 1px-column raster to real texture borders with bilinear-smooth corners.
+
+## 0.3.31 - 2026-11-22
+
+- `S.CornerCut` gains a `subLevel` parameter: corner caps can now sit at OVERLAY sublevel 7, above regions created after the caps. Fixes a pixel artifact where the bar gloss overlay (created after the caps on unit frames) drew over them and poked a faint white tip into every rounded bar corner.
+
+## 0.3.30 - 2026-11-22
+
+- Edge arc pixel fix: `S.EdgeArc` covered each column as [arc top minus local rise, arc top], which left a gap in the ring's lower half on steep columns and overfilled elsewhere — visible pixel errors on the gold window edge and the unit-frame edge glow. Columns now cover the true band between the inner circle (radius minus stroke width) and the outer arc, keeping a constant ring thickness.
+
+## 0.3.29 - 2026-11-22
+
+- New core helper `S.EdgeArc` rasterizes a quarter-circle border segment (1px columns, any stroke thickness) — edge borders built from four straight strips (the gold window edge, the unit-frame edge glow) ended 7px before each corner and read as open stubs. The arcs close the outline into one continuous rounded frame.
+
+## 0.3.28 - 2026-11-22
+
+- WatchShown fix: a frame discovered already shown silently initialized its state instead of firing the transition, so the onShow callback never ran for the first-ever open — load-on-demand windows (auction house, collections, most modern panels) only got their skins from the second open on. The first observed shown-state now fires the callback; skins are idempotent so the extra run is safe.
+
+## 0.3.27 - 2026-11-22
+
+- Anti-aliased rounded corners: every S.Roundize corner column now carries a 1px sliver at the arc boundary whose alpha is the fractional coverage — the hard 1px staircase becomes a smooth, evenly rasterized curve. Panels, buttons, chips and every skinned Blizzard window get visibly softer corners, still fully programmed with no media files.
+- New S.CornerCut helper: raster caps in the color of the surface behind a region cover the corner notch outside a quarter disc — the Roundize arc math inverted, with the same AA slivers. Makes any bar or icon read as a rounded rect; used for status bars and icon rounding.
+- S.IconRound now delegates to S.CornerCut: icon corner caps get the anti-aliased edges too (portrait tiles, aura icons, action slots, roll cards).
+
+## 0.3.26 - 2026-11-22
+
+- TabChip label fix: removed the RIGHT anchor from the label FontString. The RIGHT anchor clamped GetStringWidth() to the button's current width (0 on a new chip), so every chip got sized to 22px and rendered as a featureless dark square without text. All chip-based tabs (Character, BugSack, Training, Journal, Blacklist, AccountInfo) now size correctly.
+- S.Roundize rewritten: corner arcs are now rasterized in pure code as 1px columns (h(i) = sqrt(r² - (r-i-.5)²)) from WHITE8X8 — no external mask file can turn the rounded corners into dark boxes. The five straight pieces are unchanged; tinting runs through one flat f.roundPieces list.
+- Corner strip anchor fix: WoW y-offsets run UP, not DOWN — the arc strips were parked outside the frame, drawing a floating dark nub at every corner of every panel and button (the 'four corner points' bug). They now sit inside the corner tile hugging the arc.
+- Edge decorations inset: the installer top accent edge and the move-mode edit bar edge line now end on the straight edge (7px inset) instead of poking past the rounded corners.
+- S.IconRound rewritten AGAIN — the MaskTexture rendered its oversized white circle as a visible blob at every icon corner on this client (the 'white corners' bug). Icon rounding now uses tiny raster caps in the slot's background color covering only the outer corner notch (the Roundize arc math inverted) — no mask, no file, worst case the icon stays square.
+- S.IconRound relayout hook fixed: OnSizeChanged is not a supported script type on Texture objects (HookScript threw for every action slot, bag slot, cast bar and unit frame icon). The relayout now hooks the icon's host frame inside pcall.
+- S.IconRound secret-dimension guard: aura-container icons report secret width/height — comparing them threw inside Blizzard's frame-creation dispatch. Secret dimensions now leave the icon square instead of comparing.
+- Tooltip skin: GameTooltip, ItemRefTooltip, ShoppingTooltip1/2 and comparison tooltips now use the Sentinel look (dark background, 1px border, gold accent line at the top). Applied once at PLAYER_LOGIN via S.StyleTooltips().
+
+## 0.3.25 - 2026-11-22
+
+- New S.IconRound helper: covers an icon's square corners with background-colored arc pieces so the displayed icon appears softly rounded. Uses CircleMask.tga with inverse UV mapping relative to S.Roundize — the opaque circle center maps to the outer tile corner (covering the icon) and the transparent circle exterior maps to the inner tile corner (showing the icon body). Zero external media required.
+
+## 0.3.24 - 2026-11-22
+
+- S.Roundize UV fix: the previous UV coordinates mapped corner tiles to the transparent outer region of the circle mask, making every rounded chip visually identical to a flat box. Coordinates are now geometrically correct — each outer corner maps to UV (1,1)/(0,1)/(1,0)/(0,0) which are outside the circle, and each inner corner maps to the circle center UV (0.5,0.5), producing a proper quarter-circle arc of radius equal to the tile size.
+- S.Template now uses the programmatic 9-slice (Roundize) as the default path when PillEdge media is absent — every frame, button, input, chip and panel gets rounded corners immediately on /reload without any external files. The PillEdge backdrop path is preserved for when the media is generated.
+- S.SetBorderLit updated for Roundize-based frames: on hover the corner arcs glow to the accent color and the fill brightens; on leave they restore to the base fill. Backdrop-border frames continue to use the existing SetBackdropBorderColor path.
+- Settings cards now carry a subtle 1px gold accent line along their top edge, giving each section a clear visual anchor without a heavy border.
+
+## 0.3.23 - 2026-11-22
+
+- Installer finish did not reload: the secure /reload overlay was built once at frame creation - if the installer first opened during combat, SecureReload returned nil forever, leaving a dead finish button. The overlay is now built lazily when the finish step shows.
+- SecureReload is now completely script-free: the PostClick handler set via SetScript could taint the click dispatch the same way the old OnClick override did. Side effects moved out of the button (installer marks done when the finish step shows; the reload dialog stays visible until the reload fires).
+- Installer game UI scale now persists: the client does not write the uiScale CVar to config-cache.wtf, so a plain SetCVar was gone after relog. The chosen scale is stored in SentiUIDB.general.gameScale and re-applied on every login.
+- Settings resetting every login: the client loads SavedVariables too late unless told otherwise - modules enabled at PLAYER_LOGIN got fresh default tables and every options write went into them. All TOCs with SavedVariables now declare LoadSavedVariablesFirst: 1 so the stored data is present before any code runs (SentiUI, Panel, Training, Journal, Nameplates; BugSack and AccountInfo already had it).
+- Escape-close windows no longer throw ADDON_ACTION_FORBIDDEN in combat: SetPropagateKeyboardInput is restricted during a fight on this client, so S.EscClosable and the mover arrow keys now guard the call (bail in combat, pcall otherwise). The keyboard only goes live once propagation actually took - a window opened mid-fight can no longer swallow the game's keys, and propagation resets on key-up/hide.
+- The installer now persists the UI scale even when the slider is never touched: the current scale is stored at the scale step, so any completed run keeps the choice across relogs (the slider alone only fired on real changes).
+- The finish page has a real visible secure button now: the old invisible overlay laid over Next ate the pointer (no hover feedback, dead-looking button) and a combat-time build failure left a silent no-reload finish. The secure button carries textures and a label (no scripts), Next is swapped for it on the last step, and the combat fallback keeps working.
+- Modules can add installer steps: new SentiUI.Installer.AddModuleStep places them before the finish page.
+- The finish button never fired its /reload: without the useOnKeyDown=false attribute the secure dispatch follows the key-down CVar and ignores the Up click. The button now registers both click phases, carries the attribute and is built the proven DaylightUI way - parented to UIParent, laid over Next one level up on show. Installer step build errors are printed to chat instead of showing as a mysteriously empty step.
+- The installer pages are interactive now, ElvUI-style: the Modules step is a scrollable checklist that enables/disables every loaded module (applied with the finish reload), and the controls step carries buttons for move mode and the settings window.
+- Module installer steps no longer cache a failed build: a step whose module was not ready yet showed up empty forever. Nil builds are retried on the next visit and the reason is printed to chat; the chat and minimap steps drop their enabled-guard entirely (controls that write settings a disabled module picks up later beat an empty page).
+- The game UI scale is now a real setting: new "Game UI scale" slider under SentiUI > Interface, sharing S.ApplyGameScale with the installer's scale step (CVar + general.gameScale, re-applied on every login). Before, the game scale existed only inside the installer.
+- Installer buttons no longer overlap: Back is anchored to Next's left edge instead of a fixed offset, and Next/Finish are wide enough for the localized "Finish & reload" label.
+- New shared design language for small tabs and filter chips: S.TabChip builds a dark inset body with a 2px accent blade on the left edge that glows on hover and burns on the active tab. Adopted by the character window tabs, the BugSack view tabs and the filter chips of Training, Journal and the blacklist window - one system instead of scattered boxes.
+- Soft rounded corners for every tab and filter chip - fully programmed, zero setup: S.Roundize assembles the chip body from nine texture pieces (four quarter-disc corners cut from the circle mask the minimap module ships, five straight WHITE8X8 pieces) instead of a backdrop fill - an overlay disc can never cut a square fill away, so the fill IS the nine pieces now. Chips round immediately on /reload; panels keep the flat look until the PillEdge media exists (`Media erzeugen (doppelklicken).bat` in SentinelUI-Tools).
+- The script's target folder is created on the fly (it crashed on the missing Media\Textures directory before) and the media path points at the _forever_ SentiUI tree now.
+
 ## 0.3.22 - 2026-11-22
 
 - Secure button clicks were still tainted: SecureReload and the panel/minimap secure rows replaced the template's OnClick via SetScript, which makes the whole click dispatch insecure - RunMacroText then gets flagged ADDON_ACTION_FORBIDDEN. The template's own handler now runs untouched everywhere (reload overlay, options button, confirm dialog, minimap submenu, panel plugin overlays, talent pill).

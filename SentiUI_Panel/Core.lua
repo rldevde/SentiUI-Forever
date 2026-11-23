@@ -165,21 +165,24 @@ function ns.AccentEdge(f, edge)
 	end
 	local t = f.accentEdge
 	t:ClearAllPoints()
+	-- inset past the 6px corner arc so the line ends on the straight
+	-- edge instead of poking past the rounded silhouette
+	local r = 7
 	if edge == "BOTTOM" then
-		t:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 0)
-		t:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0)
+		t:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", r, 0)
+		t:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -r, 0)
 		t:SetHeight(1)
 	elseif edge == "LEFT" then
-		t:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
-		t:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 0)
+		t:SetPoint("TOPLEFT", f, "TOPLEFT", 0, -r)
+		t:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, r)
 		t:SetWidth(1)
 	elseif edge == "RIGHT" then
-		t:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
-		t:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0)
+		t:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, -r)
+		t:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, r)
 		t:SetWidth(1)
 	else
-		t:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
-		t:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
+		t:SetPoint("TOPLEFT", f, "TOPLEFT", r, 0)
+		t:SetPoint("TOPRIGHT", f, "TOPRIGHT", -r, 0)
 		t:SetHeight(1)
 	end
 	t:Show()

@@ -15,6 +15,26 @@ local tinsert, tremove = table.insert, table.remove
 local BLANK = "Interface\\Buttons\\WHITE8X8"
 local ACCENT = S.colors.accent
 
+-- the reliable chat font path on this client is the game's own wrapper
+-- FCF_SetChatWindowFontSize(nil, frame, size) - a direct frame:SetFont
+-- silently does nothing here, and even the Font object path does not
+-- reach a ScrollingMessageFrame. Font file/outline go through
+-- S.ApplyFont as a best effort when they differ.
+local function ApplyChatFont(frame, size, flags)
+	if frame.suiFontPushed == size and (frame.suiFontFlags or "") == (flags or "") then
+		return
+	end
+	frame.suiFontPushed = size
+	frame.suiFontFlags = flags
+	local okF, _, _, curFlags = pcall(frame.GetFont, frame)
+	if FCF_SetChatWindowFontSize then
+		pcall(FCF_SetChatWindowFontSize, nil, frame, size)
+	end
+	if (curFlags or "") ~= (flags or "") then
+		S.ApplyFont(frame, S.media.font, size, flags)
+	end
+end
+
 local Core = {}
 ns.Core = Core
 local db
@@ -66,7 +86,10 @@ local function MakePanel(name, label, key, default)
 	-- with the fade option falling back to the plain Sentinel shade
 	S.Template(p, "panel")
 	local fade = p:CreateTexture(nil, "BACKGROUND", nil, 2)
-	fade:SetAllPoints()
+	-- inset past the corner arc: a full-frame fade would show a dark
+	-- square wedge behind each rounded corner of the panel body
+	fade:SetPoint("TOPLEFT", 7, -7)
+	fade:SetPoint("BOTTOMRIGHT", -7, 7)
 	fade:SetColorTexture(0, 0, 0, 1)
 	p.fade = fade
 	-- accent hairline under the tab row
@@ -74,14 +97,16 @@ local function MakePanel(name, label, key, default)
 	line:SetPoint("TOPLEFT", 4, -26)
 	line:SetPoint("TOPRIGHT", -4, -26)
 	p.line = line
-	-- Sentinel signature: small accent ticks at the bottom corners
+	-- Sentinel signature: small accent ticks at the bottom corners.
+	-- inset past the corner arc and mirrored per side — the right tick
+	-- used to hang 4px outside the panel edge (same sign for both sides)
 	p.ticks = {}
 	for _, side in ipairs({ "BOTTOMLEFT", "BOTTOMRIGHT" }) do
 		local t = p:CreateTexture(nil, "ARTWORK")
 		t:SetTexture(BLANK)
 		t:SetVertexColor(ACCENT.r, ACCENT.g, ACCENT.b, 0.9)
 		t:SetSize(6, 2)
-		t:SetPoint(side, 4, 1)
+		t:SetPoint(side, side == "BOTTOMLEFT" and 8 or -8, 2)
 		p.ticks[#p.ticks + 1] = t
 	end
 	S.Movers.Register(p, key, label)
@@ -387,8 +412,8 @@ function Core.CopyChat(frame)
 		-- UISpecialFrames so Escape closes it natively
 		scroll:SetScrollChild(eb)
 		f.edit = eb
-		local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
-		close:SetPoint("TOPRIGHT", -4, -4)
+		local close = S.Widgets.Close(f, function() f:Hide() end)
+		close:SetPoint("TOPRIGHT", -6, -6)
 		Core.copyFrame = f
 	end
 	local lines = {}
@@ -418,18 +443,37 @@ function Core.StyleTab(tab)
 		local t = tab[k] or (tn and _G[tn .. k])
 		if t then t:SetTexture(nil) t:SetAlpha(0) end
 	end
+	-- dark inset background behind the tab label — same dark fill as the
+	-- blade chips; keeps the tab readable against the game world
+	if not tab.suiTabBG then
+		local bg = tab:CreateTexture(nil, "BACKGROUND")
+		local tabTex = S.Tex and S.Tex("ChatTab")
+		bg:SetTexture(tabTex or BLANK)
+		if tabTex then
+			bg:SetVertexColor(1, 1, 1, 0.9)
+			tab.suiTabBGTex = true
+		else
+			bg:SetVertexColor(S.colors.bgInset.r, S.colors.bgInset.g, S.colors.bgInset.b, 0.80)
+		end
+		bg:SetPoint("TOPLEFT",  tab, "TOPLEFT",  2,  0)
+		bg:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -2, 2)
+		tab.suiTabBG = bg
+	end
+	-- 2px gold accent hairline along the tab bottom edge (re-use the glow
+	-- region the client provides, otherwise create our own)
 	local glow = tab.glow or (tn and _G[tn .. "Glow"])
 	if glow then
 		glow:SetTexture(BLANK)
-		glow:SetVertexColor(ACCENT.r, ACCENT.g, ACCENT.b, 0.35)
+		glow:SetVertexColor(ACCENT.r, ACCENT.g, ACCENT.b, 0)   -- hidden by default
 		glow:ClearAllPoints()
-		glow:SetPoint("BOTTOMLEFT", 8, 2)
-		glow:SetPoint("BOTTOMRIGHT", -8, 2)
+		glow:SetPoint("BOTTOMLEFT",  tab, "BOTTOMLEFT",  8, 2)
+		glow:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -8, 2)
 		glow:SetHeight(2)
+		tab.suiGlow = glow
 	end
 	local text = tab.Text or (tn and _G[tn .. "Text"])
 	if text then
-		pcall(text.SetFont, text, S.media.font, db.tabFontSize, "OUTLINE")
+		S.ApplyFont(text, S.media.font, db.tabFontSize, "OUTLINE")
 		text:SetShadowOffset(0, 0)
 	end
 	if tab.conversationIcon then tab.conversationIcon:SetAlpha(0) end
@@ -441,11 +485,33 @@ function Core.UpdateTabColors()
 		local frame = _G["ChatFrame" .. i]
 		local tn = tab and tab.GetName and tab:GetName()
 		local text = tab and (tab.Text or (tn and _G[tn .. "Text"]))
+		local active = frame == SELECTED_CHAT_FRAME
+			or (SELECTED_DOCK_FRAME and frame == SELECTED_DOCK_FRAME)
 		if text then
-			if frame == SELECTED_CHAT_FRAME or (SELECTED_DOCK_FRAME and frame == SELECTED_DOCK_FRAME) then
+			if active then
 				text:SetTextColor(ACCENT.r, ACCENT.g, ACCENT.b)
 			else
 				text:SetTextColor(0.9, 0.9, 0.9)
+			end
+		end
+		-- gold hairline visible only on the active tab
+		if tab and tab.suiGlow then
+			tab.suiGlow:SetVertexColor(ACCENT.r, ACCENT.g, ACCENT.b, active and 0.7 or 0)
+		end
+		-- dim the tab bg on inactive tabs for less visual noise; with
+		-- media the active state swaps to its own plate instead of a
+		-- brighter tint of the same fill
+		if tab and tab.suiTabBG then
+			if tab.suiTabBGTex then
+				local act = S.Tex and S.Tex("ChatTabActive")
+				tab.suiTabBG:SetTexture(active and act
+					or (S.Tex and S.Tex("ChatTab")))
+				tab.suiTabBG:SetVertexColor(1, 1, 1,
+					active and 1 or 0.55)
+			else
+				tab.suiTabBG:SetVertexColor(
+					S.colors.bgInset.r, S.colors.bgInset.g, S.colors.bgInset.b,
+					active and 0.90 or 0.55)
 			end
 		end
 	end
@@ -470,22 +536,61 @@ local function HideEditBoxChrome(eb, name)
 	end
 end
 
+-- input bar: appears only when the edit box is open (same rhythm as the
+-- Blizzard default). Uses the identical panel template as the chat panels
+-- so it looks like a continuation of them. Anchored and sized in
+-- PositionEditBox; visibility driven by the per-frame watchdog.
+local function EditBar()
+	if not Core.editBar and Core.leftPanel then
+		local bar = CreateFrame("Frame", "SentiUIChatEditBar", UIParent, "BackdropTemplate")
+		bar:SetFrameStrata("DIALOG")
+		bar:SetFrameLevel(5)
+		S.Template(bar, "panel")
+		-- slightly transparent like the chat panel behind it: the client
+		-- never hides its editbox, so the bar is a permanent fixture and
+		-- must blend in, not sit as an opaque slab over the world
+		if bar.SetBackdropColor then
+			local bg = S.colors.bg
+			bar:SetBackdropColor(bg.r, bg.g, bg.b,
+				db.panelTransparency and 0.55 or 0.80)
+		end
+		-- gold hairline at the top — same signature as the data bars
+		local line = S.Line(bar, ACCENT)
+		line:SetPoint("TOPLEFT",  bar, "TOPLEFT",  5, 0)
+		line:SetPoint("TOPRIGHT", bar, "TOPRIGHT", -5, 0)
+		-- channel-colour indicator: 3px strip on the left, tinted per type
+		local strip = bar:CreateTexture(nil, "OVERLAY")
+		strip:SetTexture(BLANK)
+		strip:SetVertexColor(ACCENT.r, ACCENT.g, ACCENT.b, 0.9)
+		strip:SetWidth(3)
+		strip:SetPoint("TOPLEFT",    bar, "TOPLEFT",    2, -2)
+		strip:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", 2,  2)
+		bar.channelStrip = strip
+		bar:EnableMouse(true)
+		bar:SetScript("OnMouseDown", function(b)
+			if b.eb then pcall(b.eb.SetFocus, b.eb) end
+		end)
+		-- hidden by default: the watchdog shows it only while an editbox is open
+		bar:Hide()
+		Core.editBar = bar
+	end
+	return Core.editBar
+end
+
 function Core.StyleEditBox(frame)
 	local name = frame.GetName and frame:GetName()
 	local eb = FindEditBox(frame)
 	if not eb or eb.suiStyled then return end
 	eb.suiStyled = true
 	HideEditBoxChrome(eb, name)
-	if not eb.SetBackdrop and BackdropTemplateMixin then Mixin(eb, BackdropTemplateMixin) end
-	if eb.SetBackdrop then
-		S.Template(eb, "raised")
-		-- SetBackdrop draws through NineSlice: it must stay visible or the
-		-- whole fill/border disappears and the bar looks transparent
-		if eb.NineSlice then eb.NineSlice:SetAlpha(1) end
-	elseif eb.NineSlice then
-		eb.NineSlice:SetAlpha(0)
-	end
+	-- the box itself stays transparent: the styled input bar behind it is
+	-- the visible chrome. SetBackdrop draws through NineSlice, so both
+	-- the backdrop and the slice have to go or it shows as a black sliver
+	if eb.SetBackdrop then pcall(eb.SetBackdrop, eb, nil) end
+	if eb.NineSlice then eb.NineSlice:SetAlpha(0) end
 	if eb.SetAltArrowKeyMode then eb:SetAltArrowKeyMode(false) end
+	if eb.SetTextInsets then pcall(eb.SetTextInsets, eb, 4, 4, 0, 0) end
+	EditBar()
 	-- no OnShow/OnEditFocusGained hooks and no ChatEdit_UpdateHeader
 	-- hook: both fire inside the Enter/click dispatch right before
 	-- SendChatMessage - insecure Lua there taints the dispatch and the
@@ -503,32 +608,61 @@ local function ApplyEditBoxColor(eb)
 		local id = GetChannelName(eb:GetAttribute("channelTarget"))
 		info = id and id > 0 and ChatTypeInfo["CHANNEL" .. id] or info
 	end
-	if info and eb.SetBackdropBorderColor then
-		eb:SetBackdropBorderColor(info.r, info.g, info.b)
+	-- channel colour lands on the left strip for a subtle type indicator;
+	-- the border stays gold at low alpha so it doesn't turn e.g. bright red
+	local bar = Core.editBar
+	if info and bar and bar.channelStrip then
+		bar.channelStrip:SetVertexColor(info.r, info.g, info.b, 1)
 	end
 end
 
 function Core.PositionEditBox(frame)
 	local eb = FindEditBox(frame)
 	if not eb or not Core.leftPanel then return end
-	eb:ClearAllPoints()
-	if db.editboxPosition == "ABOVE_CHAT" then
-		eb:SetPoint("BOTTOMLEFT", Core.leftPanel, "TOPLEFT", 0, 3)
-		eb:SetPoint("BOTTOMRIGHT", Core.leftPanel, "TOPRIGHT", 0, 3)
-	else
-		eb:SetPoint("TOPLEFT", Core.leftPanel, "BOTTOMLEFT", 0, -3)
-		eb:SetPoint("TOPRIGHT", Core.leftPanel, "BOTTOMRIGHT", 0, -3)
+	local bar = EditBar()
+	-- fixed height independent of DataBars: 26px gives enough room for
+	-- the text, the gold hairline and the border on any font size up to 14
+	local barH = math.max(26, (db.fontSize or 12) + 10)
+	if bar then
+		bar:ClearAllPoints()
+		if db.editboxPosition == "ABOVE_CHAT" then
+			bar:SetPoint("BOTTOMLEFT",  Core.leftPanel, "TOPLEFT",  0, 2)
+			bar:SetPoint("BOTTOMRIGHT", Core.leftPanel, "TOPRIGHT", 0, 2)
+		else
+			bar:SetPoint("TOPLEFT",  Core.leftPanel, "BOTTOMLEFT",  0, -2)
+			bar:SetPoint("TOPRIGHT", Core.leftPanel, "BOTTOMRIGHT", 0, -2)
+		end
+		bar:SetHeight(barH)
+		bar.eb = eb
 	end
-	eb:SetHeight(22)
+	eb:ClearAllPoints()
+	if bar then
+		-- text sits 10px in from left (past the channel strip + gap) and
+		-- 4px from right; vertical fill fills the whole bar
+		eb:SetPoint("TOPLEFT",     bar, "TOPLEFT",     10, -1)
+		eb:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", -4,  1)
+	else
+		if db.editboxPosition == "ABOVE_CHAT" then
+			eb:SetPoint("BOTTOMLEFT",  Core.leftPanel, "TOPLEFT",  0, 3)
+			eb:SetPoint("BOTTOMRIGHT", Core.leftPanel, "TOPRIGHT", 0, 3)
+		else
+			eb:SetPoint("TOPLEFT",  Core.leftPanel, "BOTTOMLEFT",  0, -3)
+			eb:SetPoint("TOPRIGHT", Core.leftPanel, "BOTTOMRIGHT", 0, -3)
+		end
+		eb:SetHeight(22)
+	end
 	eb:SetFrameStrata("DIALOG")
 	eb:SetToplevel(true)
 end
 
 function Core.StyleChatFrame(frame)
-	if not frame or Core.styled[frame] then return end
-	Core.styled[frame] = true
+	if not frame then return end
 	local name = frame.GetName and frame:GetName()
 
+	-- chrome kill: idempotent and re-run on every call. Blizzard's chat
+	-- init can finish AFTER our first pass (right after a reload) and
+	-- paint the default background and buttons back over the styled
+	-- frame - the one-time parts below survive, this part must not.
 	for _, region in ipairs(SafeRegions(frame)) do
 		if region.IsObjectType and region:IsObjectType("Texture") then region:SetTexture(nil) end
 	end
@@ -536,6 +670,13 @@ function Core.StyleChatFrame(frame)
 		"BottomRightTexture", "LeftTexture", "RightTexture", "TopTexture", "BottomTexture", "ResizeButton" }) do
 		local t = name and _G[name .. k]
 		if t then t:SetAlpha(0) end
+	end
+	-- a NineSlice/backdrop background is not a region and survives the
+	-- sweep - kill it directly
+	if frame.NineSlice then pcall(frame.NineSlice.SetAlpha, frame.NineSlice, 0) end
+	if frame.SetBackdropColor then
+		pcall(frame.SetBackdropColor, frame, 0, 0, 0, 0)
+		pcall(frame.SetBackdropBorderColor, frame, 0, 0, 0, 0)
 	end
 	local buttonFrame = frame.buttonFrame or (name and _G[name .. "ButtonFrame"])
 	if buttonFrame then
@@ -556,16 +697,58 @@ function Core.StyleChatFrame(frame)
 		if b and b.Hide then
 			b:Hide()
 			if b.Show then b.Show = function() b:Hide() end end
-			if b.HookScript then b:HookScript("OnShow", function(bb) bb:Hide() end) end
 		end
 	end
 	local mmf = frame.MaximizeMinimizeFrame or (name and _G[name .. "MaximizeMinimizeFrame"])
-	if mmf then mmf:Hide() mmf:HookScript("OnShow", function(f) f:Hide() end) end
-	if frame.ScrollBar then frame.ScrollBar:SetAlpha(0) frame.ScrollBar:EnableMouse(false) end
+	if mmf then
+		mmf:Hide()
+		if not mmf.suiHideHook then
+			mmf.suiHideHook = true
+			mmf:HookScript("OnShow", function(f) f:Hide() end)
+		end
+	end
+	-- scrollbars + scroll buttons: Blizzard re-shows them on scroll
+	-- events, which read as weird jumping/flicker until the next 0.25s
+	-- restyle tick. OnShow -> Hide keeps them gone for good; hooks are
+	-- safe here (no protected dispatch touches these widgets). The
+	-- up/down arrows live inside the button frame on this client.
+	for _, k in ipairs({ "ScrollBar", "ScrollToBottomButton", "ScrollUpButton",
+		"ScrollDownButton", "BottomButton" }) do
+		local sb = frame[k] or (name and _G[name .. k])
+		if sb then
+			sb:SetAlpha(0)
+			if sb.EnableMouse then sb:EnableMouse(false) end
+			if not sb.suiHideHook then
+				sb.suiHideHook = true
+				sb:HookScript("OnShow", function(s) s:Hide() end)
+			end
+			sb:Hide()
+		end
+	end
+	if buttonFrame then
+		for _, k in ipairs({ "UpButton", "DownButton", "BottomButton" }) do
+			local sb = buttonFrame[k] or (name and _G[name .. "ButtonFrame" .. k])
+			if sb then
+				sb:SetAlpha(0)
+				if sb.EnableMouse then sb:EnableMouse(false) end
+				if not sb.suiHideHook then
+					sb.suiHideHook = true
+					sb:HookScript("OnShow", function(s) s:Hide() end)
+				end
+				sb:Hide()
+			end
+		end
+	end
 	-- the game's scroll-to-bottom button dies when reparented (its click
 	-- walks a parent chain) - hide it and use our own chip instead
-	local stb = frame.ScrollToBottomButton or (name and _G[name .. "ButtonFrameBottomButton"])
+	local stb = name and _G[name .. "ButtonFrameBottomButton"]
 	if stb then stb:SetAlpha(0) stb:EnableMouse(false) end
+	if frame.Selection then frame.Selection:SetAlpha(0) end
+
+	-- everything below runs once per frame
+	if Core.styled[frame] then return end
+	Core.styled[frame] = true
+
 	if db.scrollDownButton and not frame.suiToBottom then
 		local b = CreateFrame("Button", nil, frame, "BackdropTemplate")
 		b:SetSize(20, 16)
@@ -599,10 +782,14 @@ function Core.StyleChatFrame(frame)
 		vis()
 		frame.suiToBottom = b
 	end
-	if frame.Selection then frame.Selection:SetAlpha(0) end
 
-	pcall(frame.SetFont, frame, S.media.font, db.fontSize or 12,
-		db.fontOutline ~= "NONE" and db.fontOutline or "")
+	-- every font call rebuilds all lines (and their links): only set the
+	-- font when file, size or flags actually differ
+	local wantFlags = db.fontOutline ~= "NONE" and db.fontOutline or ""
+	local wantSize = db.fontSize or 12
+	frame.suiFontPushed = nil -- an explicit style always re-pushes
+	ApplyChatFont(frame, wantSize, wantFlags)
+	frame.suiFontApplied = wantSize
 	frame:SetShadowOffset(1, -1)
 	frame:SetShadowColor(0, 0, 0, 0.9)
 	frame:SetClampRectInsets(0, 0, 0, 0)
@@ -754,6 +941,12 @@ function Core.EnsureLootChat()
 		f = FindLootWindow()
 	end
 	if not f then return end
+	-- remember the frame itself: tab labels can be secret values, so
+	-- IsRightChat cannot rely on reading them on this client
+	Core.lootWindow = f
+	-- a window closed by hand stays closed forever otherwise: bring it
+	-- back, the dock pass below re-anchors it into the right panel
+	if f.Show and not f:IsShown() then pcall(f.Show, f) end
 	if not f.suiLootConfig then
 		f.suiLootConfig = true
 		S.SafeCall("chat:lootcfg", ConfigLootWindow, f)
@@ -772,13 +965,20 @@ end
 
 function Core.IsRightChat(frame)
 	if not db.rightPanelEnable then return false end
+	-- identity check first: the tab label can be a secret value or a
+	-- localized name the list below misses (e.g. "Plündern"), so the
+	-- loot window is best identified by the frame itself
+	if Core.lootWindow and frame == Core.lootWindow then return true end
+	local lw = FindLootWindow()
+	if lw and frame == lw then return true end
 	local fname = frame.GetName and frame:GetName()
 	if not fname then return false end
 	local tab = _G[fname .. "Tab"]
 	local text = tab and (tab.Text or _G[tab:GetName() .. "Text"])
 	local label = text and text:GetText()
 	if not label or IsSecret(label) then return false end
-	return label == LOOT or label == "Loot" or label == "Beute" or label == L["Right Chat"]
+	return label == LOOT or label == "Loot" or label == "Beute"
+		or label == "Plündern" or label == L["Right Chat"]
 end
 
 function Core.PositionChat()
@@ -800,10 +1000,28 @@ function Core.PositionChat()
 					frame:SetPoint("TOPLEFT", Core.rightPanel, "TOPLEFT", 6, -30)
 					frame:SetPoint("BOTTOMRIGHT", Core.rightPanel, "BOTTOMRIGHT", -6, 6)
 					if FCF_SavePositionAndDimensions then pcall(FCF_SavePositionAndDimensions, frame) end
+					if not frame:IsShown() then pcall(frame.Show, frame) end
 					if tab then
-						tab:ClearAllPoints()
-						tab:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", 0, 4)
+						-- the right panel already IS the loot window: its floating
+						-- "Loot" channel tab pokes out over the panel's top edge
+						-- and clicking it toggles the whole frame off - hide it,
+						-- take it off the mouse (reversible if it re-docks)
+						if not tab.suiHiddenTab then
+							tab.suiHiddenTab = true
+							tab.suiOrigShow = tab.Show
+							tab.Show = function(t) t:Hide() end
+						end
+						tab:Hide()
+						if tab.EnableMouse then tab:EnableMouse(false) end
 					end
+				elseif tab and tab.suiHiddenTab then
+					-- the loot window went back to a Blizzard dock: restore its
+					-- tab handle so the window stays reachable there
+					tab.Show = tab.suiOrigShow
+					tab.suiOrigShow = nil
+					tab.suiHiddenTab = nil
+					if tab.EnableMouse then tab:EnableMouse(true) end
+					pcall(tab.Show, tab)
 				end
 			end)
 		end
@@ -1071,8 +1289,10 @@ function Core.Update()
 	Core.UpdateKeywords()
 	Core.StyleVoiceStrip()
 	for frame in pairs(Core.styled) do
-		pcall(frame.SetFont, frame, S.media.font, db.fontSize,
-			db.fontOutline ~= "NONE" and db.fontOutline or "")
+		-- an explicit settings change always re-pushes the font
+		frame.suiFontPushed = nil
+		ApplyChatFont(frame, db.fontSize, db.fontOutline ~= "NONE" and db.fontOutline or "")
+		frame.suiFontApplied = db.fontSize
 		local canFade = db.fade and (frame.isDocked or db.fadeUndockedTabs)
 		frame:SetFading(canFade and true or false)
 		frame:SetTimeVisible(db.fadeTime)
@@ -1081,6 +1301,12 @@ function Core.Update()
 		if tab then Core.StyleTab(tab) end
 	end
 	Core.PositionChat()
+	-- keep the input bar's transparency in sync with the panel setting
+	if Core.editBar and Core.editBar.SetBackdropColor then
+		local bg = S.colors.bg
+		Core.editBar:SetBackdropColor(bg.r, bg.g, bg.b,
+			db.panelTransparency and 0.55 or 0.80)
+	end
 end
 
 function Core.SettingChanged(mod, path)
@@ -1112,7 +1338,12 @@ function Core.Enable(mod)
 	S.SafeCall("chat:itemref", Core.HookItemRef)
 	if db.classColorMentions then S.SafeCall("chat:colors", Core.SetupClassColors) end
 
-	if db.timestamp ~= "NONE" and SetCVar then pcall(SetCVar, "showTimestamps", "none") end
+	if db.timestamp ~= "NONE" then
+		-- our own timestamps replace the game's: the legacy SetCVar global
+		-- is not guaranteed on this client, C_CVar is the native path
+		local setCVar = (C_CVar and C_CVar.SetCVar) or SetCVar
+		if setCVar then pcall(setCVar, "showTimestamps", "none") end
+	end
 
 	S.SafeCall("chat:position", Core.PositionChat)
 	S.RegisterEvent("UPDATE_CHAT_WINDOWS", Core.PositionChat)
@@ -1156,15 +1387,44 @@ function Core.Enable(mod)
 		-- its own dispatch re-docks, restyles new frames, re-colors tabs
 		-- and edit boxes, and re-anchors the edit box instead.
 		local lastSel, lastShown
+		-- blizzard's chat-cache restore lands shortly after login and can
+		-- clobber our font application; a mismatch seen that early is put
+		-- back to db.fontSize, a later one is a live tab-menu change and
+		-- gets adopted instead (either path persists)
+		local enableT = GetTime()
 		C_Timer.NewTicker(0.25, function()
 			S.SafeCall("chat:watch", function()
 				SnapChatFrame1()
 				local shown = 0
+				local wantFlags = db.fontOutline ~= "NONE" and db.fontOutline or ""
 				for i = 1, (NUM_CHAT_WINDOWS or 10) do
 					local f = _G["ChatFrame" .. i]
 					if f then
-						if not Core.styled[f] then
-							S.SafeCall("chat:style", Core.StyleChatFrame, f)
+						-- every tick, not only for new frames: the chrome
+						-- kill is idempotent and blizzard's init repaints
+						-- the default background after our first pass
+						S.SafeCall("chat:style", Core.StyleChatFrame, f)
+						local okF, _, fsize = pcall(f.GetFont, f)
+						if okF and type(fsize) == "number" and fsize > 0
+							and db.fontSize and math.abs(fsize - db.fontSize) > 0.5 then
+							if GetTime() - enableT < 15 then
+								-- re-push only when the observed size moved: a
+								-- font API that never reflects the push would
+								-- otherwise rebuild the lines every tick
+								if f.suiFontLastSeen ~= fsize then
+									f.suiFontLastSeen = fsize
+									f.suiFontPushed = nil
+									ApplyChatFont(f, db.fontSize, wantFlags)
+									f.suiFontApplied = db.fontSize
+								end
+							elseif f.suiFontApplied
+								and math.abs(fsize - f.suiFontApplied) > 0.5 then
+								-- a live tab-menu change: adopt it. A size that
+								-- was never successfully applied (silent font
+								-- failure) is not adopted - the saved choice stays
+								db.fontSize = math.floor(fsize + 0.5)
+								f.suiFontApplied = db.fontSize
+							end
 						end
 						if f:IsShown() then shown = shown + 1 end
 						local eb = FindEditBox(f)
@@ -1176,7 +1436,7 @@ function Core.Enable(mod)
 							ApplyEditBoxColor(eb)
 							if Core.leftPanel and eb:IsShown() then
 								local ok, _, relTo = pcall(eb.GetPoint, eb, 1)
-								if ok and relTo ~= Core.leftPanel then
+								if ok and relTo ~= (Core.editBar or Core.leftPanel) then
 									S.SafeCall("chat:ebpos", Core.PositionEditBox, f)
 								end
 							end
@@ -1196,17 +1456,23 @@ function Core.Enable(mod)
 		end)
 	end
 
-	-- the client re-anchors chat windows on level ups; burst-check briefly so
-	-- any mover we did not hook still gets reverted before it can be seen
+	-- the client re-anchors chat windows on level ups - repeatedly, not
+	-- once: the banner, the spec/spell toasts and the floating combat
+	-- text each trigger their own layout pass seconds apart. A short
+	-- burst only caught the first shove, so the frame visibly jumped
+	-- out of the panel and settled at the old spot. Burst for 5s and
+	-- re-run the full dock pass at increasing delays.
 	S.RegisterEvent("PLAYER_LEVEL_UP", function()
 		local n = 0
 		local t
 		t = C_Timer.NewTicker(0.1, function()
 			n = n + 1
 			S.SafeCall("chat:levelup", SnapChatFrame1)
-			if n >= 15 then t:Cancel() end
+			if n >= 50 then t:Cancel() end
 		end)
-		C_Timer.After(1.6, function() S.SafeCall("chat:levelup", Core.PositionChat) end)
+		for _, delay in ipairs({ 0.6, 1.6, 3, 5 }) do
+			C_Timer.After(delay, function() S.SafeCall("chat:levelup", Core.PositionChat) end)
+		end
 	end)
 
 	-- self-healing anchor watch: the client can re-anchor ChatFrame1 on
@@ -1215,6 +1481,27 @@ function Core.Enable(mod)
 	local watchAcc = 0
 	local watch = CreateFrame("Frame")
 	watch:SetScript("OnUpdate", function(_, e)
+		-- fast path every frame: sync the input bar with the active editbox
+		if Core.leftPanel then
+			-- this client never hides its editbox (IsShown is always true),
+			-- so "typing" can only be told from HasFocus - the bar appears
+			-- when the box gains focus and leaves with it
+			local anyFocused = false
+			for i = 1, (NUM_CHAT_WINDOWS or 10) do
+				local f = _G["ChatFrame" .. i]
+				local eb = f and FindEditBox(f)
+				if eb and eb:IsShown() then
+					local okE, _, relTo = pcall(eb.GetPoint, eb, 1)
+					if okE and relTo ~= (Core.editBar or Core.leftPanel) then
+						Core.PositionEditBox(f)
+					end
+					if eb.HasFocus and eb:HasFocus() then anyFocused = true end
+				end
+			end
+			if Core.editBar then
+				Core.editBar:SetShown(anyFocused)
+			end
+		end
 		watchAcc = watchAcc + e
 		if watchAcc < 1 then return end
 		watchAcc = 0

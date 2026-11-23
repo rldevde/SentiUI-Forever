@@ -1,5 +1,50 @@
 # SentiUI Bags
 
+## 0.4.16 - 2026-11-23
+
+- Bags window opening then immediately closing at merchant: `MERCHANT_SHOW` fires `Core.Sync()` (via the `Bags.lua` event handler) AND `ns.Core.Open()` (via `Merchant.lua`). `Sync` calls `IsAnyBagOpen()` which reads the game's own bag frames — not our custom window — and returns `false`, causing `ApplyGameState(false)` to close the window a frame after it opened. Fix: `Core.forceOpen` flag set on `MERCHANT_SHOW` and cleared on `MERCHANT_CLOSED`; `Core.Sync` returns `ApplyGameState(true)` early when the flag is set.
+
+## 0.4.15 - 2026-11-23
+
+- Bags open at merchant: `MERCHANT_SHOW` now calls `ns.Core.Open()` unconditionally — the bags window opens alongside the merchant frame like the game's own behaviour (previously only opened when autoRepair or sellJunk was enabled).
+- Auto-repair fix: `RepairAllItems` is now called via `securecall` (protected function on this client — plain `pcall` fails silently). `GetRepairAllCost` returning a secret value no longer silently aborts the repair; the call proceeds and the cost shows as "?" in the message.
+- Repair toolbar button: hidden when `autoRepair` is enabled — manual repair is redundant when the auto path handles it. Toggling `autoRepair` in settings updates the button without a reload.
+- Bag slot tooltip: hovering a bag slot now shows the bag's contents (up to 8 items, then "…") plus the assigned category label when a bag preference is set.
+- Bag preferences: new "Bag preferences" settings group under SentiUI > Bags. Four dropdowns (Bag 1–4) assign a category to each bag — "Everything" (default) keeps the bag unrestricted. Preference is shown in the bag slot tooltip as "Holds: <category>".
+
+## 0.4.14 - 2026-11-23
+
+- Removed the own bank window entirely: `Bank.Enable` no longer calls `ns.Core.MakeWindow("bank", ...)`. The Blizzard `BankFrame` is no longer parked under the hidden holder in `Blizzard.Apply` — it stays visible and shows the client's native slot purchase UI ("Taschenplätze: … Kaufen"). The carried-bags window still opens alongside the bank via the `BANKFRAME_OPENED` event (same as the game's behaviour). `Bank.Open`/`Bank.Close` are safe no-ops when `Core.windows.bank` is nil.
+
+## 0.4.13 - 2026-11-23
+
+- Bank slot purchase: `securecall` applied to every candidate API before `pcall` — protected functions on this client refuse plain addon-context calls. Added `BuyBankSlot`, `C_Bank.PurchaseNextBankSlot`, `C_Bank.BuyNextBankSlot` to the API list. Fallback now scans `BankFrame` for its own `PurchaseButton`/`BuyButton`/`BankFramePurchaseButton` and programmatically clicks it, so the game's own purchase handler runs in the correct context.
+- Removed `StaticPopup_Show("CONFIRM_BUY_BANK_SLOT")` fallback — the dialog's `OnAccept` calls a nil function on this build.
+
+## 0.4.12 - 2026-11-23
+
+- Bank slot purchase crash: removed `StaticPopup_Show("CONFIRM_BUY_BANK_SLOT")` from the fallback chain — the client's own `OnAccept` handler for that dialog calls a nil function on this build (`GameDialogDefs.lua:698`), so clicking "Buy" on the game's own confirm popup crashes. Now shows the hidden Blizzard `BankFrame` as the last-resort fallback; it carries its own working purchase UI.
+
+## 0.4.11 - 2026-11-23
+
+- Buy bank slots: new "Buy slot" toolbar button in the bank window. `Slots.BuySlot()` walks the full API fallback chain — `PurchaseSlot` → `BankFramePurchaseSlot` → `PurchaseBankSlot` → `C_Bank.PurchaseSlot` — and falls back to `StaticPopup_Show("CONFIRM_BUY_BANK_SLOT")` or showing the hidden Blizzard `BankFrame` when no direct function exists. The bag-strip buyable slot highlight is unchanged; this adds a reliable explicit purchase path that works even when `GetNumBankSlots`/`PurchaseSlot` return secret or are absent.
+
+## 0.4.10 - 2026-11-22
+
+- Fix: using items straight from the bag window was blocked with `ADDON_ACTION_FORBIDDEN` (`UseContainerItem`). The item buttons were real game template buttons, but our own scripts were planted on them — custom `OnEnter`/`OnLeave` tooltip, an `OnDragStart` fallback hook, and the `S.IconRound` size hook. On this client an addon script on the button marks its whole dispatch addon-owned, so the protected use-call inside the game's own click handler was blamed on SentiUI_Bags. The buttons are now completely script-free; the template's native click/drag/tooltip paths do everything. Corner rounding on slot icons is dropped with it.
+
+## 0.4.9 - 2026-11-22
+
+- Bag slot icons now clip to soft rounded corners via the rewritten core S.IconRound MaskTexture — the icon itself is cut, so a failing overlay can never paint a dark box over it.
+
+## 0.4.8 - 2026-11-22
+
+- Bag slot icons now have soft rounded corners via S.IconRound — 4px background-colored arc pieces cover each icon's square corner.
+
+## 0.4.7
+
+- Bank slots are purchasable now: the bag strip in the bank window shows the next buyable slot with an accent border and its price in the tooltip; clicking it asks for confirmation and calls PurchaseSlot. Locked slots beyond the next stay hidden.
+
 ## 0.4.6
 
 - Bag and bank windows: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.

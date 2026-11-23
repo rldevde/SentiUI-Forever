@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.9",
+		date = "2026-11-22",
+		changes = {
+			"Quest share fix: SendChatMessage fired directly inside the UI_INFO_MESSAGE event dispatch - a forbidden call on this client. The party share now defers through C_Timer into its own pass, prefers C_ChatInfo.SendChatMessage, and bails in combat.",
+		},
+		changesDE = {
+			"Quest-Share-Fix: SendChatMessage feuerte direkt im UI_INFO_MESSAGE-Event-Dispatch - auf diesem Client ein forbidden Call. Der Party-Share laeuft jetzt verzoegert ueber C_Timer in einem eigenen Pass, nutzt bevorzugt C_ChatInfo.SendChatMessage und bricht im Kampf ab.",
+		},
+	},
+	{
 		version = "0.4.8",
 		date = "2026-11-22",
 		changes = {

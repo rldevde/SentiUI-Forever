@@ -1,5 +1,13 @@
 # Changelog — SentiUI BugSack
 
+## 0.2.3 - 2026-11-22
+
+- Close button replaced: the Blizzard UIPanelCloseButton template (which carried its own styling and chrome) is replaced with the shared S.Widgets.Close — consistent with every other window in the suite.
+
+## 0.2.2 - 2026-11-22
+
+- The Current session / Archive view tabs use the shared Sentinel tab chip now: a 2px accent blade on the left edge marks the active view - one design language across the whole suite.
+
 ## 0.2.1 - 2026-11-22
 
 - Wipe and archive-wipe confirms now use the shared own dialog instead of StaticPopupDialogs entries; the window closes on Escape via S.EscClosable. Removes addon-written entries from game tables the Escape dispatch reads.

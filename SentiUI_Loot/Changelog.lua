@@ -2,6 +2,90 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.16",
+		date = "2026-11-22",
+		changes = {
+			"Fixed the double loot window: the alpha/mouse kill that keeps the game's LootFrame out of the way only ran inside a shown-state watch registered at enable time - if LootFrame was created lazily on the first loot (load-on-demand), no watch ever registered and both windows stayed up. The kill now also runs on every own-window update and the watch uses the resolver form so a late-created frame is caught.",
+			"Roll panel finishing pass: the scroll frame's scrollbar is actually anchored now (the UIPanelScrollFrame template leaves it unpositioned on this client, sitting in the right gutter the frame reserves). Mouse wheel on a roll card forwards to the panel scroll, roll glyph buttons show Need/Greed/Disenchant/Pass tooltips, and LOOT_ROLLS_COMPLETE clears all pending rolls at once instead of waiting for each card's timeout check.",
+		},
+		changesDE = {
+			"Doppeltes Loot-Fenster behoben: der Alpha-/Maus-Kill, der den Blizzard-LootFrame versteckt, lief nur in einem beim Enable registrierten Shown-Watcher - wurde der LootFrame erst beim ersten Loot erzeugt (Load-on-Demand), registrierte sich nie ein Watcher und beide Fenster blieben offen. Der Kill laeuft jetzt bei jedem Fenster-Update und der Watcher nutzt die Resolver-Form, die spaet erzeugte Frames fängt.",
+			"Feinschliff am Wuerfel-Panel: die Scrollbar des ScrollFrames ist jetzt wirklich verankert (das UIPanelScrollFrame-Template laesst sie auf diesem Client unpositioniert - sie sitzt in der rechten Rinne, die der Frame freihaelt). Mausrad auf einer Wuerfelkarte leitet ans Panel-Scroll weiter, die Glyphen-Buttons zeigen Bedarf/Gier/Entzaubern/Passen-Tooltips, und LOOT_ROLLS_COMPLETE raeumt alle offenen Wuerfe auf einmal auf statt auf den Timeout-Check jeder Karte zu warten.",
+		},
+	},
+	{
+		version = "0.2.15",
+		date = "2026-11-22",
+		changes = {
+			"Roll cards now show the item tooltip on hover: the card frame never enabled mouse input and the icon is a plain texture that cannot take scripts, so hovering a party/raid roll showed nothing. The card now takes the hover itself and paints the item tooltip from the cached roll link; hovering also lights the card's border edge.",
+		},
+		changesDE = {
+			"Wuerfelkarten zeigen jetzt den Item-Tooltip bei Hover: der Karten-Frame hatte die Maus nie aktiviert und das Icon ist eine reine Textur ohne Script-Moeglichkeit - Hover ueber einem Party-/Raid-Wurf zeigte also nichts. Die Karte nimmt den Hover jetzt selbst entgegen und zeigt den Item-Tooltip aus dem gecachten Roll-Link; der Hover beleuchtet ausserdem die Kartenkante.",
+		},
+	},
+	{
+		version = "0.2.14",
+		date = "2026-11-22",
+		changes = {
+			"Fixed the recurring question-mark icons while looting: item data arrives async on this client, so the first draw often found nothing cached and every icon source came back empty. A new RetryIcon helper uses Item:CreateFromItemLink + ContinueOnItemLoad to re-resolve the icon the moment the item lands in the cache - applied to the loot window rows, roll cards and the loot feed. A suiIconLink guard stops stale callbacks from painting over recycled feed rows.",
+			"Loot window close button replaced with the shared W.Close - consistent Sentinel look instead of the Blizzard UIPanelCloseButton.",
+		},
+		changesDE = {
+			"Die wiederkehrenden Fragezeichen-Icons beim Looten behoben: Item-Daten kommen auf diesem Client asynchron an, beim ersten Zeichnen war oft nichts gecacht und jede Icon-Quelle lief leer. Ein neuer RetryIcon-Helper nutzt Item:CreateFromItemLink + ContinueOnItemLoad, um das Icon erneut aufzuloesen sobald das Item im Cache landet - fuer Loot-Fenster-Zeilen, Roll-Karten und den Loot-Feed. Ein suiIconLink-Guard verhindert, dass veraltete Callbacks ueber wiederverwendete Feed-Zeilen malen.",
+			"Schliessen-Button des Loot-Fensters durch das gemeinsame W.Close ersetzt - einheitliches Sentinel-Aussehen statt dem Blizzard-UIPanelCloseButton.",
+		},
+	},
+	{
+		version = "0.2.13",
+		date = "2026-11-22",
+		changes = {
+			"Roll card icons now clip to soft rounded corners via the rewritten core S.IconRound MaskTexture — the icon itself is cut instead of being covered by overlay tiles.",
+		},
+		changesDE = {
+			"Roll-Karten-Icons werden jetzt ueber die neu geschriebene Core-S.IconRound-MaskTexture auf weich abgerundete Ecken geclippt — das Icon selbst wird geschnitten statt von Overlay-Kacheln verdeckt.",
+		},
+	},
+	{
+		version = "0.2.12",
+		date = "2026-11-22",
+		changes = {
+			"Loot history close and clear buttons replaced: UIPanelCloseButton and UIPanelButtonTemplate swapped for the shared W.Close and W.Button — consistent Sentinel look across the whole suite.",
+			"Roll card icons now have soft rounded corners via S.IconRound (4px, matching the card's inset template look).",
+		},
+		changesDE = {
+			"Schliessen- und Leeren-Buttons im Loot-Verlauf ersetzt: UIPanelCloseButton und UIPanelButtonTemplate durch das gemeinsame W.Close und W.Button — einheitliches Sentinel-Aussehen in der ganzen Suite.",
+			"Roll-Karten-Icons haben jetzt weiche abgerundete Ecken via S.IconRound (4px, passend zum Inset-Template der Karte).",
+		},
+	},
+	{
+		version = "0.2.11",
+		date = "2026-11-22",
+		changes = {
+			"Loot icons finally show: the quality border was created on the OVERLAY layer and painted as a solid square on top of the icon - every item looked like a plain quality-colored box (roll cards, loot rows, feed rows, Blizzard button styling). The ring now sits on the BORDER layer so only the 1px frame peeks out.",
+			"Roll button glyphs: a missing glyph texture (the disenchant sheet on this client) rendered as a grey box because SetTexture keeps dead paths. Glyph paths are now probed via GetFileIDFromPath when available, with fallback candidates and the letter fallback if nothing resolves.",
+		},
+		changesDE = {
+			"Beute-Icons sind endlich sichtbar: der Qualitaetsrahmen lag auf dem OVERLAY-Layer und malte als gefuelltes Quadrat ueber dem Icon - jedes Item war nur ein qualitaetsfarbenes Kaestchen (Wuerfelkarten, Beute-Zeilen, Feed-Zeilen, Spiel-Buttons). Der Ring liegt jetzt auf dem BORDER-Layer, sodass nur der 1px-Rahmen herausschaut.",
+			"Wuerfel-Button-Glyphen: eine fehlende Glyphen-Textur (das Entzaubern-Sheet auf diesem Client) zeigte einen grauen Kasten, weil SetTexture tote Pfade behaelt. Glyph-Pfade werden jetzt ueber GetFileIDFromPath geprueft (falls vorhanden), mit Alternativ-Pfaden und Buchstaben-Fallback, wenn nichts aufloest.",
+		},
+	},
+	{
+		version = "0.2.10",
+		date = "2026-11-22",
+		changes = {
+			"The own loot window no longer dies instantly: hiding the game's LootFrame triggered its OnHide -> CloseLoot(), ending the loot session the moment it opened. The frame now gets alpha 0 and its mouse killed instead of hidden - the session stays alive, invisible.",
+			"Icons actually verify now: SetTexture silently drops secret/bad values on this client, so every icon (loot rows, roll cards, feed) is checked with GetTexture after setting and walks fallbacks - slot data, the game button's own icon, C_Item.GetItemIconByID, GetItemInfo, then a question mark.",
+			"The normal-loot modifier works again: IsModifiedClick can answer falsely on this client, so the held check reads the configured AUTOLOOTTOGGLE key via GetModifiedClick and tests the raw key state instead.",
+			"The group roll panel is a real Sentinel card now: the client's roll frames are hidden and click-dead while our cards show icon + quality border, quality-colored name, an accent countdown bar and the dice/coin/disenchant/pass glyphs - clicks go through RollOnLoot, rolls vanish when resolved.",
+		},
+		changesDE = {
+			"Das eigene Beutefenster stirbt nicht mehr sofort: das Verstecken des Spiel-LootFrame loeste dessen OnHide -> CloseLoot() aus und beendete die Beute-Session im selben Moment. Der Frame bekommt jetzt Alpha 0 und tote Maus statt Hide - die Session bleibt unsichtbar am Leben.",
+			"Icons werden jetzt verifiziert: SetTexture verwirft geheime/kaputte Werte auf diesem Client still, daher wird jedes Icon (Beute-Zeilen, Wuerfelkarten, Feed) nach dem Setzen per GetTexture geprueft und läuft Fallbacks durch - Slot-Daten, Icon des Spiel-Buttons, C_Item.GetItemIconByID, GetItemInfo, dann Fragezeichen.",
+			"Der Normal-Beute-Modifier geht wieder: IsModifiedClick kann auf diesem Client falsch antworten, daher liest der Check die konfigurierte AUTOLOOTTOGGLE-Taste ueber GetModifiedClick und prueft den rohen Tastenzustand.",
+			"Das Wuerfel-Panel ist jetzt eine echte Sentinel-Karte: die Spiel-Rahmen sind versteckt und klick-tot, waehrend unsere Karten Icon + Qualitaetsrahmen, qualitaetsgefaerbten Namen, Akzent-Countdown und die Wuerfel-/Muenz-/Entzaubern-/Passen-Glyphen zeigen - Klicks gehen ueber RollOnLoot, erledigte Wuerfe verschwinden.",
+		},
+	},
+	{
 		version = "0.2.9",
 		date = "2026-11-22",
 		changes = {

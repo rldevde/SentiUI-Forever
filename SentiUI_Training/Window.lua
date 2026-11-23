@@ -64,23 +64,11 @@ local function Btn(parent, w, h, label)
 	return b
 end
 
--- a mode/filter chip: dark pill, accent text while active
+-- a mode/filter chip: the shared Sentinel tab chip (blade + lit active)
 local function Chip(parent, onClick)
-	local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
-	b:SetHeight(20)
-	S.Template(b, "inset")
-	b.fs = S.Font(b, 10, S.colors.textDim)
-	b.fs:SetPoint("CENTER")
-	b.fs:SetJustifyH("CENTER")
-	function b:SetLabel(t)
-		self.fs:SetText(t)
-		self:SetWidth((self.fs:GetStringWidth() or 40) + 18)
-	end
-	function b:SetActive(on)
-		local c = on and S.colors.accent or S.colors.textDim
-		self.fs:SetTextColor(c.r, c.g, c.b)
-		S.SetBorderLit(self, on == true)
-	end
+	local b = S.TabChip(parent, 20)
+	b.autoWidth = true
+	function b:SetActive(on) self:SetSelected(on) end
 	b:SetScript("OnClick", function(self) onClick(self) end)
 	return b
 end
@@ -148,16 +136,8 @@ function K.Build()
 	subtitle:SetPoint("RIGHT", f, "RIGHT", -PAD, 0)
 	subtitle:SetJustifyH("LEFT")
 
-	local close = CreateFrame("Button", nil, f)
-	close:SetSize(18, 18)
+	local close = S.Widgets.Close(f, function() K.Close() end)
 	close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -8, -8)
-	local cx = S.Font(close, 12, C.textDim)
-	cx:SetAllPoints()
-	cx:SetJustifyH("CENTER")
-	cx:SetText("x")
-	close:SetScript("OnClick", function() f:Hide() end)
-	close:SetScript("OnEnter", function() cx:SetTextColor(C.accent.r, C.accent.g, C.accent.b) end)
-	close:SetScript("OnLeave", function() cx:SetTextColor(C.textDim.r, C.textDim.g, C.textDim.b) end)
 
 	-- search
 	local search = CreateFrame("EditBox", nil, f, "InputBoxTemplate")

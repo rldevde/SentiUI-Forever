@@ -47,6 +47,44 @@ ns.OPTIONS = {
 				{ label = L["Bank"], desc = L["Grid and overlays of the bank window."],
 					items = viewItems("bank") },
 				{
+					label = L["Bag preferences"],
+					desc = L["Designate a bag for a specific item category. Choose 'Everything' to keep the bag unrestricted."],
+					items = {
+						{ type = "dropdown", key = "bagPref.1", label = L["Bag 1"],
+							choices = function()
+								return { [""] = L["Everything"],
+									quest = L["Quest"], equipment = L["Equipment"],
+									consumables = L["Consumables"], tradegoods = L["Trade goods"],
+									misc = L["Miscellaneous"], junk = L["Junk"] },
+								{ "", "quest", "equipment", "consumables", "tradegoods", "misc", "junk" }
+							end },
+						{ type = "dropdown", key = "bagPref.2", label = L["Bag 2"],
+							choices = function()
+								return { [""] = L["Everything"],
+									quest = L["Quest"], equipment = L["Equipment"],
+									consumables = L["Consumables"], tradegoods = L["Trade goods"],
+									misc = L["Miscellaneous"], junk = L["Junk"] },
+								{ "", "quest", "equipment", "consumables", "tradegoods", "misc", "junk" }
+							end },
+						{ type = "dropdown", key = "bagPref.3", label = L["Bag 3"],
+							choices = function()
+								return { [""] = L["Everything"],
+									quest = L["Quest"], equipment = L["Equipment"],
+									consumables = L["Consumables"], tradegoods = L["Trade goods"],
+									misc = L["Miscellaneous"], junk = L["Junk"] },
+								{ "", "quest", "equipment", "consumables", "tradegoods", "misc", "junk" }
+							end },
+						{ type = "dropdown", key = "bagPref.4", label = L["Bag 4"],
+							choices = function()
+								return { [""] = L["Everything"],
+									quest = L["Quest"], equipment = L["Equipment"],
+									consumables = L["Consumables"], tradegoods = L["Trade goods"],
+									misc = L["Miscellaneous"], junk = L["Junk"] },
+								{ "", "quest", "equipment", "consumables", "tradegoods", "misc", "junk" }
+							end },
+					},
+				},
+				{
 					label = L["Merchant"],
 					items = {
 						{ type = "toggle", key = "sellJunk", label = L["Auto sell grey items"],

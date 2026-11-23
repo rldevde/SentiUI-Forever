@@ -1,4 +1,103 @@
 # SentiUI Unit Frames
+
+## 0.2.36 - 2026-11-23
+
+- Castbar visual pass (player/target — also covers interact casts like opening chests): raised panel with the same 0.70-alpha gold border as the frames above, darker unfilled area + top-fade glass sheen, spell icon now sits in its own inset tile, and the uninterruptible shield moved onto the icon corner (Blizzard-style badge).
+- Empower cast events (UNIT_SPELLCAST_EMPOWER_START/UPDATE/STOP) added to the frame event map so empower spells drive the castbar too.
+
+## 0.2.35 - 2026-11-23
+
+- Layout fix: health/power bars were 1–3 px inside the PillEdge backdrop's 3 px insets, causing bars to bleed into the gold border region and look misaligned. All four sides now inset by 4 px so bars sit cleanly inside the fill area. Power bar bottom raised from y=1 to y=4; health top from y=-1 to y=-4; health bottom adjusted accordingly.
+- Removed AccentLine and BottomLine textures from player/target frames — the interior gold strips conflicted visually with the outer backdrop border and created the "icky gold thing inside" effect. The backdrop border itself now carries the visual weight.
+- Player/target backdrop border alpha raised from 0.45 to 0.70 so the gold frame is clearly visible without interior decorations.
+- healthTextMode migration: BOTH (the old system default) is automatically updated to VALUE on first load, so existing users get absolute HP numbers without needing to reset settings.
+
+## 0.2.34 - 2026-11-23
+
+- Visual overhaul — player/unit/party/raid frames:
+  - HP text: absolute value instead of percentage (healthTextMode "VALUE").
+  - Power/mana bar height 8 px for player and target (was 6) for better number readability.
+  - Bar backgrounds opaque from 0.55 → 0.65 alpha for stronger dark base.
+  - Class colour dimmed 12 % on health bars — eliminates the washed-out look on bright classes (e.g. Paladin pink).
+  - Health-bar glass sheen gradient brightened (0.14 → 0.20 top alpha).
+  - Power-bar sheen raised to 0.16.
+  - `S.CornerCut` applied to health bar (radius 3) and power bar (radius 2) — bars now have programmatic pill-shaped rounded ends that blend into the dark panel.
+  - Player/target top gold accent line alpha raised to 0.90.
+  - New 1 px bottom closure gold line on player/target frames (35 % alpha).
+  - Portrait separator: 1 px dark vertical divider between class icon and bar area.
+
+## 0.2.33 - 2026-11-23
+
+- Aggro/threat/dispel border strips still partially hidden: the EdgeGlow container `g` was at `f:GetFrameLevel() + 6`, below the text-holder frame `th` at `f:GetFrameLevel() + 8`. Because `th` has `SetAllPoints()` and sits higher in the Z-order it was covering the strips. Increased EdgeGlow frame level to `f:GetFrameLevel() + 10` so the border renders above all internal unit-frame layers (portrait +2, bars +1, text-holder +8).
+
+## 0.2.32 - 2026-11-23
+
+- Aggro/threat border incomplete: `ns.EdgeGlow` used `g.strips[p1] = t` (first anchor point as key). Both the top horizontal strip (`"TOPLEFT"→"TOPRIGHT"`) and the left vertical strip (`"TOPLEFT"→"BOTTOMLEFT"`) share `"TOPLEFT"` as `p1`, so the left strip silently overwrote the top one. `SetEdgeColor` iterated only the 3 surviving entries — left/bottom/right got the threat colour while the top strip remained white/invisible. Fixed by using array indices (`#g.strips + 1`) so all four strips are always stored and coloured.
+
+## 0.2.31 - 2026-11-23
+
+- Player and target frames now use the `raised` panel style: Sentinel gold border tint and the lifted `bgRaised` background give them visual prominence over secondary frames (pet, focus, tot, party, raid) which stay on `panel`.
+- 2 px gold top accent line added to player and target frames: a horizontal blade just inside the top edge reinforces the "primary character bar" identity, complementing the existing left-edge health-colour strip.
+
+## 0.2.30 - 2026-11-22
+
+- `ns.EdgeGlow` (threat/dispel ring) replaced with a simple square 4-strip border — no arc geometry, no `OnSizeChanged` complexity, immune to the chevron bug on short bars. `CastBar` corner-cut removed to match the flat bar style.
+
+## 0.2.29 - 2026-11-22
+
+- Threat/dispel edge ring on short frames: `ns.EdgeGlow` now clamps the corner inset to half the frame height and (re)builds strips+arcs via `OnSizeChanged` once the frame has a real size — previously radius-7 arcs overlapped on ~12px bars and rendered as pointed pink chevrons at the bar ends while the side strips collapsed.
+
+## 0.2.28 - 2026-11-22
+
+- Generated icons wired in: role icons use the `RoleTank`/`RoleHeal`/`RoleDps` glyph files instead of the Blizzard atlas texcoords, the leader crown uses `LeaderIcon.tga`, resting/combat use `RestingIcon`/`CombatIcon.tga`, and every aura tile gets the thin `IconBorder` ring. Fix: `AbsorbBar.tga` was dark-based and muddied the shield overlay — reverted to the pale band; `IncomingHeal.tga` is already green so it tints white now instead of double-darkening.
+
+## 0.2.27 - 2026-11-22
+
+- Generated media wired in: threat/dispel rings use the `ThreatGlow.tga` edgeFile — one anti-aliased border texture replaces the strip+arc raster, bilinear-smooth at every size. The cast bar spark uses `BarSpark.tga` (soft glow instead of a hard 2px line), the uninterruptible shield uses `CastShield.tga`, and heal-prediction/absorb overlays ride `IncomingHeal`/`AbsorbBar`. Every asset is probed and falls back to the rastered look when missing.
+
+## 0.2.26 - 2026-11-22
+
+- Bar corner caps moved to OVERLAY sublevel 7: the sheen overlay created after the bars drew over the caps and poked a faint white tip into every rounded corner — visible pixel errors on player, target, target-of-target, pet, focus, party and raid bars. The cast bar caps get the same pin.
+
+## 0.2.25 - 2026-11-22
+
+- Edge glow corners: the threat highlight and dispel-type border were four strips ending 7px short of every corner — rasterized quarter arcs (new core `S.EdgeArc`) now close the outline, and `SetEdgeColor` recolors strips and arcs together so threat states and dispel types keep one continuous ring.
+
+## 0.2.24 - 2026-11-22
+
+- Rounded bars: health and power bars now read as rounded rects — anti-aliased caps in the panel color cover the corner notches (new core `S.CornerCut`). Applies to every frame sharing the bar plumbing: player, target, target-of-target, pet, focus, party and raid.
+- Cast bar fill ends rounded the same way with inset-colored caps; the alternate power bar picks up the look automatically.
+
+## 0.2.23 - 2026-11-22
+
+- Portrait tile now sits centered in the left edge (2px inset, clear of the corner arcs), and both bars share one flush left edge right of it — the power bar no longer runs underneath. Both bars also end 4px before the right edge: the square power bar otherwise poked past the panel's rounded bottom-right corner and looked longer than the health bar.
+
+## 0.2.22 - 2026-11-22
+
+- Portrait tile for party and raid frames (Unit Frames > Party / Raid): the shared portrait machinery now extends to the group cells — a square tile on the left edge showing the class icon for players or the engine's 3D portrait for everything else (model mode covers all units). Party defaults to the class icon; raid stays off by default (small cells). The health bar shifts right to make room; applies live without a reload.
+- Fix: portrait tiles rendered as empty dark squares — the icon was only painted during a full Refresh, but Configure builds the tile lazily after the first Refresh and unit events never call `UpdatePortrait`. The icon is now painted inside Configure and re-painted on `UNIT_PORTRAIT_UPDATE`. Class icon atlas switched to `Interface\WorldStateFrame\Icons-Classes` (the sheet that actually ships on this client).
+
+## 0.2.21 - 2026-11-22
+
+- New raid tools tray (Unit Frames > Raid): a slim tab docked to the top screen edge unfolds a tray with target markers, world markers, ready check and a 10s pull timer — visible only while grouped. Click the tab to fold the tray away (works in combat); the fold state is remembered. Marker buttons run through the client's own /tm and /wm slash commands in the secure macro path.
+- Alternate power bar replaces the parked `PlayerPowerBarAlt`: watches the encounter power index via `UnitPower`/`UnitPowerMax` (secret-safe) and shows name + percent while active. Own mover.
+- External defensive indicators on party/raid cells: small corner icons fed by an engine AuraContainer filtered to `HELPFUL|EXTERNAL_DEFENSIVE` — secret-safe.
+
+## 0.2.20 - 2026-11-22
+
+- Fixed the dark blob hanging below the unit frame: the aura tile's dark fill was registered with the engine's dispel-type texture system with `showWithoutDispelType = true` — the engine may scale managed dispel textures past the button bounds, so overlapping always-on dark textures rendered as a lumpy dark mass under every debuff row. The tile fill is now an unmanaged texture; the engine-managed dispel overlay only appears with a real dispel type (tinted by type).
+- Heal prediction and absorb bars showed far too small: the band anchors at the health fill's right edge so it only spans the missing-health region, but its scale used `UnitHealthMax` — the fill came out `(max-cur)/max` times too small. The scale now uses `UnitHealthMissing` (secret-safe, `UnitHealthMax` fallback).
+
+## 0.2.19 - 2026-11-22
+
+- New portrait option per single frame (Off / Class icon / 3D portrait): a rounded tile inside the left edge, sized to the health bar; the health bar shifts right while power keeps full width. Class icon shows the class emblem for players and falls back to the engine's 3D portrait for creatures; player and target default to it. Applies live without a reload.
+
+## 0.2.18 - 2026-11-22
+
+- Threat highlight redesigned: the square backdrop ring is gone — a new ns.EdgeGlow draws four strips that follow the rounded panel silhouette (inset past the corner arc), red/orange by threat state. The group-frame dispel border uses the same edge glow.
+- Ambient bar tints: health and power backdrops pick up a whisper of the bar color instead of flat black (secret-safe).
+- Aura icons clip to soft rounded corners via S.IconRound, the dispel background shares the same mask; cast bar icon clipped the same way; cast bar fill rides a warm spark at its leading edge; the health blade is inset past the corner arc.
+
 ## 0.2.17
 
 - Dispatcher rollback: PLAYER_TARGET_CHANGED/PLAYER_FOCUS_CHANGED/RAID_TARGET_UPDATE events are back; the poll is the plain targettarget poll again.

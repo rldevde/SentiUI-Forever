@@ -6,7 +6,7 @@
 ## Category: Sentinel
 ## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
 ## Author: xRL-Dev.de
-## Version: 0.2.17
+## Version: 0.2.36
 ## Dependencies: SentiUI
 ## X-Flavor: camelot
 ## X-Website: https://xrl-dev.de
@@ -22,6 +22,7 @@ Auras.lua
 Units.lua
 Extras.lua
 Group.lua
+Tools.lua
 Blizzard.lua
 
 Options.lua

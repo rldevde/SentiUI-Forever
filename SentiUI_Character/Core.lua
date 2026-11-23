@@ -6,8 +6,27 @@ local S = SentiUI
 ns.C = {}
 local C = ns.C
 
+-- The custom window is shelved for now: everything passes through to
+-- the Blizzard CharacterFrame. All window code stays in place; set this
+-- back to false to reactivate the SentiUI character window.
+ns.PASSTHROUGH = true
+
 local mod           -- the registered module (holds mod.db)
 local hooked = false
+
+-- Blizzard frame name -> our page, and back. The reverse map is needed
+-- by the passthrough API below, so both live before the functions.
+local TABMAP = {
+	PaperDollFrame = "character",
+	PetPaperDollFrame = "pet",
+	ReputationFrame = "reputation",
+	SkillFrame = "skills",
+	HonorFrame = "pvp",
+	TokenFrame = "currency",
+	StatsFrame = "statistics",
+}
+local PAGETAB = {}
+for tab, page in pairs(TABMAP) do PAGETAB[page] = tab end
 
 -- Secret-safe number read: nil when the client hands us a secret value.
 function ns.Plain(v)
@@ -26,11 +45,20 @@ end
 function C.db() return mod and mod.db end
 
 function C.IsOpen()
+	if ns.PASSTHROUGH then
+		return CharacterFrame and CharacterFrame:IsShown() or false
+	end
 	local w = ns.Win.frame
 	return w and w:IsShown() or false
 end
 
 function C.Open(page)
+	if ns.PASSTHROUGH then
+		if not (CharacterFrame and CharacterFrame:IsShown()) and ToggleCharacter then
+			ToggleCharacter(PAGETAB[page] or "PaperDollFrame")
+		end
+		return
+	end
 	if not mod or not mod.db.enabled then return end
 	ns.Win.Show(page)
 	if CharacterFrame and CharacterFrame:IsShown() then
@@ -39,10 +67,21 @@ function C.Open(page)
 end
 
 function C.Close()
+	if ns.PASSTHROUGH then
+		if CharacterFrame and CharacterFrame:IsShown() then
+			if HideUIPanel then HideUIPanel(CharacterFrame)
+			else CharacterFrame:Hide() end
+		end
+		return
+	end
 	if ns.Win.frame then ns.Win.frame:Hide() end
 end
 
 function C.Toggle(page)
+	if ns.PASSTHROUGH then
+		if ToggleCharacter then ToggleCharacter(PAGETAB[page] or "PaperDollFrame") end
+		return
+	end
 	if C.IsOpen() and (not page or page == ns.Win.currentPage) then
 		C.Close()
 	else
@@ -50,18 +89,7 @@ function C.Toggle(page)
 	end
 end
 
--- Blizzard frame name -> our page. Unknown/unavailable tabs fall through
--- to the Blizzard window untouched.
-local TABMAP = {
-	PaperDollFrame = "character",
-	PetPaperDollFrame = "pet",
-	ReputationFrame = "reputation",
-	SkillFrame = "skills",
-	HonorFrame = "pvp",
-	TokenFrame = "currency",
-	StatsFrame = "statistics",
-}
-
+-- Unknown/unavailable tabs fall through to the Blizzard window untouched.
 function C.PageForTab(tab)
 	if not tab then return "character" end
 	local id = TABMAP[tab]
@@ -113,6 +141,9 @@ end
 
 function C.Enable(m)
 	mod = m
+	-- Passthrough: the Blizzard window stays in charge - no window build,
+	-- no ToggleCharacter hook, no visibility watcher, no event pump.
+	if ns.PASSTHROUGH then return end
 	ns.Win.Build()
 	S.EscClosable(ns.Win.frame)
 
@@ -150,6 +181,7 @@ end
 
 function C.SettingChanged(m, path)
 	mod = m
+	if ns.PASSTHROUGH then return end
 	local db = m.db
 	if path == "enabled" then
 		if db.enabled then C.Enable(m) else C.Close() end

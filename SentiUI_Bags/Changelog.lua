@@ -2,6 +2,115 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.16",
+		date = "2026-11-23",
+		changes = {
+			"Bags window opening then closing at merchant: MERCHANT_SHOW fires Core.Sync() AND ns.Core.Open(). Sync calls IsAnyBagOpen() which reads game bag frames - not ours - returns false, closes the window a frame later. Fix: Core.forceOpen flag set on MERCHANT_SHOW, cleared on MERCHANT_CLOSED; Sync returns ApplyGameState(true) early when set.",
+		},
+		changesDE = {
+			"Taschenfenster oeffnet und schliesst sofort beim Haendler: MERCHANT_SHOW feuert Core.Sync() UND ns.Core.Open(). Sync ruft IsAnyBagOpen() auf - liest Game-Bags nicht unser Fenster - gibt false zurueck und schliesst es. Fix: Core.forceOpen-Flag bei MERCHANT_SHOW gesetzt, bei MERCHANT_CLOSED geloescht; Sync ruft ApplyGameState(true) fruehzeitig auf.",
+		},
+	},
+	{
+		version = "0.4.15",
+		date = "2026-11-23",
+		changes = {
+			"Bags open at merchant: MERCHANT_SHOW now calls ns.Core.Open() unconditionally - bags window opens alongside the merchant frame (previously only opened when autoRepair or sellJunk was on).",
+			"Auto-repair fix: RepairAllItems now called via securecall (protected function - plain pcall fails silently). GetRepairAllCost returning secret no longer silently aborts; repair proceeds and cost shows as ?.",
+			"Repair toolbar button: hidden when autoRepair is enabled. Toggling autoRepair in settings updates the button without a reload.",
+			"Bag slot tooltip: shows the bag's contents (up to 8 items) plus the assigned category label when a bag preference is set.",
+			"Bag preferences: new settings group under SentiUI > Bags with four dropdowns (Bag 1-4) assigning a category per bag. 'Everything' keeps the bag unrestricted.",
+		},
+		changesDE = {
+			"Taschen oeffnen beim Haendler: MERCHANT_SHOW ruft ns.Core.Open() bedingungslos - Taschenfenster oeffnet parallel zum Haendler (bisher nur bei autoRepair oder sellJunk).",
+			"Auto-Reparatur-Fix: RepairAllItems jetzt ueber securecall (geschuetzte Funktion - pcall schlaegt stillschweigend fehl). GetRepairAllCost als secret bricht die Reparatur nicht mehr ab; Kosten zeigen als ?.",
+			"Reparatur-Button: ausgeblendet wenn autoRepair aktiv ist. Umschalten in den Einstellungen aktualisiert den Button ohne Reload.",
+			"Taschen-Slot-Tooltip: zeigt den Inhalt der Tasche (bis zu 8 Items) plus zugewiesene Kategorie wenn eine Taschen-Praeferenz gesetzt ist.",
+			"Taschen-Praeferenzen: neue Einstellungsgruppe unter SentiUI > Bags mit vier Dropdowns (Tasche 1-4) zur Kategorie-Zuweisung. 'Alles' laesst die Tasche frei.",
+		},
+	},
+	{
+		version = "0.4.14",
+		date = "2026-11-23",
+		changes = {
+			"Removed the own bank window: Bank.Enable no longer creates a SentiUI bank frame. Blizzard BankFrame is no longer parked under the hidden holder - it stays visible and shows the client's native slot purchase UI (Taschenplaetze: Kaufen). The carried-bags window still opens alongside the bank via BANKFRAME_OPENED.",
+		},
+		changesDE = {
+			"Eigenes Bank-Fenster entfernt: Bank.Enable erzeugt kein SentiUI-Bankfenster mehr. Blizzard BankFrame wird nicht mehr im versteckten Holder geparkt - es bleibt sichtbar und zeigt die eigene Slot-Kauf-UI des Clients (Taschenplaetze: Kaufen). Das Taschen-Fenster oeffnet weiterhin parallel zur Bank ueber BANKFRAME_OPENED.",
+		},
+	},
+	{
+		version = "0.4.13",
+		date = "2026-11-23",
+		changes = {
+			"Bank slot purchase: securecall applied to every candidate API before pcall - protected functions refuse plain addon calls. Added BuyBankSlot, C_Bank.PurchaseNextBankSlot, C_Bank.BuyNextBankSlot. Fallback scans BankFrame for PurchaseButton/BuyButton/BankFramePurchaseButton and clicks it programmatically.",
+		},
+		changesDE = {
+			"Bankfach-Kauf: securecall fuer jeden Kandidaten-API vor pcall - geschuetzte Funktionen lehnen Addon-Aufrufe ab. BuyBankSlot, C_Bank.PurchaseNextBankSlot, C_Bank.BuyNextBankSlot hinzugefuegt. Fallback sucht BankFrame nach PurchaseButton/BuyButton/BankFramePurchaseButton und klickt ihn programmgesteuert.",
+		},
+	},
+	{
+		version = "0.4.12",
+		date = "2026-11-23",
+		changes = {
+			"Bank slot purchase crash: removed StaticPopup_Show(CONFIRM_BUY_BANK_SLOT) from the fallback chain. The client's own OnAccept handler for that dialog calls a nil function on this build (GameDialogDefs.lua:698), so clicking Buy on the game's own confirm popup crashes. Now shows the hidden Blizzard BankFrame as last resort - it carries its own working purchase UI.",
+		},
+		changesDE = {
+			"Bankfach-Kauf-Absturz: StaticPopup_Show(CONFIRM_BUY_BANK_SLOT) aus der Fallback-Kette entfernt. Der eigene OnAccept-Handler des Clients fuer diesen Dialog ruft auf diesem Build eine nil-Funktion auf (GameDialogDefs.lua:698), das Klicken auf Kaufen im eigenen Bestaetigungsfenster stuerzt ab. Zeigt jetzt das verborgene Blizzard-BankFrame als letztes Mittel - es hat eine eigene funktionierende Kauf-UI.",
+		},
+	},
+	{
+		version = "0.4.11",
+		date = "2026-11-23",
+		changes = {
+			"Buy bank slots: new Buy slot toolbar button in the bank window. Slots.BuySlot() walks the API fallback chain - PurchaseSlot -> BankFramePurchaseSlot -> PurchaseBankSlot -> C_Bank.PurchaseSlot - then falls back to StaticPopup_Show(CONFIRM_BUY_BANK_SLOT) or showing the hidden Blizzard BankFrame. Works even when GetNumBankSlots or PurchaseSlot are secret or absent.",
+		},
+		changesDE = {
+			"Bankfaecher kaufen: Neuer Slot-kaufen-Button in der Bank-Fenster-Toolbar. Slots.BuySlot() geht die API-Kette durch - PurchaseSlot -> BankFramePurchaseSlot -> PurchaseBankSlot -> C_Bank.PurchaseSlot - und faellt auf StaticPopup_Show(CONFIRM_BUY_BANK_SLOT) oder das verborgene Blizzard-BankFrame zurueck. Funktioniert auch wenn GetNumBankSlots oder PurchaseSlot secret sind oder fehlen.",
+		},
+	},
+	{
+		version = "0.4.10",
+		date = "2026-11-22",
+		changes = {
+			"Fix: using items straight from the bag window was blocked with ADDON_ACTION_FORBIDDEN (UseContainerItem). The item buttons were real game template buttons, but our own scripts were planted on them - a custom OnEnter/OnLeave tooltip, an OnDragStart fallback hook, and the S.IconRound size hook. On this client an addon script on the button marks its whole dispatch addon-owned, so the protected use-call inside the game's own click handler got blamed on SentiUI_Bags. The buttons are now completely script-free: the template's native click, drag and tooltip paths do everything. Corner rounding on slot icons is dropped with it - square icons are the price of working item clicks.",
+		},
+		changesDE = {
+			"Fix: Items direkt aus der Tasche benutzen wurde mit ADDON_ACTION_FORBIDDEN geblockt (UseContainerItem). Die Item-Buttons waren echte Game-Template-Buttons, aber unsere eigenen Skripte hingen dran - eigener OnEnter/OnLeave-Tooltip, ein OnDragStart-Fallback-Hook und der S.IconRound-Size-Hook. Auf diesem Client markiert ein Addon-Skript am Button den ganzen Dispatch als Addon-Besitz, der geschützte Use-Call im eigenen Klick-Handler des Spiels wurde deshalb SentiUI_Bags angelastet. Die Buttons sind jetzt komplett skriptfrei: Klick, Drag und Tooltip macht das Template nativ. Die Eckenrundung der Slot-Icons fällt damit weg - eckige Icons sind der Preis für funktionierende Item-Klicks.",
+		},
+	},
+	{
+		version = "0.4.9",
+		date = "2026-11-22",
+		changes = {
+			"Bag slot icons now clip to soft rounded corners via the rewritten core S.IconRound MaskTexture — the icon itself is cut, so a failing overlay can never paint a dark box over it.",
+		},
+		changesDE = {
+			"Bag-Slot-Icons werden jetzt ueber die neu geschriebene Core-S.IconRound-MaskTexture auf weich abgerundete Ecken geclippt — das Icon selbst wird geschnitten, ein fehlschlagendes Overlay kann also nie eine dunkle Box darueber malen.",
+		},
+	},
+	{
+		version = "0.4.8",
+		date = "2026-11-22",
+		changes = {
+			"Bag slot icons now have soft rounded corners: S.IconRound covers each icon's square corner with a background-colored arc (4px radius, matching the slot backdrop dark bg).",
+		},
+		changesDE = {
+			"Bag-Slot-Icons haben jetzt weiche abgerundete Ecken: S.IconRound überdeckt jede eckige Icon-Ecke mit einem hintergrundfarbigen Bogen (4px Radius, passend zur dunklen Slot-Hintergrundfarbe).",
+		},
+	},
+	{
+		version = "0.4.7",
+		date = "2026-11-22",
+		changes = {
+			"Bank slots are purchasable now: the bag strip in the bank window shows the next buyable slot with an accent border and its price in the tooltip; clicking it asks for confirmation and calls PurchaseSlot. Locked slots beyond the next stay hidden.",
+		},
+		changesDE = {
+			"Bankfaecher sind jetzt kaufbar: die Taschenleiste im Bankfenster zeigt das naechste kaufbare Fach mit Akzent-Rahmen und Preis im Tooltip; ein Klick fragt nach und ruft PurchaseSlot. Gesperrte Faecher dahinter bleiben versteckt.",
+		},
+	},
+
+	{
 		version = "0.4.6",
 		changes = {
 			"Bag and bank windows: The window joins the combat deferral: opening mid-combat queues for after the fight with a chat note, an open window hides on combat start and returns after.",

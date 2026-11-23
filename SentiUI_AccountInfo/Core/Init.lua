@@ -102,9 +102,13 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
 		return
 	end
 	-- Iterate over a snapshot so callbacks may unregister themselves.
+	-- pcall each handler: a throwing scan must not silence later handlers.
 	local snapshot = { unpack(list) }
 	for i = 1, #snapshot do
-		snapshot[i](event, ...)
+		local ok, err = pcall(snapshot[i], event, ...)
+		if not ok then
+			ns:Print("event %s handler error: %s", tostring(event), tostring(err))
+		end
 	end
 end)
 
@@ -187,9 +191,14 @@ function ns:Fire(event, ...)
 		return
 	end
 	-- Snapshot: callbacks may unregister themselves while iterating.
+	-- Each callback is pcall'd: one bad listener must not keep the rest
+	-- (e.g. the scanner's SAI_BOOT hook) from running.
 	local snapshot = { unpack(list) }
 	for i = 1, #snapshot do
-		snapshot[i].func(event, ...)
+		local ok, err = pcall(snapshot[i].func, event, ...)
+		if not ok then
+			ns:Print("callback error on %s: %s", tostring(event), tostring(err))
+		end
 	end
 end
 
@@ -208,21 +217,84 @@ end
 -- Player
 --------------------------------------------------------------------------------
 
--- Own realm, normalized ("CAMWOWEU4Realm1PvE" on Forever).
-local function OwnRealm()
-	local realm = GetNormalizedRealmName()
-	if type(realm) == "string" and realm ~= "" then
-		return realm
+-- Own realm. GetRealmName first (the rest of the suite uses it and it
+-- is what this client populates), GetNormalizedRealmName as backup.
+-- This client sometimes reports an empty realm for a whole session:
+-- the last resort is the realm this character was already saved under
+-- in ns.db.chars, so a blank realm never orphans the record.
+local function SavedRealm(name)
+	local chars = ns.db and ns.db.chars
+	if type(name) ~= "string" or name == "" or type(chars) ~= "table" then
+		return nil
 	end
+	local found
+	for key in pairs(chars) do
+		local who, realm = tostring(key):match("^(.-)%-(.+)$")
+		if who == name and type(realm) == "string" and realm ~= "" then
+			if found and found ~= realm then
+				return nil -- same name saved on several realms - stay safe
+			end
+			found = realm
+		end
+	end
+	return found
+end
+
+local function RawPlayerName()
+	if type(GetUnitName) == "function" then
+		local ok, name = pcall(GetUnitName, "player", false)
+		if ok and type(name) == "string" and name ~= "" then
+			return name
+		end
+	end
+	if type(UnitFullName) == "function" then
+		local ok, name, second = pcall(UnitFullName, "player")
+		if ok and type(name) == "string" and name ~= "" then
+			if type(second) == "string" and second ~= "" then
+				return name .. " " .. second
+			end
+			return name
+		end
+	end
+end
+
+local function OwnRealm()
+	for _, fn in ipairs({ GetRealmName, GetNormalizedRealmName }) do
+		if type(fn) == "function" then
+			local ok, realm = pcall(fn)
+			if ok and type(realm) == "string" and realm ~= "" then
+				return realm
+			end
+		end
+	end
+	-- the connected realm name is also mirrored in a cvar on retail-like
+	-- clients - cheap extra source before the saved-record fallback
+	if C_CVar and type(C_CVar.GetCVar) == "function" then
+		local ok, realm = pcall(C_CVar.GetCVar, "realmName")
+		if ok and type(realm) == "string" and realm ~= "" then
+			return realm
+		end
+	end
+	return SavedRealm(RawPlayerName())
 end
 ns.OwnRealm = OwnRealm
 
 -- Character name as the server writes it. Forever names are
--- "First Surname": UnitFullName returns them as name and realm
--- ("First", "Surname"), so a "realm" that isn't ours is the surname.
+-- "First Surname": GetUnitName already returns the full name on this
+-- client; UnitFullName's ("First", "Surname") split is the fallback -
+-- there a "realm" that isn't ours is the surname.
 function ns:GetPlayerName()
-	local name, second = UnitFullName("player")
-	if type(name) ~= "string" or name == "" then
+	if type(GetUnitName) == "function" then
+		local ok, name = pcall(GetUnitName, "player", false)
+		if ok and type(name) == "string" and name ~= "" then
+			return name
+		end
+	end
+	if type(UnitFullName) ~= "function" then
+		return nil
+	end
+	local ok, name, second = pcall(UnitFullName, "player")
+	if not ok or type(name) ~= "string" or name == "" then
 		return nil
 	end
 	local realm = OwnRealm()
@@ -232,14 +304,23 @@ function ns:GetPlayerName()
 	return name
 end
 
--- "Name-Realm", the database key for the character. Nil before the
--- realm is known (early in the loading process).
+-- "Name-Realm", the database key for the character. This client can
+-- report an empty realm for a whole session: rather than never writing
+-- anything, a bare "Name-" key is used then (the record is folded into
+-- the full key once a realm resolves). The key is cached for the
+-- session once resolved, so a hiccup in the APIs can never split the
+-- record.
+local cachedFullName
 function ns:GetPlayerFullName()
-	local name = ns:GetPlayerName()
-	local realm = OwnRealm()
-	if name and realm then
-		return name .. "-" .. realm
+	if cachedFullName then
+		return cachedFullName
 	end
+	local name = ns:GetPlayerName()
+	if not name then
+		return nil
+	end
+	cachedFullName = name .. "-" .. (OwnRealm() or "")
+	return cachedFullName
 end
 
 -- Display name for a database key "Name-Realm" -> "Name".

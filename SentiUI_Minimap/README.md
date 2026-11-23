@@ -17,10 +17,19 @@ Minimap module for the SentiUI suite (WoW Forever client). Requires `SentiUI`.
   "+" dropdown that forwards clicks and tooltips.
 - Clock with a day/night symbol next to it (sun by day, moon at night, from
   `GetGameTime`); clicking the clock opens the calendar.
-- Indicators re-dock onto the map: tracking top-left, mail top-right, queue
-  tools + landing page bottom-left, difficulty flag top-right.
-- Mouse wheel zoom (optional reset-to-out), right-click tracking menu,
-  middle-click calendar.
+- Indicators re-dock onto the map: mail top-right, queue tools + landing
+  page bottom-left, difficulty flag top-right. The tracking magnifier is
+  our own button at the map's top-left (hover shows the active tracking,
+  click opens the tracking menu via the client's C_Minimap API, merged
+  with the classic tracking list). With Mining or Herbalism the matching
+  tracking turns itself on at login when nothing is tracked yet; a
+  tracking turned off through the menu stays off.
+- Mouse wheel zoom (optional reset-to-out) plus small +/- zoom buttons at
+  the map's bottom-right corner; right-click tracking menu, middle-click
+  calendar.
+- Performance icon next to the addon-button collection: home/world latency,
+  framerate, addon memory and the heaviest addons on hover; right-click
+  opens the settings.
 - `GetMinimapShape()` reports `SQUARE`/`ROUND` for other addons.
 
 ## Blizzard chrome suppression

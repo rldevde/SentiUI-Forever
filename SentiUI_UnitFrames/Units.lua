@@ -15,6 +15,21 @@ local GameTooltip = GameTooltip
 
 local BLANK = "Interface\\Buttons\\WHITE8X8"
 
+-- class icon atlas (4x4 grid, 64px cells in a 256px sheet); the client's
+-- own CLASS_ICON_TCOORDS wins when it exists, this table is the fallback.
+-- Icons-Classes is used (proven to ship on this client via ElvUI) - the
+-- newer CHARACTERCREATE atlas is not guaranteed to exist here.
+local CLASS_ATLAS = "Interface\\WorldStateFrame\\Icons-Classes"
+local CLASS_TCOORDS = {
+	WARRIOR = { 0, 0.25, 0, 0.25 }, MAGE = { 0.25, 0.5, 0, 0.25 },
+	ROGUE = { 0.5, 0.75, 0, 0.25 }, DRUID = { 0.75, 1, 0, 0.25 },
+	HUNTER = { 0, 0.25, 0.25, 0.5 }, SHAMAN = { 0.25, 0.5, 0.25, 0.5 },
+	PRIEST = { 0.5, 0.75, 0.25, 0.5 }, WARLOCK = { 0.75, 1, 0.25, 0.5 },
+	PALADIN = { 0, 0.25, 0.5, 0.75 }, DEATHKNIGHT = { 0.25, 0.5, 0.5, 0.75 },
+	MONK = { 0.5, 0.75, 0.5, 0.75 }, DEMONHUNTER = { 0.75, 1, 0.5, 0.75 },
+	EVOKER = { 0, 0.25, 0.75, 1 },
+}
+
 local UF = {}
 ns.UF = UF
 UF.polled = {}
@@ -40,7 +55,9 @@ local EVENT_TO_UPDATE = {
 	UNIT_SPELLCAST_START = "Cast", UNIT_SPELLCAST_DELAYED = "Cast",
 	UNIT_SPELLCAST_CHANNEL_START = "Cast", UNIT_SPELLCAST_CHANNEL_UPDATE = "Cast",
 	UNIT_SPELLCAST_INTERRUPTIBLE = "Cast", UNIT_SPELLCAST_NOT_INTERRUPTIBLE = "Cast",
+	UNIT_SPELLCAST_EMPOWER_START = "Cast", UNIT_SPELLCAST_EMPOWER_UPDATE = "Cast",
 	UNIT_SPELLCAST_STOP = "CastStop", UNIT_SPELLCAST_CHANNEL_STOP = "CastStop",
+	UNIT_SPELLCAST_EMPOWER_STOP = "CastStop",
 	UNIT_SPELLCAST_FAILED = "CastStop", UNIT_SPELLCAST_INTERRUPTED = "CastStop",
 }
 UF.basicEvents = EVENT_TO_UPDATE -- Extras.lua registers the same set on its frames
@@ -80,10 +97,25 @@ function UF.UpdateHealth(f)
 	local secret = S.IsSecret(cur) or S.IsSecret(mx)
 	ns.SetBarValues(f.Health, cur, mx)
 	local r, g, b = ns.HealthColor(f.unit)
+	-- dim class colour by 12 % for a less saturated, more polished bar fill.
+	-- Only applied to plain (non-secret) numbers; secret colours are passed
+	-- through unchanged so the hidden-class path keeps working.
+	if type(r) == "number" and type(g) == "number" and type(b) == "number"
+		and not S.IsSecret(r) then
+		r, g, b = r * 0.88, g * 0.88, b * 0.88
+	end
 	-- r/g/b can be secret numbers for hidden classes: the setters resolve
 	-- them, but the calls go through pcall in case the client refuses
 	pcall(f.Health.SetStatusBarColor, f.Health, r, g, b)
 	if f.Edge then pcall(f.Edge.SetVertexColor, f.Edge, r, g, b, 1) end
+	-- ambient tint: a whisper of the health color inside the bar's dark
+	-- backdrop, secret-safe (arithmetic on a secret rgb would throw)
+	if f.Health.bg and type(r) == "number" and type(g) == "number"
+		and type(b) == "number" and not S.IsSecret(r) then
+		f.Health.bg:SetColorTexture(r * 0.16, g * 0.16, b * 0.16, 0.55)
+	elseif f.Health.bg then
+		f.Health.bg:SetColorTexture(0, 0, 0, 0.55)
+	end
 	local st, sr, sg, sb = ns.StatusText(f.unit)
 	if st then
 		f.HpText:SetFormattedText("|cff%02x%02x%02x%s|r", (sr or 1) * 255, (sg or 1) * 255, (sb or 1) * 255, st)
@@ -119,6 +151,10 @@ function UF.UpdatePower(f)
 	ns.SetBarValues(f.Power, cur, mx)
 	local r, g, b = ns.PowerColor(f.unit)
 	f.Power:SetStatusBarColor(r, g, b)
+	if f.Power.bg and type(r) == "number" and type(g) == "number"
+		and type(b) == "number" and not S.IsSecret(r) then
+		f.Power.bg:SetColorTexture(r * 0.14, g * 0.14, b * 0.14, 0.55)
+	end
 	f.Power:Show()
 	if f.PowText then
 		if secret then f.PowText:SetText(ns.Pct(f.unit, true) or "")
@@ -167,6 +203,8 @@ function UF.UpdateName(f)
 	else
 		f.NameText:SetTextColor(1, 1, 1)
 	end
+	-- UNIT_PORTRAIT_UPDATE/UNIT_MODEL_CHANGED map here: keep the tile fresh
+	UF.UpdatePortrait(f)
 end
 
 function UF.UpdateThreat(f)
@@ -174,7 +212,7 @@ function UF.UpdateThreat(f)
 	local ok, st = pcall(UnitThreatSituation, f.unit)
 	st = ok and Plain(st) or 0
 	if st >= 2 then
-		f.Threat:SetBackdropBorderColor(1, st == 3 and 0.1 or 0.55, st == 3 and 0.1 or 0.1, 1)
+		f.Threat:SetEdgeColor(1, st == 3 and 0.1 or 0.55, st == 3 and 0.1 or 0.1, 1)
 		f.Threat:Show()
 	else
 		f.Threat:Hide()
@@ -192,6 +230,16 @@ local ROLE_TEXCOORDS = {
 	DAMAGER = { 0.3125, 0.59375, 0.3203, 0.6016 },
 }
 ns.RoleIcons = ROLE_ICONS
+-- generated per-role glyph files replace the atlas lookup when present
+local ROLE_MEDIA = S.Tex and {
+	TANK = S.Tex("RoleTank"),
+	HEALER = S.Tex("RoleHeal"),
+	DAMAGER = S.Tex("RoleDps"),
+}
+if ROLE_MEDIA and not (ROLE_MEDIA.TANK and ROLE_MEDIA.HEALER
+	and ROLE_MEDIA.DAMAGER) then
+	ROLE_MEDIA = nil
+end
 
 -- assigned group role, secret-safe: try both client APIs, normalize the
 -- token (casing + "DPS"/"DAMAGE" spellings) - secret or unassigned -> nil
@@ -238,7 +286,12 @@ function UF.UpdateIcons(f)
 		local role = RoleOf(f.unit)
 		local tc = (not f.db or f.db.showRole ~= false) and role and ROLE_TEXCOORDS[role]
 		if tc then
-			f.RoleIcon:SetTexCoord(tc[1], tc[2], tc[3], tc[4])
+			if ROLE_MEDIA then
+				f.RoleIcon:SetTexture(ROLE_MEDIA[role])
+				f.RoleIcon:SetTexCoord(0, 1, 0, 1)
+			else
+				f.RoleIcon:SetTexCoord(tc[1], tc[2], tc[3], tc[4])
+			end
 			f.RoleIcon:Show()
 		else
 			f.RoleIcon:Hide()
@@ -280,6 +333,44 @@ local function OnLeave(f)
 	if UnitFrame_OnLeave then pcall(UnitFrame_OnLeave, f) end
 end
 
+-- optional portrait tile inside the frame's left edge: class icon for
+-- players, the engine's 3D portrait (SetPortraitTexture) for creatures,
+-- or for every unit in "model" mode. Built lazily in Configure so the
+-- option can flip live; the health bar shifts right to make room.
+local function EnsurePortrait(f)
+	if f.Portrait then return end
+	local ph = CreateFrame("Frame", nil, f)
+	ph:SetFrameLevel(f:GetFrameLevel() + 2)
+	local bg = ph:CreateTexture(nil, "BORDER")
+	bg:SetAllPoints()
+	bg:SetColorTexture(0.05, 0.06, 0.09, 0.92)
+	ph.icon = ph:CreateTexture(nil, "ARTWORK")
+	ph.icon:SetAllPoints()
+	if S.IconRound then S.IconRound(ph, 3) end
+	f.Portrait = ph
+end
+
+function UF.UpdatePortrait(f)
+	local ph = f.Portrait
+	if not ph or not ph:IsShown() or not f.unit then return end
+	local mode = f.db and f.db.portrait or "off"
+	if mode == "class" and ns.UnitIsPlayer(f.unit) then
+		local cls = ns.ClassToken and ns.ClassToken(f.unit)
+		local tc = cls and ((CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[cls])
+			or CLASS_TCOORDS[cls])
+		if tc then
+			ph.icon:SetTexture(CLASS_ATLAS)
+			ph.icon:SetTexCoord(tc[1], tc[2], tc[3], tc[4])
+			return
+		end
+		-- secret/unknown class falls through to the engine portrait
+	end
+	if SetPortraitTexture then
+		pcall(SetPortraitTexture, ph.icon, f.unit)
+		ph.icon:SetTexCoord(0.15, 0.85, 0.15, 0.85)
+	end
+end
+
 -- frame construction --------------------------------------------------------------
 function UF.Build(f, key, db)
 	f.key = key
@@ -290,7 +381,24 @@ function UF.Build(f, key, db)
 	f:HookScript("OnEnter", OnEnter)
 	f:HookScript("OnLeave", OnLeave)
 
-	S.Template(f, "panel")
+	-- player and target get the "raised" style: Sentinel gold border tint
+	-- and the slightly lifted bgRaised background for visual prominence.
+	-- All other frames (pet, focus, tot, party, raid) stay "panel" so they
+	-- read as secondary / supporting information.
+	local frameStyle = (key == "player" or key == "target") and "raised" or "panel"
+	-- background colour used for CornerCut caps: must match the backdrop fill
+	-- so the rounded bar ends blend into the panel instead of leaving a halo
+	local bgC = (key == "player" or key == "target") and S.colors.bgRaised or S.colors.bg
+	S.Template(f, frameStyle)
+	-- player/target: boost the backdrop's gold border to 70 % alpha so it
+	-- reads clearly against dark backgrounds. S.Template writes 45 % which
+	-- suits secondary panels; primary frames need a bolder presence.
+	-- Also update _suiBorderNorm so SetBorderLit restores the right value.
+	if key == "player" or key == "target" then
+		local ac = S.colors.accent
+		pcall(f.SetBackdropBorderColor, f, ac.r, ac.g, ac.b, 0.70)
+		f._suiBorderNorm = { ac.r, ac.g, ac.b, 0.70 }
+	end
 	local health = ns.Bar(f, 10, 10)
 	health:SetFrameLevel(f:GetFrameLevel() + 1)
 	f.Health = health
@@ -299,14 +407,24 @@ function UF.Build(f, key, db)
 	gloss:SetAllPoints()
 	gloss:SetTexture(BLANK)
 	if CreateColor then
-		gloss:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0.14), CreateColor(1, 1, 1, 0))
+		gloss:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0.20), CreateColor(1, 1, 1, 0))
 	end
 	local edge = health:CreateTexture(nil, "OVERLAY", nil, 2)
 	edge:SetTexture(BLANK)
 	edge:SetWidth(3)
-	edge:SetPoint("TOPLEFT", health, "TOPLEFT")
-	edge:SetPoint("BOTTOMLEFT", health, "BOTTOMLEFT")
+	-- inset past the rounded corner arc so the blade ends on the
+	-- straight edge instead of poking into the cut corner region
+	edge:SetPoint("TOPLEFT", health, "TOPLEFT", 0, -4)
+	edge:SetPoint("BOTTOMLEFT", health, "BOTTOMLEFT", 0, 4)
 	f.Edge = edge
+	-- programmatic rounded ends: CornerCut covers the bar's four corners
+	-- with the frame background colour so the fill reads as a pill inside
+	-- the dark panel rather than a hard-cornered block.
+	-- Sublevel 3 sits above the gloss (0) so the dark cap hides any white
+	-- gloss spill into the rounded corner area.
+	if S.CornerCut then
+		S.CornerCut(health, health, 3, bgC.r, bgC.g, bgC.b, bgC.a or 1, "OVERLAY", 3)
+	end
 
 	local power = ns.Bar(f, 10, 6)
 	power:SetFrameLevel(f:GetFrameLevel() + 1)
@@ -314,9 +432,13 @@ function UF.Build(f, key, db)
 	pgloss:SetAllPoints()
 	pgloss:SetTexture(BLANK)
 	if CreateColor then
-		pgloss:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0.12), CreateColor(1, 1, 1, 0))
+		pgloss:SetGradient("VERTICAL", CreateColor(1, 1, 1, 0.16), CreateColor(1, 1, 1, 0))
 	end
 	f.Power = power
+	-- rounded ends on the power bar (radius 2: bar is only 6–8 px tall)
+	if S.CornerCut then
+		S.CornerCut(power, power, 2, bgC.r, bgC.g, bgC.b, bgC.a or 1, "OVERLAY", 3)
+	end
 
 	local th = CreateFrame("Frame", nil, f)
 	th:SetAllPoints()
@@ -342,18 +464,15 @@ function UF.Build(f, key, db)
 	f.RaidIcon:Hide()
 
 	f.LeaderIcon = th:CreateTexture(nil, "OVERLAY")
-	f.LeaderIcon:SetTexture("Interface\\GroupFrame\\UI-Group-LeaderIcon")
+	f.LeaderIcon:SetTexture((S.Tex and S.Tex("LeaderIcon"))
+		or "Interface\\GroupFrame\\UI-Group-LeaderIcon")
 	f.LeaderIcon:SetSize(12, 12)
 	f.LeaderIcon:SetPoint("CENTER", f, "TOPLEFT", 8, 0)
 	f.LeaderIcon:Hide()
 
-	local threat = CreateFrame("Frame", nil, f, "BackdropTemplate")
-	threat:SetBackdrop({ edgeFile = BLANK, edgeSize = 2 })
-	threat:SetPoint("TOPLEFT", f, "TOPLEFT", -2, 2)
-	threat:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 2, -2)
-	threat:SetFrameLevel(max(0, f:GetFrameLevel() - 1))
-	threat:Hide()
-	f.Threat = threat
+	-- threat edge follows the rounded silhouette instead of a square
+	-- backdrop ring parked behind the frame
+	f.Threat = ns.EdgeGlow(f, 2)
 
 	-- buffs above, debuffs below (only units that opt in get icon holders;
 	-- raid/party keep the frame lean and use the dispel border instead)
@@ -376,15 +495,52 @@ function UF.Configure(f)
 	local db = f.db
 	if InCombatLockdown() then return S.RunOutOfCombat(UF.Configure, f) end
 	f:SetSize(db.w, db.h)
-	local powerH = db.power ~= false and 6 or 0
+	-- powerH: per-frame override via db.powerH, falls back to 6 px
+	local powerH = db.power ~= false and (db.powerH or 6) or 0
+	-- portrait: square tile centered in the left edge, held back from the
+	-- corner arcs so no square edge pokes through the rounded silhouette.
+	-- health and power share one left edge right of it (flush).
+	local barL = 1
+	if db.portrait and db.portrait ~= "off" then
+		EnsurePortrait(f)
+		local pt = max(db.h - 6, 4)
+		f.Portrait:SetSize(pt, pt)
+		f.Portrait:ClearAllPoints()
+		f.Portrait:SetPoint("TOPLEFT", f, "TOPLEFT", 2, -3)
+		f.Portrait:Show()
+		-- Configure often runs after the frame's first Refresh (party
+		-- layout, late-created raid children): paint the icon now, since
+		-- unit events only call the partial updaters, never UpdatePortrait
+		UF.UpdatePortrait(f)
+		barL = 2 + pt + 2
+		-- 1 px dark separator between portrait and the health/power bars
+		if not f.PortraitSep then
+			local sep = f:CreateTexture(nil, "OVERLAY", nil, 1)
+			sep:SetTexture(BLANK)
+			sep:SetWidth(1)
+			sep:SetVertexColor(0.07, 0.08, 0.12, 0.90)
+			f.PortraitSep = sep
+		end
+		f.PortraitSep:ClearAllPoints()
+		f.PortraitSep:SetPoint("TOPLEFT",    f, "TOPLEFT", barL - 2, -3)
+		f.PortraitSep:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", barL - 2, 3)
+		f.PortraitSep:Show()
+	elseif f.Portrait then
+		f.Portrait:Hide()
+		if f.PortraitSep then f.PortraitSep:Hide() end
+	end
+	barL = max(barL, 4)
+	-- PillEdge backdrop has 3 px insets on every side; bars must start
+	-- at least 4 px from each edge so they sit cleanly inside the fill
+	-- area and do not bleed into the gold border region.
+	-- Layout (h=34, powerH=8): 4 top + 17 health + 1 gap + 8 power + 4 bottom = 34
 	f.Health:ClearAllPoints()
-	f.Health:SetPoint("TOPLEFT", f, "TOPLEFT", 1, -1)
-	f.Health:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, powerH > 0 and (powerH + 2) or 1)
+	f.Health:SetPoint("TOPLEFT", f, "TOPLEFT", barL, -4)
+	f.Health:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -4, powerH > 0 and (powerH + 5) or 5)
 	if powerH > 0 then
-		-- power sits inside the frame, hugging the bottom edge
 		f.Power:ClearAllPoints()
-		f.Power:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 1, 1)
-		f.Power:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
+		f.Power:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", barL, 4)
+		f.Power:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -4, 4)
 		f.Power:SetHeight(powerH)
 		f.Power:Show()
 	else
@@ -413,6 +569,7 @@ function UF.Refresh(f)
 	UF.UpdateHealth(f)
 	UF.UpdatePower(f)
 	UF.UpdateName(f)
+	UF.UpdatePortrait(f)
 	UF.UpdateThreat(f)
 	UF.UpdateIcons(f)
 	ns.Auras.Update(f)
@@ -449,15 +606,21 @@ function UF.CreateSingle(info)
 	end
 	if info.key == "player" then
 		local r = f.textHolder:CreateTexture(nil, "OVERLAY")
-		r:SetTexture("Interface\\CharacterFrame\\UI-StateIcon")
-		r:SetTexCoord(0, 0.5, 0, 0.421875)
+		local restTex = S.Tex and S.Tex("RestingIcon")
+		r:SetTexture(restTex or "Interface\\CharacterFrame\\UI-StateIcon")
+		if not restTex then r:SetTexCoord(0, 0.5, 0, 0.421875) end
 		r:SetSize(20, 20)
 		r:SetPoint("CENTER", f, "TOPLEFT", 0, 4)
 		r:Hide()
 		f.RestingIcon = r
 		local c = f.textHolder:CreateTexture(nil, "OVERLAY")
-		c:SetTexture("Interface\\CharacterFrame\\UI-StateIcon")
-		c:SetTexCoord(0.5, 1, 0, 0.49)
+		local cbtTex = S.Tex and S.Tex("CombatIcon")
+		c:SetTexture(cbtTex or "Interface\\CharacterFrame\\UI-StateIcon")
+		if cbtTex then
+			c:SetVertexColor(S.colors.red.r, S.colors.red.g, S.colors.red.b)
+		else
+			c:SetTexCoord(0.5, 1, 0, 0.49)
+		end
 		c:SetSize(20, 20)
 		c:SetPoint("CENTER", f, "CENTER", 0, 0)
 		c:Hide()

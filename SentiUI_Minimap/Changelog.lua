@@ -4,6 +4,76 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.18",
+		date = "2026-11-22",
+		changes = {
+			"Square-minimap corner brackets ride the generated MinimapBorder.tga - one authored gold bracket texture replaces the eight rastered strips (kept out of the accent tint so its gold survives accent customization).",
+		},
+		changesDE = {
+			"Eckwinkel der eckigen Minimap nutzen die generierte MinimapBorder.tga - eine gestaltete Gold-Bracket-Textur ersetzt die acht rasterten Streifen (ausserhalb der Akzent-Toenung, damit ihr Gold die Akzent-Anpassung ueberlebt).",
+		},
+	},
+	{
+		version = "0.3.17",
+		date = "2026-11-22",
+		changes = {
+			"New installer step 'Minimap': shape (square/round) and size sliders, applied live through the module's setting path. The step no longer bails on an unready module - an empty step was cached forever.",
+		},
+		changesDE = {
+			"Neuer Installer-Schritt 'Minimap': Form (eckig/rund) und Groesse, live ueber den eigenen Einstellungspfad des Moduls angewendet. Der Schritt bricht nicht mehr bei einem unbereiten Modul ab - ein leerer Schritt wurde fuer immer gecacht.",
+		},
+	},
+	{
+		version = "0.3.16",
+		date = "2026-11-22",
+		changes = {
+			"The tracking menu now merges both tracking APIs (the modern C_Minimap table shape and the classic positional one) and dedupes by name - on this client each API lists a different subset, so the standard entries only showed up together.",
+			"Auto profession tracking: with Mining or Herbalism the matching tracking (Find Minerals / Find Herbs) turns itself on at login when nothing is tracked yet. A tracking turned off through the menu stays off on the next login.",
+			"New Tracking options group: the magnifier button and the auto profession tracking.",
+		},
+		changesDE = {
+			"Das Tracking-Menue vereint jetzt beide Tracking-APIs (die moderne C_Minimap-Tabellenform und die klassische Positionsform) und dedupliziert nach Name - auf diesem Client listet jede API eine andere Teilmenge, die Standard-Eintraege erschienen nur zusammen.",
+			"Berufs-Tracking automatisch: mit Bergbau oder Kraeuterkunde aktiviert sich das passende Tracking (Mineraliensuche / Kraeutersuche) beim Login selbst, solange noch nichts verfolgt wird. Ein ueber das Menue ausgeschaltetes Tracking bleibt beim naechsten Login aus.",
+			"Neue Tracking-Optionsgruppe: der Lupen-Button und das automatische Berufs-Tracking.",
+		},
+	},
+	{
+		version = "0.3.15",
+		date = "2026-11-22",
+		changes = {
+			"The tracking magnifier is back as our own button: a magnifier at the map's top-left (the classic spot) that shows the active tracking on hover and opens a tracking menu on click - built on the client's own C_Minimap tracking API, since Blizzard's tracking chrome never showed through the dock path. Right-click on the map opens it as the last fallback. Toggle under Minimap > Elements.",
+			"Hover self-heal: the map's mouse and wheel enablement are checked every second - something disabling them killed every hover function (zone text, wheel zoom, tracking) until re-enabled.",
+		},
+		changesDE = {
+			"Die Tracking-Lupe ist als eigener Button zurueck: eine Lupe oben links an der Karte (der klassische Platz), die bei Mouseover das aktive Tracking zeigt und per Klick ein Tracking-Menue oeffnet - gebaut auf der eigenen C_Minimap-Tracking-API des Clients, da Blizzards Tracking-Chrome ueber den Dock-Pfad nie erschien. Rechtsklick auf die Karte oeffnet es als letzten Fallback. Umschaltbar unter Minimap > Elemente.",
+			"Hover-Selbstheilung: Maus- und Rad-Aktivierung der Karte werden jede Sekunde geprueft - etwas, das sie deaktiviert, hatte alle Hover-Funktionen (Zonentext, Rad-Zoom, Tracking) lahmgelegt, bis sie reaktiviert wurden.",
+		},
+	},
+	{
+		version = "0.3.14",
+		date = "2026-11-22",
+		changes = {
+			"New performance icon next to the addon-button collection: a gear that shows home/world latency, framerate, addon memory and the heaviest addons on hover - the panel plugin's minimap twin. Right-click opens the settings. Toggle under Minimap > Elements.",
+			"Zoom buttons are back: small + and - texts at the map's bottom-right corner (where the classic magnifier pair sat), quiet until hovered. The wheel zoom shares the same zoom step now. Toggle under Minimap > Zoom.",
+			"Tracking magnifier gets an explicit Show on dock: the client can keep the frame hidden, and re-anchoring alone never revealed it.",
+		},
+		changesDE = {
+			"Neues Leistungs-Symbol neben der Addon-Button-Sammlung: ein Zahnrad, das bei Mouseover Heim-/Welt-Latenz, Bildrate, Addon-Speicher und die größten Addons zeigt - der Minimap-Zwilling des Panel-Plugins. Rechtsklick öffnet die Einstellungen. Umschaltbar unter Minimap > Elemente.",
+			"Zoom-Schaltflächen sind zurück: kleine +- und ---Texte unten rechts an der Karte (wo früher das Lupen-Paar saß), dezent bis zum Hover. Das Mausrad-Zoom nutzt jetzt denselben Zoom-Schritt. Umschaltbar unter Minimap > Zoom.",
+			"Die Tracking-Lupe bekommt beim Andocken ein explizites Show: der Client kann den Frame versteckt halten, und ein reines Umankern hat ihn nie eingeblendet.",
+		},
+	},
+	{
+		version = "0.3.13",
+		date = "2026-11-22",
+		changes = {
+			"Fixed flapping tooltips when hovering the minimap: interactive Blizzard chrome (zone text button, zoom buttons/hit area, calendar, addon compartment) was hidden while client hover scripts kept re-showing it. These frames now live in a hidden trash parent - their Show() calls land nowhere, no flicker, no tooltips.",
+		},
+		changesDE = {
+			"Flatternde Tooltips beim Überfahren der Minimap behoben: interaktives Blizzard-Chrome (Zonentext-Button, Zoom-Buttons/Hit-Area, Kalender, Addon-Kompartment) wurde versteckt, während die Hover-Skripte des Clients es immer wieder einblendeten. Diese Frames liegen jetzt in einem versteckten Trash-Parent - ihre Show()-Aufrufe gehen ins Leere, kein Flackern, keine Tooltips.",
+		},
+	},
+	{
 		version = "0.3.12",
 		date = "2026-11-22",
 		changes = {

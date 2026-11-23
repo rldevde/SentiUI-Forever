@@ -114,6 +114,14 @@ Options.RegisterPage({
 		{
 			label = "Interface",
 			items = {
+				{ type = "slider", key = "gameScale", label = "Game UI scale", min = 0.5, max = 1.5, step = 0.05, unit = "x",
+					desc = "The game's own interface scale - the same slider the installer's scale step offers. The client does not keep this CVar across relogs, SentiUI re-applies it on every login.",
+					get = function()
+						return S.DB.General().gameScale
+							or (C_CVar and C_CVar.GetCVar and tonumber(C_CVar.GetCVar("uiScale")))
+							or 1
+					end,
+					set = function(v) S.ApplyGameScale(v) end },
 				{ type = "slider", key = "uiScale", label = "Interface scale", min = 0.5, max = 1.5, step = 0.05, unit = "x",
 					desc = "Master scale for SentiUI frames that opted into it." },
 			},

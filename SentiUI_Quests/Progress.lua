@@ -220,9 +220,16 @@ local function Share(text, kind)
 	if kind == "complete" then
 		msg = format("%s %s", L["Quest complete:"], text)
 	end
-	local send = SendChatMessage
-		or (C_ChatInfo and C_ChatInfo.SendChatMessage)
-	if send then pcall(send, msg, "PARTY") end
+	local send = (C_ChatInfo and C_ChatInfo.SendChatMessage)
+		or SendChatMessage
+	-- chat output inside an event dispatch is a forbidden call on this
+	-- client - the send must run in its own deferred pass
+	if send and C_Timer and C_Timer.After then
+		C_Timer.After(0, function()
+			if InCombatLockdown and InCombatLockdown() then return end
+			pcall(send, msg, "PARTY")
+		end)
+	end
 end
 
 -- quest title for the share lines: modern C_QuestLog first, then the

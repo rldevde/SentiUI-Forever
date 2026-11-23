@@ -1058,10 +1058,16 @@ local function LayParkHigh()
 	local PARK = "sentipark"
 	ns.HardAPI("LeaveChannelByName", leave, LAYER_CHANNEL)
 	C_Timer.After(2, function()
+		-- channel join/leave is a forbidden call while locked down; the
+		-- timers fire seconds later so combat can start in between -
+		-- bail per step instead of tripping the client guard
+		if InCombatLockdown and InCombatLockdown() then return end
 		ns.HardAPI("JoinChannelByName", join, PARK)
 		C_Timer.After(2, function()
+			if InCombatLockdown and InCombatLockdown() then return end
 			ns.HardAPI("JoinChannelByName", join, LAYER_CHANNEL)
 			C_Timer.After(4, function()
+				if InCombatLockdown and InCombatLockdown() then return end
 				ns.HardAPI("LeaveChannelByName", leave, PARK)
 			end)
 		end)

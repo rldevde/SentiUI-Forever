@@ -4,6 +4,451 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.60",
+		changes = {
+			"Loss-of-control banner (stun/root/silence) gets a dedicated skin: Blizzard blackBg and red line art removed outright, icon docked to the left edge at bar height (was overlapping the ability text), SentiUI panel + gold edge, restyled fonts.",
+		},
+		changesDE = {
+			"Kontrollverlust-Banner (Betäubung/Wurzel/Stille) bekommt einen eigenen Skin: Blizzard-blackBg und rote Linien komplett entfernt, Icon links am Rand in Leistenhöhe angedockt (ueberlappte vorher den Faehigkeits-Text), SentiUI-Panel + Goldkante, Schriften restylt.",
+		},
+	},
+	{
+		version = "0.3.59",
+		changes = {
+			"Fixed Lua ordering error: SKINS.MirrorTimerContainer called the local SweepStart function before its definition line, so it resolved nil and errored on load - the mirror timer skin never ran. The proxy + skin are now defined after SweepStart.",
+		},
+		changesDE = {
+			"Lua-Reihenfolge-Fehler behoben: SKINS.MirrorTimerContainer rief die lokale SweepStart-Funktion vor ihrer Definitionszeile auf, loeste nil aus und warf beim Laden einen Fehler - der Mirror-Timer-Skin lief nie. Proxy + Skin sind jetzt nach SweepStart definiert.",
+		},
+	},
+	{
+		version = "0.3.58",
+		changes = {
+			"Mirror timer bars (breath, fatigue, feign death) now get the SentiUI skin properly: the StatusBar fill widget lives on a child inside MirrorTimerN on this client and was never found - now resolved correctly and filled flat gold. Wooden border texture killed outright instead of dimmed to 15%.",
+		},
+		changesDE = {
+			"Mirror-Timer-Leisten (Atem, Erschoepfung, Totstellen) bekommen jetzt den SentiUI-Skin: das StatusBar-Fuell-Widget liegt auf diesem Client in einem Kind von MirrorTimerN und wurde nie gefunden - jetzt korrekt aufgeloest und flach in Gold gefaerbt. Holzrahmen-Textur wird komplett entfernt statt auf 15% gedimmt.",
+		},
+	},
+	{
+		version = "0.3.57",
+		date = "2026-11-23",
+		changes = {
+			"Breath/fatigue bars (MirrorTimer) get the SentiUI skin now: they spawn lazily on first use on this client, so the one-time MirrorTimer1-3 loop found nothing. A lazy sweep now catches every new bar (container children + MirrorTimer1-10 globals) with flat fill, dark panel, gold edge and SentiUI font.",
+		},
+		changesDE = {
+			"Atem-/Erschoepfungsbalken (MirrorTimer) bekommen jetzt den SentiUI-Skin: Sie spawnen auf diesem Client erst bei Bedarf, darum fand die einmalige MirrorTimer1-3-Schleife nichts. Ein Lazy-Sweep faengt jetzt jeden neuen Balken ab (Container-Kinder + MirrorTimer1-10-Globals) mit flacher Fuellung, dunklem Panel, Goldrand und SentiUI-Schrift.",
+		},
+	},
+	{
+		version = "0.3.56",
+		date = "2026-11-23",
+		changes = {
+			"Cooldowns surviving a reload: PEW repaints all buttons but action data is often unreadable then, and already-running cooldowns fire no more events - long cooldowns stayed unpainted. PEW now schedules delayed cooldown sweeps at +0.5s/+1.5s/+3s so restored cooldowns get swipe and numbers back.",
+		},
+		changesDE = {
+			"Cooldowns ueberleben jetzt einen Reload: PEW malt zwar alle Buttons neu, aber die Aktionsdaten sind dann oft noch nicht lesbar und bereits laufende Cooldowns feuern keine Events mehr - lange Cooldowns blieben ungemalt. PEW plant jetzt verzoegerte Cooldown-Sweeps nach +0.5s/+1.5s/+3s, damit wiederhergestellte Cooldowns Swipe und Zahlen zurueckbekommen.",
+		},
+	},
+	{
+		version = "0.3.55",
+		date = "2026-11-23",
+		changes = {
+			"Cooldown numbers readable now: the countdown font was plain white (GameFontHighlightSmall) - invisible over bright icons. Now SystemFont_Outline_Small with a dark outline, like Blizzard's own digits.",
+		},
+		changesDE = {
+			"Cooldown-Zahlen jetzt lesbar: die Countdown-Font war einfach weiss (GameFontHighlightSmall) - ueber hellen Icons unsichtbar. Jetzt SystemFont_Outline_Small mit dunkler Kontur, wie Blizzards eigene Ziffern.",
+		},
+	},
+	{
+		version = "0.3.54",
+		date = "2026-11-23",
+		changes = {
+			"NPC/quest/gossip dialog text stays near-black like the parchment originals instead of being lifted to bright text - readability on the dark panel now comes from a tiny 1px white shadow rim bottom-right that does not glare.",
+		},
+		changesDE = {
+			"NPC-/Quest-/Gossip-Texte bleiben jetzt fast schwarz wie die Pergament-Originale statt aufgehellt - die Lesbarkeit auf dem dunklen Panel kommt von einer winzigen 1px weissen Schattenkante unten-rechts, die nicht in den Augen sticht.",
+		},
+	},
+	{
+		version = "0.3.53",
+		date = "2026-11-23",
+		changes = {
+			"Cooldown numbers on action buttons: the template cooldown hid its countdown digits on this client (only the swipe showed). Buttons now unhide countdown numbers and get GameFontHighlightSmall via SetCountdownFont. Charge/loss-of-control cooldowns are picked up from the template too - they were never assigned, so those swipes never painted.",
+		},
+		changesDE = {
+			"Cooldown-Zahlen auf Aktionsbuttons: das Template-Cooldown hat die Countdown-Ziffern auf diesem Client versteckt (nur der Swipe lief). Buttons zeigen jetzt Countdown-Zahlen mit GameFontHighlightSmall ueber SetCountdownFont. Charge-/Kontrollverlust-Cooldowns werden jetzt auch vom Template uebernommen - sie wurden nie zugewiesen, diese Swipes liefen nie.",
+		},
+	},
+	{
+		version = "0.3.52",
+		date = "2026-11-23",
+		changes = {
+			"Action bar frame: replaced the 4 thin gold edge strips with S.Template(holder, panel) - the holder now gets a proper dark panel backdrop with accent-tinted border flush behind the button grid instead of a thin disconnected line at the outer edge.",
+		},
+		changesDE = {
+			"Aktionsleisten-Rahmen: die 4 duennen Goldkanten durch S.Template(holder, panel) ersetzt - der Holder bekommt jetzt ein richtiges dunkles Panel mit akzentfarbenem Rand bündig hinter dem Button-Raster statt einer duennen frei schwebenden Linie am Aussenrand.",
+		},
+	},
+	{
+		version = "0.3.51",
+		date = "2026-11-23",
+		changes = {
+			"Mail compose window: SkinMail finds the body ScrollFrame (MailBody, MailScroll*, or any ScrollFrame with an EditBox child) and applies dark inset fill to the whole message area - not just the thin EditBox inside. Parchment is faded: no more black bar on orange paper.",
+			"SkinQuestDialog moved after SkinDialog in file order - Lua local functions must be declared before use; original order caused nil call on QuestFrame and GossipFrame.",
+		},
+		changesDE = {
+			"Post-Fenster: SkinMail findet das Textfeld-ScrollFrame (MailBody, MailScroll* oder ScrollFrame mit EditBox-Kind) und legt dunklen inset-Fuellung auf das ganze Nachrichtenfeld - nicht nur die duenne EditBox. Pergament wird ausgeblendet: kein schwarzer Balken auf orangem Papier mehr.",
+			"SkinQuestDialog nach SkinDialog in der Datei verschoben - Lua lokale Funktionen muessen vor Verwendung definiert sein; die Reihenfolge verursachte nil-Aufruf auf QuestFrame und GossipFrame.",
+		},
+	},
+	{
+		version = "0.3.50",
+		date = "2026-11-23",
+		changes = {
+			"Quest/NPC dialog font fix: removed OUTLINE flag from RestyleFonts. The thick black stroke produced a heavy border around all white text on the dark panel; quest/gossip fonts carry their own shadow and read cleanly without it.",
+			"Quest/Gossip frame structure: SkinQuestDialog adds a subtle gold divider (28% alpha, 1px) below the NPC greeting area at y=-55, giving the frame a titled section structure instead of floating text.",
+			"Action bar gold border: four 1px gold strips on the bar holder BORDER layer (below buttons) frame every bar in Sentinel gold at 55% alpha.",
+			"Action bar bottom offset raised from 10px to 16px.",
+			"Action bar button icon inset 1px->3px: icons were bleeding into the PillEdge backdrop corner arc and appearing cut off.",
+		},
+		changesDE = {
+			"Quest-/NPC-Dialog-Font-Fix: OUTLINE-Flag aus RestyleFonts entfernt. Der dicke schwarze Strich erzeugte einen schweren Rand um allen weissen Text auf dem dunklen Panel; Quest-/Gossip-Fonts tragen ihren eigenen Schatten und lesen sauber ohne.",
+			"Quest-/Gossip-Frame-Struktur: SkinQuestDialog fuegt eine feine Gold-Linie (28% Alpha, 1px) unter dem NPC-Begruessungsbereich bei y=-55 ein, dem Frame eine benannte Abschnittsstruktur statt frei schwebendem Text.",
+			"Aktionsleisten-Goldrand: vier 1px Goldstreifen auf der Halter-BORDER-Ebene (unter Buttons) rahmen jede Leiste in Sentinel-Gold bei 55% Alpha.",
+			"Aktionsleisten-Bodenabstand von 10px auf 16px erhoeht.",
+			"Aktionsleisten-Button-Icon-Inset 1px->3px: Icons bluteten in die PillEdge-Backdrop-Ecke und erschienen abgeschnitten.",
+		},
+	},
+	{
+		version = "0.3.49",
+		date = "2026-11-23",
+		changes = {
+			"Cooldown fix: complete rewrite of PaintCooldown/sweep. Root cause: isActive, startTime and duration are secret/tainted; any Lua comparison throws under addon taint and aborts the painter. Even catching the throw and treating it as 'not active' was wrong - it caused sweep to explicitly Clear() all running cooldowns. Fix: isActive is never read; the raw info table is passed directly to CooldownFrame_Set (Blizzard C++, handles secrets internally). C++ decides show/hide from duration. Fallback chain: SetCooldownFromDurationObject > CooldownFrame_Set > cd:SetCooldown.",
+		},
+		changesDE = {
+			"Cooldown-Fix: vollständige Neufassung von PaintCooldown/sweep. Ursache: isActive, startTime und duration sind secret/tainted; jeder Lua-Vergleich wirft unter Addon-Taint und bricht den Painter ab. Sogar den Throw abzufangen und als 'nicht aktiv' zu behandeln war falsch - es führte dazu, dass sweep alle laufenden Cooldowns explizit Clear()te. Fix: isActive wird nie gelesen; die rohe info-Tabelle wird direkt an CooldownFrame_Set (Blizzard-C++, behandelt Geheimnisse intern) übergeben. C++ entscheidet anhand von duration über Anzeige/Ausblendung. Fallback: SetCooldownFromDurationObject > CooldownFrame_Set > cd:SetCooldown.",
+		},
+	},
+	{
+		version = "0.3.48",
+		date = "2026-11-23",
+		changes = {
+			"Dark text fix: luminance threshold in RestyleFonts raised from 0.35 to 0.52 - catches the parchment mid-tones WoW's QuestFont/GossipFont objects use (~0.40-0.50 luminance) which slipped through and appeared black on the dark panel.",
+		},
+		changesDE = {
+			"Schwarze-Text-Fix: Luminanz-Schwellwert in RestyleFonts von 0,35 auf 0,52 angehoben - erfasst jetzt die Pergament-Mitteltöne von WoW's QuestFont/GossipFont (~0,40-0,50 Luminanz), die bisher durchfielen und schwarz auf dem dunklen Panel erschienen.",
+		},
+	},
+	{
+		version = "0.3.47",
+		date = "2026-11-22",
+		changes = {
+			"Design system: Blizzard windows (SkinPanelish) now get dark fill via 'raised' template for a consistent gold border tint, plus four clean corner-to-corner gold strips (no arc offsets, no EdgeArc arcs that left gaps). Action buttons get a gold 1px ring overlay shown on hover and while a spell is toggled active.",
+		},
+		changesDE = {
+			"Design-System: Blizzard-Fenster (SkinPanelish) erhalten jetzt dunkle Fuellung via 'raised'-Template fuer einen einheitlichen Gold-Border-Tint sowie vier saubere Rand-zu-Rand-Goldstreifen (keine Arc-Offsets, keine EdgeArc-Boegen die Luecken hinterliessen). Actionbuttons erhalten einen goldenen 1px-Ring-Overlay der beim Hover und bei aktivem Zauber erscheint.",
+		},
+	},
+	{
+		version = "0.3.46",
+		date = "2026-11-22",
+		changes = {
+			"The golden window edge uses the GoldEdge edgeFile again - now backed by the regenerated, spec-correct texture (continuous side lines + rounded corners), it replaces the strip+arc raster as intended.",
+		},
+		changesDE = {
+			"Die goldene Fensterkante nutzt wieder das GoldEdge-EdgeFile - jetzt mit der regenerierten, spec-korrekten Textur (durchgehende Seitenlinien + gerundete Ecken) ersetzt sie wie geplant den Streifen+Bogen-Raster.",
+		},
+	},
+	{
+		version = "0.3.45",
+		date = "2026-11-22",
+		changes = {
+			"Reverted the GoldEdge.tga window edge: the generated file renders a fat band on one side and open corners instead of a closed thin ring - the gold contrast edge is back to the strip+arc raster. Black dialog text: gossip/quest/book bodies are re-painted by the game after the show pass, so the dark-text lift now re-runs on the content events (GOSSIP_SHOW, QUEST_*, ITEM_TEXT_*) and also catches strings whose FONT OBJECT carries the dark color while the vertex color reads white.",
+		},
+		changesDE = {
+			"GoldEdge.tga-Fensterrand zurueckgenommen: die Datei rendert ein fettes Band auf einer Seite und offene Ecken statt eines geschlossenen duennen Rings - die Goldkante ist wieder der Streifen+Bogen-Raster. Schwarzer Dialogtext: Gossip-/Quest-/Buchtexte werden vom Spiel nach dem Show-Pass neu gemalt, der Dunkeltext-Lift laeuft jetzt erneut auf den Content-Events (GOSSIP_SHOW, QUEST_*, ITEM_TEXT_*) und erwischt auch Strings, deren FONT-Objekt die dunkle Farbe traegt, waehrend die Vertexfarbe weiss meldet.",
+		},
+	},
+	{
+		version = "0.3.44",
+		date = "2026-11-22",
+		changes = {
+			"Action-button states ride the media: the pushed state uses the ButtonPushed soft-light overlay instead of a white blank tint, and the checked state uses the ButtonChecked gold outline ring instead of an accent fill - pressed and toggled buttons now read as designed states, not color washes.",
+		},
+		changesDE = {
+			"Aktionsbutton-Zustaende auf Media: der Gedrueckt-Zustand nutzt das ButtonPushed-Softlight-Overlay statt einer weissen Flaeche, und der Checked-Zustand den ButtonChecked-Goldring statt einer Akzent-Fuellung - gedrueckte und aktive Buttons lesen sich jetzt als gestaltete Zustaende, nicht als Farbwaesche.",
+		},
+	},
+	{
+		version = "0.3.43",
+		date = "2026-11-22",
+		changes = {
+			"Generated media in the window skin: the golden contrast edge uses the GoldEdge.tga edgeFile - one anti-aliased accent ring replaces the strip+arc raster on every skinned window. Scrollbar thumbs ride the real SliderThumb.tga glyph (accent-tinted) instead of a solid strip, and checkboxes use the CheckOn/CheckEmpty widget art - dark box, gold check - instead of a tinted Blizzard check.",
+		},
+		changesDE = {
+			"Generierte Media im Fenster-Skin: der goldene Kontrastrand nutzt die GoldEdge.tga-EdgeFile - ein geglatteter Akzent-Ring ersetzt die Streifen+Bogen-Rasterung auf jedem gestylten Fenster. Scrollbar-Thumbs nutzen das echte SliderThumb.tga-Glyph (akzentgetoent) statt eines Solid-Streifens, und Checkboxen bekommen die CheckOn/CheckEmpty-Widget-Art - dunkle Box, goldener Haken - statt eines gefaerbten Blizzard-Hakens.",
+		},
+	},
+	{
+		version = "0.3.42",
+		date = "2026-11-22",
+		changes = {
+			"Forbidden-object hardening, second pass: TradeFrame's own GetRegions passes but a CHILD inside it is forbidden - RestyleFonts walked in and threw 'Attempt to access forbidden object'. The forbidden probe now checks both GetRegions and GetChildren, and every walk entry point (StripChrome, RestyleFonts, FadeTextures, HideSubChrome, ReHideDeep, ReapplyChrome, SkinChildren, SkinDialog, SkinButton, MapSkin) carries the cached check so no path can still touch a protected frame.",
+		},
+		changesDE = {
+			"Forbidden-Objekt-Haertung, zweite Runde: TradeFrames eigenes GetRegions laeuft, aber ein Kind darin ist forbidden - RestyleFonts lief hinein und warf 'Attempt to access forbidden object'. Der Probe prueft jetzt GetRegions UND GetChildren, und jeder Walk-Einstieg (StripChrome, RestyleFonts, FadeTextures, HideSubChrome, ReHideDeep, ReapplyChrome, SkinChildren, SkinDialog, SkinButton, MapSkin) traegt den gecachten Check - kein Pfad kann ein geschuetztes Objekt mehr anfassen.",
+		},
+	},
+	{
+		version = "0.3.41",
+		date = "2026-11-22",
+		changes = {
+			"The gold window edge was missing its corners: the four accent strips ended 7px short of every corner, leaving the border open on all skinned Blizzard windows. Rasterized quarter arcs (new core S.EdgeArc) now close the frame - center and radius land exactly on the strip ends and follow the panel's rounded corner.",
+		},
+		changesDE = {
+			"Der goldene Fensterrand hatte keine Ecken: die vier Akzent-Streifen endeten 7px vor jeder Ecke und liessen den Rahmen an allen gestylten Blizzard-Fenstern offen. Rasterte Viertelboegen (neuer Core-Helper S.EdgeArc) schliessen den Rahmen jetzt - Zentrum und Radius treffen exakt die Streifenenden und folgen der gerundeten Panel-Ecke.",
+		},
+	},
+	{
+		version = "0.3.40",
+		date = "2026-11-22",
+		changes = {
+			"Fix: forbidden objects (TradeFrame, StoreFrame on this client) threw 'Attempt to access forbidden object' errors on login and every open - even GetRegions/GetName is refused there. The skin now probes a frame once, caches the verdict and leaves forbidden objects completely alone: no more error spam, no half-applied skins. Child-level probes (object type, name) inside styled windows are silent pcalls now, so protected children skip quietly instead of printing 'blocked api' warnings.",
+		},
+		changesDE = {
+			"Fix: Forbidden-Objekte (TradeFrame, StoreFrame auf diesem Client) warfen 'Attempt to access forbidden object'-Fehler beim Login und bei jedem Oeffnen - schon GetRegions/GetName wird dort verweigert. Der Skin prueft einen Frame jetzt einmalig, merkt sich das Ergebnis und laesst Forbidden-Objekte komplett in Ruhe: kein Fehler-Spam mehr, keine halb applizierten Skins. Kind-Probes (Objekttyp, Name) in gestylten Fenstern sind jetzt stille pcalls - geschuetzte Kinder werden leise uebersprungen statt 'blocked api'-Warnungen zu drucken.",
+		},
+	},
+	{
+		version = "0.3.39",
+		date = "2026-11-22",
+		changes = {
+			"Golden contrast edge: every skinned Blizzard window now carries the 1px accent frame around its panel - strong on top, softer on the other three sides, inset past the corner arcs like every own SentiUI window.",
+			"Fix: styled windows flipped back to the old Blizzard look mid-session. The game rebuilds its chrome on every open (NineSlice children, region alphas, backdrops) - the chrome kill now re-runs on every show, and scrollbars, checkboxes and status bars re-apply their skin every walk instead of once. A deferred re-walk catches content populated a tick after OnShow (AH result rows).",
+		},
+		changesDE = {
+			"Goldener Kontrast-Rahmen: Jedes gestylte Blizzard-Fenster traegt jetzt den 1px-Akzentrahmen um sein Panel - oben kraeftig, an den anderen drei Seiten weicher, hinter dem Eckbogen eingesetzt wie jedes eigene SentiUI-Fenster.",
+			"Fix: Gestylte Fenster fielen mitten in der Sitzung auf den alten Blizzard-Look zurueck. Das Spiel baut sein Chrome bei jedem Oeffnen neu auf (NineSlice-Kinder, Regions-Alphas, Backdrops) - der Chrome-Kill laeuft jetzt bei jedem Show erneut, und Scrollbars, Checkboxen und Statusleisten wenden ihren Skin bei jedem Walk neu an statt einmalig. Ein verzoegerter Re-Walk faengt Inhalt ab, der erst einen Tick nach OnShow befuellt wird (AH-Ergebniszeilen).",
+		},
+	},
+	{
+		version = "0.3.38",
+		date = "2026-11-22",
+		changes = {
+			"Skinned dialog buttons now light their border on hover - the same border-lit feedback every own SentiUI widget has. Icon/art buttons stay untouched: they keep their art and never carry addon scripts on this client.",
+		},
+		changesDE = {
+			"Gestylte Dialog-Buttons leuchten jetzt beim Hover ihre Border auf - dasselbe Border-Lit-Feedback, das jedes eigene SentiUI-Widget hat. Icon-/Art-Buttons bleiben unangetastet: sie behalten ihre Grafik und tragen auf diesem Client keine Addon-Skripte.",
+		},
+	},
+	{
+		version = "0.3.37",
+		date = "2026-11-22",
+		changes = {
+			"Close buttons keep their X glyph but tint accent gold now, matching the scrollbar arrows. Window titles (TitleText, TitleContainer on modern windows) read in accent gold instead of the default parchment heading color.",
+		},
+		changesDE = {
+			"Schliessen-Buttons behalten ihr X-Glyph, faerben sich aber Akzent-Gold - passend zu den Scrollbar-Pfeilen. Fenster-Titel (TitleText, TitleContainer auf modernen Fenstern) lesen sich jetzt in Akzent-Gold statt der Standard-Pergamentfarbe.",
+		},
+	},
+	{
+		version = "0.3.36",
+		date = "2026-11-22",
+		changes = {
+			"Scrollbar up/down arrow buttons get tinted accent gold instead of keeping the wooden button art - the glyph stays (it is the content) but now matches the accent thumb and the rest of the palette.",
+		},
+		changesDE = {
+			"Scrollbar-Auf/Ab-Pfeile werden jetzt Akzent-Gold gefaerbt statt ihre Holz-Button-Grafik zu behalten - das Glyph bleibt (es ist der Inhalt), passt aber jetzt zum Akzent-Thumb und zum Rest der Palette.",
+		},
+	},
+	{
+		version = "0.3.35",
+		date = "2026-11-22",
+		changes = {
+			"The widget sweep now also covers UIWidgetCenterDisplayFrame (center-screen widget texts/bars), and the pet battle queue ready popup plus the old browse/raid browser frame names join the dialog skin list.",
+		},
+		changesDE = {
+			"Der Widget-Sweep deckt jetzt auch UIWidgetCenterDisplayFrame ab (Widget-Texte/Balken in Bildschirmmitte), und das Pet-Battle-Queue-Popup sowie die alten Browse-/Raid-Browser-Frame-Namen stehen in der Dialog-Skin-Liste.",
+		},
+	},
+	{
+		version = "0.3.34",
+		date = "2026-11-22",
+		changes = {
+			"Closed the leftover gaps inside styled windows (visible at the auction house): nested panels carry their own NineSlice/Border fields and named inset children, and the chrome pass now runs at every depth of the child walk instead of only the top frame. The window's own backdrop edge gets cleared too - BackdropTemplateMixin borders are not texture regions, so they survived the fade. Modern MenuUtil DropdownButton objects (the AH filter dropdowns) now count as buttons and get the raised style. Ornate border art drawn on the ARTWORK layer fades as well when the region name reads border/background-ish - content icons and portraits stay protected.",
+		},
+		changesDE = {
+			"Die verbliebenen Luecken in gestylten Fenstern geschlossen (beim AH sichtbar): verschachtelte Panels tragen eigene NineSlice-/Border-Felder und Inset-Kinder - der Chrome-Pass laeuft jetzt in jeder Tiefe des Kinder-Walks statt nur am Top-Frame. Das fenster-eigene Backdrop wird ebenfalls geleert (BackdropTemplateMixin-Raender sind keine Textur-Regionen und ueberlebten das Fade). Moderne MenuUtil-DropdownButtons (die AH-Filter-Dropdowns) gelten jetzt als Buttons und bekommen den Raised-Style. Verzierte Rand-Art auf dem ARTWORK-Layer fadet ebenfalls, wenn der Regions-Name nach Rand/Hintergrund klingt - Inhalts-Icons und Portraets bleiben geschuetzt.",
+		},
+	},
+	{
+		version = "0.3.33",
+		date = "2026-11-22",
+		changes = {
+			"Fixed erased icons in the group finder and friends: the deep walk faded any button whose name did not read icon-ish, which killed the LFG role/activity tiles - they carry their art in unnamed texture regions with no label text. The guard now keeps a button's art when any texture region sits on the ARTWORK layer (content lives there, chrome on BACKGROUND/OVERLAY) or when the button has textures but no label text. Also added the alternate finder frame names (GroupFinderFrame, PremadeGroupsFrame, LFGFrame) in case the window exists under another global.",
+		},
+		changesDE = {
+			"Geloeschte Icons im Gruppenfinder und Freunde-Fenster gefixt: der Deep-Walk fadete jeden Button ohne Icon-Namen - damit starben die LFG-Rollen-/Aktivitaets-Kacheln, die ihre Grafik in unbenannten Textur-Regionen ohne Label tragen. Der Guard behaelt jetzt die Grafik, wenn eine Textur-Region auf dem ARTWORK-Layer liegt (Inhalt lebt dort, Chrome auf BACKGROUND/OVERLAY) oder wenn der Button Texturen aber keinen Label-Text hat. Ausserdem die alternativen Finder-Frame-Namen ergaenzt (GroupFinderFrame, PremadeGroupsFrame, LFGFrame), falls das Fenster unter anderem Global existiert.",
+		},
+	},
+	{
+		version = "0.3.32",
+		date = "2026-11-22",
+		changes = {
+			"Chat popup menus (chat menu, emotes, language, voice macros) and the chat autocomplete dropdown get panel + fonts - no module owned them. The pet battle frame and the dungeon difficulty banner get the font pass only: pet battle buttons are content art, and a generic skin would break more than it fixes there.",
+		},
+		changesDE = {
+			"Chat-Popup-Menues (Chat-Menue, Emotes, Sprache, Sprach-Makros) und das Chat-Autocomplete-Dropdown bekommen Panel + Fonts - kein Modul besass sie. Das Pet-Battle-Frame und der Schwierigkeitsgrad-Banner bekommen nur den Font-Pass: Pet-Battle-Buttons sind Inhalts-Grafik, und ein generischer Skin wuerde dort mehr kaputt als schoen machen.",
+		},
+	},
+	{
+		version = "0.3.31",
+		date = "2026-11-22",
+		changes = {
+			"The world map gets its own skin: panel behind, top-level chrome and fonts styled - but no child walk, because map pins are plain button children without icon-ish names and the deep pass would have faded them invisible. The per-show deep re-walk now also only runs for real dialogs, so panel-only skins keep their button art safe.",
+			"More stragglers skinned: barber shop, audio options, transmogrify frame, raid parent, contribution collection, torghast level picker - and the battleground always-up score display gets the font pass.",
+		},
+		changesDE = {
+			"Die Weltkarte bekommt einen eigenen Skin: Panel dahinter, Top-Level-Chrome und Fonts gestylt - aber kein Kinder-Walk, weil Karten-Pins schlichte Button-Kinder ohne Icon-Namen sind und der Deep-Pass sie unsichtbar gefaded haette. Der Show-Re-Walk laeuft jetzt auch nur noch fuer echte Dialoge - Panel-only-Skins behalten ihre Button-Grafik.",
+			"Weitere Reste gestylt: Barbier, Audio-Optionen, Transmogrifizier-Fenster, Raid-Parent, Kriegsfront-Beitraege, Torghast-Level-Auswahl - und die Schlachtfeld-Daueranzeige bekommt den Font-Pass.",
+		},
+	},
+	{
+		version = "0.3.30",
+		date = "2026-11-22",
+		changes = {
+			"The deep child walk now re-runs on every window show, not just once: widgets the game builds lazily (tab pages on first click, scroll rows on populate, late-spawned buttons) get styled as soon as the window reopens. Marker flags keep already-skinned children cheap.",
+		},
+		changesDE = {
+			"Der Deep-Child-Walk laeuft jetzt bei jedem Fenster-Show, nicht nur einmal: Widgets, die das Spiel lazy baut (Tab-Seiten beim ersten Klick, Scroll-Zeilen beim Befuellen, spaet erzeugte Buttons), werden beim Wiederoeffnen sofort gestylt. Marker-Flags halten bereits gestylte Kinder billig.",
+		},
+	},
+	{
+		version = "0.3.29",
+		date = "2026-11-22",
+		changes = {
+			"Backdrop chrome dies too: modern inset frames carry their border through the backdrop mixin rather than texture regions, so the chrome pass now clears SetBackdrop on NineSlice/Border/Inset/Bg/TopTileStreaks children and fades one child level deeper - the frame edge can no longer survive the texture fade.",
+			"Last named stragglers skinned: battle tag invite, recruit-a-friend recruitment/sent dialogs, quest sync start/join dialogs, edit mode system settings, generic popup frame, and the loss-of-control splash gets panel+fonts.",
+		},
+		changesDE = {
+			"Backdrop-Chrome stirbt auch: moderne Inset-Frames tragen ihren Rand ueber das Backdrop-Mixin statt Textur-Regionen - der Chrome-Pass leert jetzt SetBackdrop auf NineSlice-/Border-/Inset-/Bg-/TopTileStreaks-Kindern und fadet eine Kinder-Ebene tiefer. Der Fensterrand kann das Fade nicht mehr ueberleben.",
+			"Letzte benannte Reste gestylt: BattleTag-Einladung, Werbt-einen-Freund-Dialoge, Quest-Sync-Start/Beitritt, EditMode-Systemeinstellungen, Generisches Popup, und der Kontrollverlust-Splash bekommt Panel+Fonts.",
+		},
+	},
+	{
+		version = "0.3.28",
+		date = "2026-11-22",
+		changes = {
+			"Fourth wave of window skins: auction house (both frame names), black market, the read-mail window, stable master, arena registrar, movie frame, store, script errors, bonus roll, party pose screens, keystone frame, macro icon picker, community ticket manager, quest log popup detail, recruit-a-friend, scrapper, azerite frames, reputation detail and token popups, all calendar sub-windows, tutorial frame, and the compact raid manager pullout gets panel+fonts.",
+		},
+		changesDE = {
+			"Vierte Fenster-Skin-Welle: Auktionshaus (beide Frame-Namen), Schwarzmarkt, das Brief-Lesen-Fenster, Stallmeister, Arena-Registrator, Movie-Frame, Shop, Script-Fehler, Bonus-Wurf, Party-Pose-Bildschirme, Schlüsselstein-Fenster, Makro-Icon-Auswahl, Community-Ticket-Manager, Questlog-Popup-Detail, Werbt-einen-Freund, Verschrotter, Azerit-Fenster, Ruf-Detail und Waehrungs-Popups, alle Kalender-Unterfenster, Tutorial-Frame - und der Kompakt-Raid-Manager bekommt Panel+Fonts.",
+		},
+	},
+	{
+		version = "0.3.27",
+		date = "2026-11-22",
+		changes = {
+			"Third wave of window skins: the modern SettingsPanel (which replaces the old options frame on new builds), click bindings, edit mode manager, all group-finder popups (ready dialog, invite, role check), PvP match results/scoreboard, player choice dialogs, warboard, archaeology, item interaction, obliterum, islands queue, chromie time, inspect guild, guild control/invite/text edit, model preview, splash, death recap, report, generic traits, delves pickers, crafting orders, and the garrison/order hall/covenant/soulbind/runeforge/anima system windows all get the Sentinel dialog skin.",
+			"Modern window chrome is gone too: chrome that lives in named child frames (NineSlice, Border, Inset, Bg, TopTileStreaks) now fades along with the field-based chrome, and status bars inside windows (reputation, progress) swap their wood fill for the flat blank texture while keeping their status color.",
+		},
+		changesDE = {
+			"Dritte Fenster-Skin-Welle: das moderne SettingsPanel (ersetzt auf neuen Builds das alte Optionsfenster), Klick-Belegung, EditMode-Manager, alle Gruppensuche-Popups (Bereitschaftsdialog, Einladung, Rollen-Check), PvP-Ergebnis/Wertung, Player-Choice-Dialoge, Kriegsbrett, Archaeologie, Item-Interaktion, Obliterum, Insel-Queue, Chromie-Zeit, Gilden-Betrachtung, Gilden-Kontrolle/Einladung/Textedit, Modell-Vorschau, Splash, Todesrueckblick, Melden, Generische Traits, Delves-Auswahl, Handwerksauftraege sowie die Garnisons-/Ordenshallen-/Paktsystem-/Seelenband-/Runenschmiede-/Anima-Fenster bekommen den Sentinel-Dialog-Skin.",
+			"Modernes Fenster-Chrome ist auch weg: Chrome in benannten Kind-Frames (NineSlice, Border, Inset, Bg, TopTileStreaks) fadet jetzt mit, und Statusbalken in Fenstern (Ruf, Fortschritt) tauschen die Holz-Fuellung gegen die flache Blank-Textur - die Statusfarbe bleibt.",
+		},
+	},
+	{
+		version = "0.3.26",
+		date = "2026-11-22",
+		changes = {
+			"The window skin now walks the full child tree, so nested page buttons, scroll children and tab-page widgets inside the big windows get the raised/inset treatment too instead of staying wooden. Text tabs (merchant, spellbook, friends, character) become raised chips; dropdown fields in windows lose their pill chrome and sit in a dark inset while label and arrow stay. The icon guard got sharper: buttons whose name, icon field or texture regions read icon/item/slot/spell/glyph/portrait keep their art - spellbook and glyph icons can not be erased by the deep walk.",
+		},
+		changesDE = {
+			"Der Fenster-Skin wandert jetzt den kompletten Kind-Baum: verschachtelte Seiten-Buttons, Scroll-Kinder und Tab-Widgets in den grossen Fenstern bekommen ebenfalls den Raised-/Inset-Look statt Holz zu behalten. Text-Tabs (Haendler, Zauberbuch, Freunde, Charakter) werden zu Raised-Chips; Dropdown-Felder verlieren ihr Pill-Chrome und sitzen in dunklem Inset, Label und Pfeil bleiben. Der Icon-Schutz wurde geschaerft: Buttons, deren Name, Icon-Feld oder Textur-Regionen nach Icon/Item/Slot/Spell/Glyph/Portraet klingen, behalten ihre Grafik - Zauberbuch- und Glyphen-Icons kann der Deep-Walk nicht loeschen.",
+		},
+	},
+	{
+		version = "0.3.25",
+		date = "2026-11-22",
+		changes = {
+			"Second wave of window skins: collections, encounter journal, achievements, calendar, guild/communities, PvE finder, challenges, talents, professions/tradeskill, wardrobe/transmog, void storage, item upgrade/socketing, weekly rewards, perks, landing pages, flight map, loot history, BG scoreboard, quest log detail, raid info, guild registrar, color picker and opacity frames all get the Sentinel dialog skin. Load-on-demand frames resolve through the show watcher.",
+			"Scrollbars and checkboxes inside the skinned windows now get a deep styling pass: the scrollbar track fades and the thumb becomes a solid accent bar (arrow art stays - that is their content), and checkbox checks tint accent gold.",
+		},
+		changesDE = {
+			"Zweite Fenster-Skin-Welle: Sammlungen, Dungeonkompendium, Erfolge, Kalender, Gilde/Communities, PvE-Finder, Mythisch+, Talente, Berufe, Transmog/Kleiderschrank, Leerenlager, Item-Aufwertung/Sockelung, wöchentliche Belohnungen, Perks, Landing-Pages, Flugkarte, Beuteverlauf, Schlachtfeld-Punkte, Questlog-Detail, Raid-Info, Gildenregistrator, Farbwahl und Opazität bekommen den Sentinel-Dialog-Skin. Load-on-Demand-Fenster loest der Show-Watcher auf.",
+			"Scrollbalken und Checkboxen in den gestylten Fenstern bekommen einen Deep-Pass: die Scroll-Spur fadet und der Griff wird ein solider Akzent-Balken (Pfeil-Grafik bleibt - die ist der Inhalt), Checkbox-Häkchen faerben sich Akzent-Gold.",
+		},
+	},
+	{
+		version = "0.3.24",
+		date = "2026-11-22",
+		changes = {
+			"Dark text on the dark panel is readable now: Blizzard dialog fonts are painted black for parchment, so a luminance check in the font pass lifts only strings that still read dark onto the normal text color - quality/link/header colors keep their role color. The font pass also re-runs on every show, since the game repaints text colors per open (quest pages, merchant tabs).",
+		},
+		changesDE = {
+			"Dunkle Schrift auf dem dunklen Panel ist jetzt lesbar: Blizzard-Dialogschriften sind schwarz fuer Pergament gefaerbt, daher hebt ein Luminanz-Check im Font-Pass nur Strings an, die noch dunkel lesen, auf die normale Textfarbe - Quality-/Link-/Headerfarben behalten ihre Rollenfarbe. Der Font-Pass laeuft ausserdem bei jedem Anzeigen erneut, da das Spiel die Textfarben pro Oeffnung neu malt (Quest-Seiten, Haendler-Tabs).",
+		},
+	},
+	{
+		version = "0.3.23",
+		date = "2026-11-22",
+		changes = {
+			"The dialog skin now covers the big everyday windows too: quest giver and quest log, gossip, merchant, mail, spellbook, trade, inspect, taxi, dressing room, tabard, petition, friends, macro, trainer/craft, battlefield/PvP/honor/LFG, bank/guild bank/auction, quest timer, time manager, help, interface options/keybindings and the addon list all get the dark panel with SentiUI fonts and buttons. Missing names are skipped and load-on-demand windows are styled on first show via the visibility watcher.",
+			"Item slot buttons inside those windows keep their icons: the child-button skin used to fade every texture region, which would have erased merchant slots, quest reward icons and mail attachments - buttons whose name or fields mark them as item/icon/slot/tab/attachment now only get the font pass.",
+		},
+		changesDE = {
+			"Der Dialog-Skin deckt jetzt auch die grossen Alltags-Fenster ab: Questgeber und Questlog, Gossip, Haendler, Post, Zauberbuch, Handel, Betrachten, Flugkarte, Anprobe, Wappenrock, Petition, Freunde, Makros, Lehrer/Craft, Schlachtfeld/PvP/Ehre/LFG, Bank/Gildenbank/Auktion, Quest-Timer, Zeitmanager, Hilfe, Interface-Optionen/Tastaturbelegung und die Addon-Liste bekommen das dunkle Panel mit SentiUI-Schrift und -Buttons. Fehlende Namen werden uebersprungen, nachgeladene Fenster beim ersten Anzeigen ueber den Sichtbarkeits-Watcher gestylt.",
+			"Item-Slot-Buttons in diesen Fenstern behalten ihre Icons: der Kind-Button-Skin fadete bisher jede Texture-Region, womit Haendler-Slots, Quest-Belohnungs-Icons und Mail-Anhaenge geloescht worden waeren - Buttons, deren Name oder Felder sie als Item/Icon/Slot/Tab/Attachment markieren, bekommen jetzt nur noch den Font-Pass.",
+		},
+	},
+	{
+		version = "0.3.22",
+		date = "2026-11-22",
+		changes = {
+			"Cooldown Manager viewers opt-in (Action Bars > Extra buttons): the parked Essential/Utility/Buff viewers come back with a SentiUI skin and movable positions instead of staying hidden - off by default.",
+			"Mover-framed Blizzard UI gets the SentiUI look: TalkingHead, the mirror timers and the vehicle seat indicator lose their parchment chrome and gain the dark panel backdrop; large screen texts (zone/subzone announcements, raid warnings, boss emotes, UI errors) use the SentiUI font with accent coloring.",
+			"The remaining Blizzard leftovers get skinned too: the ESC game menu, StaticPopup confirm dialogs, ready check, item text reader, chat config, stack split and cinematic close dialogs get the dark panel with SentiUI buttons and fonts; dropdown menus, Battle.net toasts, queue and ticket status, the durability doll and the ghost release button get the panel look; boss/level-up banners switch to the SentiUI font; alert toasts, top-center and below-minimap widgets and battleground timer bars are styled as they spawn via a slow sweep.",
+		},
+		changesDE = {
+			"Cooldown-Manager-Anzeigen als Opt-in (Aktionsleisten > Extrabuttons): die versteckten Essential-/Utility-/Buff-Anzeigen kommen mit SentiUI-Skin und verschiebbaren Positionen zurueck statt versteckt zu bleiben - standardmaessig aus.",
+			"Blizzard-Fenster an den Movern bekommen den SentiUI-Look: TalkingHead, die Mirror-Timer und die Fahrzeugsitz-Anzeige verlieren ihr Pergament-Chrome und bekommen das dunkle Panel; grosse Screen-Texte (Zonen-/Unterzonen-Ansagen, Raid-Warnungen, Boss-Emotes, UI-Fehler) nutzen die SentiUI-Schrift mit Akzentfaerbung.",
+			"Auch die restlichen Blizzard-Reste bekommen den Skin: das ESC-Spielmenue, StaticPopup-Dialoge, Bereitschaftscheck, Item-Text-Leser, Chat-Konfiguration, Stack-Split und der Cinematic-Dialog bekommen das dunkle Panel mit SentiUI-Buttons und -Schrift; Dropdown-Menues, Battle.net-Toasts, Warteschlangen- und Ticket-Status, das Ruestungs-Maennchen und der Geist-Button bekommen den Panel-Look; Boss-/Level-Up-Banner wechseln auf die SentiUI-Schrift; Alert-Toasts, obere und untere Minimap-Widgets sowie Schlachtfeld-Timer werden per Sweep beim Erscheinen gestylt.",
+		},
+	},
+	{
+		version = "0.3.21",
+		date = "2026-11-22",
+		changes = {
+			"Fixed a cooldown error spam: the button template's own handlers call SetCooldown(start, duration, modRate) with values that are secret on this client - SetCooldown refuses secrets under addon taint ('bad argument #1 to SetCooldown'). Our buttons now swallow that throw on their own cooldown widget; the visible cooldown still paints via our SetCooldownFromDurationObject painter and the game's untainted cooldown events.",
+		},
+		changesDE = {
+			"Cooldown-Fehlerspam behoben: die eigenen Handler des Button-Templates rufen SetCooldown(start, duration, modRate) mit auf diesem Client geheimen Werten auf - SetCooldown verweigert Secrets unter Addon-Taint ('bad argument #1 to SetCooldown'). Unsere Buttons schlucken den Wurf jetzt auf ihrem eigenen Cooldown-Widget; die sichtbare Abklingzeit wird weiterhin ueber unseren SetCooldownFromDurationObject-Painter und die untainted Cooldown-Events des Spiels gezeichnet.",
+		},
+	},
+	{
+		version = "0.3.20",
+		date = "2026-11-22",
+		changes = {
+			"Empty action slots now dim their button body to 18% opacity instead of showing a full dark square — the bar grid stays readable without prominent black boxes where no action is assigned.",
+			"Icon rounding now uses the rewritten core S.IconRound: the icon is clipped by a real MaskTexture (rounded-square silhouette), so a failing mask can never paint a dark box over the icon.",
+		},
+		changesDE = {
+			"Leere Aktions-Slots dimmen jetzt ihren Button-Koerper auf 18% Deckkraft statt ein volles dunkles Quadrat zu zeigen — das Leisten-Raster bleibt lesbar ohne markante schwarze Kaestchen, wo keine Aktion belegt ist.",
+			"Icon-Rundung nutzt jetzt den neu geschriebenen Core-S.IconRound: Das Icon wird von einer echten MaskTexture geclippt (abgerundete Quadrat-Silhouette), eine fehlschlagende Maske kann also nie eine dunkle Box ueber das Icon malen.",
+		},
+	},
+	{
+		version = "0.3.19",
+		date = "2026-11-22",
+		changes = {
+			"Action button icons now have soft rounded corners: S.IconRound covers each icon's square corner with a background-colored arc using CircleMask.tga — the inverse UV mapping of S.Roundize. The 6px radius matches the button body rounding from S.Template.",
+		},
+		changesDE = {
+			"Aktionsbutton-Icons haben jetzt weiche abgerundete Ecken: S.IconRound überdeckt jede eckige Icon-Ecke mit einem hintergrundfarbigen Bogen aus CircleMask.tga — inverse UV-Abbildung von S.Roundize. Der 6px-Radius passt zur Körper-Rundung durch S.Template.",
+		},
+	},
+	{
 		version = "0.3.18",
 		date = "2026-11-22",
 		changes = {

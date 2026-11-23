@@ -24,6 +24,20 @@ Action bar module for the SentiUI suite (WoW Forever client). Requires
   timers and loss of control; plus a secure vehicle exit button
   (`/leavevehicle` with a `[canexitvehicle]` driver) and a taxi
   "land at the next stop" button — both show Sentinel icon textures.
+- **Mover-frame skins** — TalkingHead, mirror timers and the vehicle
+  seat indicator lose their Blizzard chrome and gain the dark SentiUI
+  panel; large screen texts (zone/subzone announcements, raid warnings,
+  boss emotes, UI errors) use the SentiUI font with accent coloring.
+- **Blizzard leftover skins** — the ESC game menu, StaticPopup confirm
+  dialogs, ready check, item text reader, chat config, stack split and
+  cinematic close dialogs get the dark panel with SentiUI buttons and
+  fonts; dropdown menus, Battle.net toasts, queue/ticket status, the
+  durability doll and the ghost button get the panel look; boss and
+  level-up banners switch to the SentiUI font; alert toasts, UI widgets
+  and battleground timer bars are styled on spawn via a slow sweep.
+- **Cooldown viewers** — opt-in: the parked Cooldown Manager viewers
+  (Essential/Utility/Buff) come back with the SentiUI skin and movable
+  positions (`cooldownViewers` setting, off by default).
 
 ## Buttons
 

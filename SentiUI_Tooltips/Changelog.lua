@@ -2,6 +2,55 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.14",
+		date = "2026-11-23",
+		changes = {
+			"Blank icon guard: Skin.FixBlankIcons scans ARTWORK textures after each tooltip post-call. Textures using WHITE8X8 or carrying no texture at all that are >= 8px are alpha'd to 0 - prevents failed atlas loads / nil SetTexture from showing as bright white squares on the dark panel.",
+		},
+		changesDE = {
+			"Leer-Icon-Schutz: Skin.FixBlankIcons scannt nach jedem Tooltip-Post-Call ARTWORK-Texturen. Texturen, die WHITE8X8 verwenden oder keine Textur tragen und >= 8px gross sind, werden auf Alpha 0 gesetzt - verhindert, dass fehlgeschlagene Atlas-Loads / nil-SetTexture als helle weisse Vierecke auf dem dunklen Panel erscheinen.",
+		},
+	},
+	{
+		version = "0.2.13",
+		date = "2026-11-22",
+		changes = {
+			"Elite badge box fix: the classification line drew a '◆' glyph that the SentiUI font family does not carry, so it rendered as an empty square - now a safe '•' bullet.",
+		},
+		changesDE = {
+			"Elite-Badge-Kasten gefixt: die Klassifikationszeile malte ein '◆'-Glyph, das die SentiUI-Font nicht enthaelt, und renderte als leeres Viereck - jetzt eine sichere '•'-Kugel.",
+		},
+	},
+	{
+		version = "0.2.12",
+		date = "2026-11-22",
+		changes = {
+			"Tooltips ride the generated TooltipEdge.tga edgeFile when present - a real border texture replaces the 1px flat edge (probed, falls back when missing).",
+		},
+		changesDE = {
+			"Tooltips nutzen die generierte TooltipEdge.tga-EdgeFile, wenn vorhanden - eine echte Bordueren-Textur ersetzt die 1px-Flachkante (geprobt, faellt bei Fehlen zurueck).",
+		},
+	},
+	{
+		version = "0.2.11",
+		date = "2026-11-22",
+		changes = {
+			"Secret-value fix in the tooltip skin: a texture's draw layer can be a secret string on this client - comparing it threw 'attempt to compare local layer'. Secret layers are now skipped instead of classified.",
+		},
+		changesDE = {
+			"Secret-Value-Fix im Tooltip-Skin: die Draw-Layer einer Textur kann auf diesem Client ein Secret-String sein - der Vergleich warf 'attempt to compare local layer'. Secret-Layer werden jetzt uebersprungen statt klassifiziert.",
+		},
+	},
+	{
+		version = "0.2.10",
+		changes = {
+			"Cursor-anchored tooltips stay at the cursor in every anchor mode: map POI, minimap-hover and chat-link tooltips deliberately sit at the mouse - pulling them to the fixed dock is what made minimap hovers appear away from the map. Only free-floating tooltips (ANCHOR_NONE) go to the dock now.",
+		},
+		changesDE = {
+			"Cursor-verankerte Tooltips bleiben jetzt in jedem Anker-Modus am Cursor: Karten-POIs, Minimap-Hover und Chat-Links platziert das Spiel bewusst an der Maus - sie aufs fixe Dock zu ziehen war der Grund, warum Minimap-Tooltips abseits auftauchten. Nur frei schwebende Tooltips (ANCHOR_NONE) gehen ans Dock.",
+		},
+	},
+	{
 		version = "0.2.9",
 		changes = {
 			"Interface-dispatch audit: tooltip re-anchoring and the unit status-bar shell no longer run from OnShow/OnHide scripts on GameTooltip and its status bar - secure visibility watchers apply the work outside the client dispatch, which can carry secret unit values.",

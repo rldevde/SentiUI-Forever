@@ -199,6 +199,9 @@ ns.RegisterPlugin({
 	id = "performance",
 	label = L["Performance"],
 	icon = "Interface\\Icons\\INV_Misc_Gear_01",
+	-- the readout lives as an icon on the minimap now; the bar entry
+	-- stays available but off on fresh profiles
+	shown = false,
 	bar = "bottom", zone = "RIGHT", order = 10,
 	update = function(def)
 		local parts = {}

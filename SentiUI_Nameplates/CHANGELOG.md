@@ -1,4 +1,42 @@
 # SentiUI Nameplates
+## 0.1.24
+
+- Gold target edge flicker fixed, three causes: (1) `UnitIsUnit` returning secret/nil intermittently flipped the edge back to dark every bad tick — the target state is now sticky (`p._target` keeps the last readable answer, reset on plate release). (2) `EdgeFrame` strips overlapped at all four corners — two same-layer textures sharing corner pixels z-fought visibly; side strips are now inset so every corner pixel belongs to exactly one strip. (3) The aggro ring's 2px strips covered the 1px gold edge (offset -1) — it now sits fully outside the box (offset -2) so both rings can show together. Strips also get `SetSnapToPixelGrid(false)` so the 1px lines stop aliasing away on driver-scaled plates.
+
+## 0.1.23
+
+- Aggro effect ring on plates (like the unit-frame threat glow): a second 2px edge sits 1px outside the health box and lights up role-aware — "bad" (mob is on you as DPS / loose mob as tank) pulses red via a soft sine-alpha OnUpdate, "warn" (about to pull) is a static orange ring. "Good" stays quiet — the threat-colored fill already shows it. Driven by the 0.25s colors ticker + full updates, gated on the threat option, cleared on friendly/name-only plates.
+
+## 0.1.22
+
+- Visual pass matching the Dark Glass unit-frame redesign: stronger glass sheen on health and cast bars (0.14→0.18 / 0.12→0.16), player names in class color like the unit frames, and the current target's name painted in the Sentinel gold accent on top of the existing gold edge ring.
+- Plate cast bar additions: remaining-time text on the right (updated per frame from the duration object or timestamps, same secret-safe pcall recipe), a shield badge on the cast icon for uninterruptible casts, and the BarSpark glow riding the fill's right edge.
+- Empower casts now drive the plate cast bar (UNIT_SPELLCAST_EMPOWER_START/UPDATE/STOP added to the cast event list).
+
+## 0.1.21
+
+- Plates are square now: all rounding gone (no arcs, no `CornerCut`, no `Roundize`) — flat dark panel + a plain square 1px border on health and cast boxes. Target highlight recolors the square edge gold.
+
+## 0.1.20
+
+- Plate edge ring on short bars: the border frame now clamps its corner inset to half the bar height and (re)builds strips+arcs via `OnSizeChanged` once the box has a real size — the radius-4 arcs no longer collapse into pointed marks on thin health bars.
+
+## 0.1.19
+
+- Target ring overlay is back, now on the regenerated spec-correct `TargetRing` edgeFile (closed gold ring, true rounded corners) instead of the broken AI file.
+
+## 0.1.18
+
+- Reverted the `TargetRing.tga` overlay on plates: the file renders as pink corner stubs instead of a closed gold ring (art/slice issue in the generated file). The target highlight is back to recoloring the rounded edge gold.
+
+## 0.1.17
+
+- Generated media on plates: the target highlight uses the `TargetRing.tga` edgeFile — a true anti-aliased gold ring over the dark edge instead of recoloring the strips (recolor stays as fallback). "??"-level bosses show the `BossSkull` glyph instead of the ?? text.
+
+## 0.1.16
+
+- Rounded plates: health and cast bar boxes used a square BackdropTemplate edge — the hard pixel border that read as jagged on an 11px bar. Both boxes now use the rounded raster panel (S.Roundize) plus a 1px edge built from strips and quarter arcs (S.EdgeArc), and the bar fills get rounded ends via S.CornerCut caps. The target highlight recolors the whole rounded outline instead of the old square border.
+
 ## 0.1.15
 
 - Dispatcher rollback: PLAYER_TARGET_CHANGED and RAID_TARGET_UPDATE are registered again and the raid icon moved back out of the volatile color pass.

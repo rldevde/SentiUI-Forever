@@ -31,7 +31,9 @@ end
 
 local function Apply()
 	Park("ContainerFrameCombinedBags")
-	Park("BankFrame")
+	-- BankFrame stays visible: no own bank window is created, so the
+	-- client's native bank UI (with its working slot purchase) must
+	-- not be parked under the hidden holder
 	for i = 1, (type(NUM_CONTAINER_FRAMES) == "number" and NUM_CONTAINER_FRAMES) or 13 do
 		Park("ContainerFrame" .. i)
 	end

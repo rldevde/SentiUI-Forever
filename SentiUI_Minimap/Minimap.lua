@@ -7,8 +7,9 @@
 --   * blizzard decorations are faded with SetAlpha(0) + EnableMouse(false),
 --     never Hide()d, and a 1s ticker keeps them down - GameTimeFrame and
 --     AddonCompartmentFrame keep coming back to life on this client
---   * zone bar above, coords bar below (burger menu left, "+" addon-button
---     collection right), wheel zoom, pvp-colored zone text
+--   * zone bar above, coords bar below (burger menu left, performance icon
+--     and "+" addon-button collection right), wheel zoom + zoom buttons,
+--     pvp-colored zone text
 local addonName, ns = ...
 local S = SentiUI
 local L = ns.L
@@ -26,7 +27,11 @@ local MOON = "Interface\\AddOns\\SentiUI_Minimap\\Media\\Moon.tga"
 local mod        -- module def, mod.db filled at enable
 local panel, deco, ring, halo, zoneBar, zoneText, coordsBar, coordsText
 local menuBtn, menu, suiMenu, addonPop, addonTrigger
+local zoomIn, zoomOut
+local trackBtn, trackPop
+local trackRows = {}
 local corners = {}
+local miniBorderTex
 local moverSet
 local built
 local captured = {} -- collected addon minimap buttons, [name] = {btn, name}
@@ -69,35 +74,37 @@ end
 -- Everything the Sentinel look removes, resolved freshly each pass - some of
 -- these frames are created late or wake up again, so never cache them.
 local DECOR_NAMES = {
-	"MinimapBorder", "MinimapBorderTop", "MinimapNorthTag", "MinimapZoomIn",
-	"MinimapZoomOut", "MinimapZoneTextButton", "MinimapToggleButton",
-	"MinimapBackdrop", "MinimapCompassTexture", "MiniMapWorldMapButton",
-	"MiniMapMailBorder", "MiniMapTrackingBorder", "MiniMapTrackingBackground",
-	"MiniMapVoiceChatFrame", "TimeManagerClockButton",
-	"GameTimeFrame", "AddonCompartmentFrame",
-	"MinimapCluster.BorderTop", "MinimapCluster.ZoneTextButton",
+	"Minimap.backdrop",                               -- the map's round disc
+	"MinimapCluster.DielFrame",                       -- the day/night dial
+	"MinimapCompassTextureUnderlay",
+}
+
+-- Interactive chrome is killed the ElvUI way: reparent into a hidden
+-- trash frame. The client hover-shows these over the map (zone text
+-- button, zoom buttons, calendar, addon compartment) - fighting that
+-- with Hide() is a show/hide war that flaps tooltips like crazy.
+-- Inside a hidden parent their Show() lands nowhere: no flicker, no
+-- tooltip, no fight.
+local KILL_NAMES = {
+	"MinimapCluster.ZoneTextButton", "MinimapZoneTextButton",
+	"MinimapToggleButton",
 	"Minimap.ZoomIn", "Minimap.ZoomOut", "Minimap.ZoomHitArea",
-	"Minimap.NorthTag", "Minimap.CompassTexture",
+	"MinimapZoomIn", "MinimapZoomOut",
+	"GameTimeFrame", "TimeManagerClockButton", "AddonCompartmentFrame",
+	"MiniMapWorldMapButton", "MiniMapVoiceChatFrame",
+	"MinimapCluster.IndicatorFrame.CraftingOrderFrame",
+	"MinimapBackdrop.ExternalEventURLButton",
 }
 
 -- Some chrome survives alpha-fading because blizzard scripts SetAlpha(1)
 -- again; for those the OnShow-hook route is the reliable kill: Hide() plus
 -- a hook that re-hides every time a script pulls it back up.
 local STRANGLE_NAMES = {
-	"GameTimeFrame", "TimeManagerClockButton", "AddonCompartmentFrame",
 	"MinimapCompassTexture", "Minimap.CompassTexture", "MinimapBackdrop",
-	"MinimapCluster.ZoneTextButton", "MinimapCluster.BorderTop",
+	"MinimapCluster.BorderTop",
 	"MinimapBorderTop", "MinimapBorder", "MinimapNorthTag",
-	"MinimapZoomIn", "MinimapZoomOut", "MinimapToggleButton",
-	"MiniMapWorldMapButton", "Minimap.ZoomIn", "Minimap.ZoomOut",
-	"Minimap.ZoomHitArea", "Minimap.NorthTag", "MiniMapVoiceChatFrame",
-	-- Forever-client decoration frames:
-	"MinimapCluster.DielFrame",                       -- the day/night dial
-	"MinimapCompassTextureUnderlay",
-	"Minimap.backdrop",                               -- the map's round disc
+	"Minimap.NorthTag",
 	"MinimapCluster.MinimapContainer.PlayerCoords",   -- blizzard's own coords
-	"MinimapCluster.IndicatorFrame.CraftingOrderFrame",
-	"MinimapBackdrop.ExternalEventURLButton",
 	"MiniMapMailBorder", "MiniMapTrackingBorder", "MiniMapTrackingBackground",
 	"MiniMapTrackingButtonBorder", "MiniMapBattlefieldBorder",
 	"BattlegroundShine", "LFGIconBorder",
@@ -123,7 +130,27 @@ local function strangle(f)
 	end
 end
 
+local trash
+local function kill(f)
+	if type(f) ~= "table" or f == Minimap then return end
+	if not trash then
+		trash = CreateFrame("Frame", "SentiUIMinimapTrash", UIParent)
+		trash:Hide()
+	end
+	if f.EnableMouse then pcall(f.EnableMouse, f, false) end
+	local ok = false
+	if not InCombatLockdown() then
+		ok = pcall(f.SetParent, f, trash)
+	end
+	if ok then
+		if f.Hide then pcall(f.Hide, f) end
+	else
+		fade(f) -- lockdown or SetParent refused: keep it dark and dead
+	end
+end
+
 function Core.FadeDecor()
+	for _, n in ipairs(KILL_NAMES) do kill(resolve(n)) end
 	for _, n in ipairs(STRANGLE_NAMES) do strangle(resolve(n)) end
 	for _, n in ipairs(DECOR_NAMES) do fade(resolve(n)) end
 end
@@ -189,13 +216,18 @@ local ELEMENTS = {
 
 function Core.PositionIndicators()
 	local db = mod.db
-	-- tracking: docks top-left into the map
-	if db.hide.tracking then
+	-- tracking: our own Lupe button takes the classic top-left spot when
+	-- enabled - blizzard's tracking chrome stays faded then (it never
+	-- showed reliably on this client, and two icons would overlap)
+	if db.trackButton or db.hide.tracking then
 		for _, s in ipairs(ELEMENTS.tracking) do fade(resolve(s)) end
 	else
 		for _, s in ipairs(ELEMENTS.tracking) do
 			local f = resolve(s)
 			unfade(f)
+			-- docking only re-anchors: a frame the client keeps hidden
+			-- never appears, so the magnifier gets an explicit show
+			if f and f.Show then pcall(f.Show, f) end
 			dock(f, "TOPLEFT", "TOPLEFT", 2, -2, 0.8)
 			keepDocked(f, "TOPLEFT", "TOPLEFT", 2, -2, 0.8)
 			if f and f.Background then pcall(f.Background.SetAlpha, f.Background, 0) end
@@ -285,6 +317,7 @@ function Core.ApplyShape()
 	end
 	if ring then ring:SetShown(not square) end
 	if halo then halo:SetShown(not square) end
+	if miniBorderTex then miniBorderTex:SetShown(square) end
 	for _, t in ipairs(corners) do t:SetShown(square) end
 end
 
@@ -306,14 +339,25 @@ local function buildDeco()
 	ring:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -3, 3)
 	ring:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 3, -3)
 
-	-- amber corner brackets: the Sentinel signature for the square map
-	for _, p in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
-		for _, horiz in ipairs({ true, false }) do
-			local t = deco:CreateTexture(nil, "OVERLAY", nil, 7)
-			t:SetTexture(BLANK)
-			t:SetPoint(p, Minimap, p, (p:find("LEFT") and -2 or 2), (p:find("TOP") and 2 or -2))
-			if horiz then t:SetSize(14, 2) else t:SetSize(2, 14) end
-			corners[#corners + 1] = t
+	-- amber corner brackets: the Sentinel signature for the square map.
+	-- The generated MinimapBorder.tga ships all four brackets in one
+	-- texture (authored gold - kept out of the accent-tinted corners
+	-- list so its color survives accent customization)
+	local mb = S.Tex and S.Tex("MinimapBorder")
+	if mb then
+		miniBorderTex = deco:CreateTexture(nil, "OVERLAY", nil, 7)
+		miniBorderTex:SetTexture(mb)
+		miniBorderTex:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -2, 2)
+		miniBorderTex:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 2, -2)
+	else
+		for _, p in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
+			for _, horiz in ipairs({ true, false }) do
+				local t = deco:CreateTexture(nil, "OVERLAY", nil, 7)
+				t:SetTexture(BLANK)
+				t:SetPoint(p, Minimap, p, (p:find("LEFT") and -2 or 2), (p:find("TOP") and 2 or -2))
+				if horiz then t:SetSize(14, 2) else t:SetSize(2, 14) end
+				corners[#corners + 1] = t
+			end
 		end
 	end
 end
@@ -818,6 +862,85 @@ local function buildAddonTrigger()
 	end
 end
 
+-- performance button --------------------------------------------------------------
+-- latency/fps/memory readout pinned next to the "+" collection - the
+-- panel plugin's minimap-side twin. Hover shows the stats, right-click
+-- opens the SentiUI settings.
+local perfBtn
+
+-- secret values throw on read/compare - unwrap them like the panel does
+local function Plain(v)
+	if v == nil or S.IsSecret(v) then return nil end
+	if type(v) == "table" and S.IsSecretTable(v) then return nil end
+	return v
+end
+
+-- total addon memory (KB) plus the heaviest addons, for the tooltip
+local function addonMemory()
+	if not UpdateAddOnMemoryUsage then return nil end
+	pcall(UpdateAddOnMemoryUsage)
+	local get = (C_AddOns and C_AddOns.GetAddOnMemoryUsage) or GetAddOnMemoryUsage
+	local num = (C_AddOns and C_AddOns.GetNumAddOns) or GetNumAddOns
+	local info = (C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo
+	if not (get and num) then return nil end
+	local ok, n = pcall(num)
+	n = ok and Plain(n) or 0
+	local total, top = 0, {}
+	for i = 1, n do
+		local okM, m = pcall(get, i)
+		m = okM and Plain(m)
+		if m then
+			total = total + m
+			local name = i
+			if info then
+				local okI, an = pcall(info, i)
+				if okI then name = Plain(an) or name end
+			end
+			top[#top + 1] = { name = tostring(name), kb = m }
+		end
+	end
+	table.sort(top, function(a, b) return a.kb > b.kb end)
+	return total, top
+end
+
+local function buildPerfButton()
+	perfBtn = CreateFrame("Button", "SentiUIMinimapPerf", coordsBar)
+	perfBtn:SetSize(16, 16)
+	perfBtn.icon = perfBtn:CreateTexture(nil, "ARTWORK")
+	perfBtn.icon:SetAllPoints()
+	perfBtn.icon:SetTexture("Interface\\Icons\\INV_Misc_Gear_01")
+	perfBtn.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	perfBtn:RegisterForClicks("AnyUp")
+	perfBtn:SetScript("OnEnter", function(b)
+		GameTooltip:SetOwner(b, "ANCHOR_LEFT")
+		GameTooltip:AddLine(L["Performance"])
+		local ok, _, _, home, world = pcall(GetNetStats)
+		if ok then
+			GameTooltip:AddDoubleLine(L["Home latency"], format("%d ms", Plain(home) or 0), 0.7, 0.7, 0.7, 1, 1, 1)
+			GameTooltip:AddDoubleLine(L["World latency"], format("%d ms", Plain(world) or 0), 0.7, 0.7, 0.7, 1, 1, 1)
+		end
+		GameTooltip:AddDoubleLine(L["Framerate"], format("%d", floor(GetFramerate() or 0)), 0.7, 0.7, 0.7, 1, 1, 1)
+		local mem, top = addonMemory()
+		if mem then
+			GameTooltip:AddDoubleLine(L["Addon memory"], format("%.1f MB", mem / 1024), 0.7, 0.7, 0.7, 1, 1, 1)
+			if top and #top > 0 then
+				GameTooltip:AddLine(L["Top addons"], 0.92, 0.68, 0.2)
+				for i = 1, math.min(#top, 5) do
+					GameTooltip:AddDoubleLine("  " .. top[i].name, format("%.1f MB", top[i].kb / 1024), 1, 1, 1, 1, 1, 1)
+				end
+			end
+		end
+		GameTooltip:AddLine(L["Right-click: Options"], 0.5, 0.5, 0.5)
+		GameTooltip:Show()
+	end)
+	perfBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	perfBtn:SetScript("OnClick", function(_, button)
+		if button == "RightButton" and S.OptionsPanel and S.OptionsPanel.Toggle then
+			S.OptionsPanel.Toggle()
+		end
+	end)
+end
+
 local function buildCoordsBar()
 	coordsBar = S.Panel(UIParent, 10, 20, "panel")
 	coordsBar:SetFrameStrata("MEDIUM")
@@ -833,6 +956,7 @@ local function buildCoordsBar()
 	coordsText:SetJustifyH("CENTER")
 	buildMenuButton()
 	buildAddonTrigger()
+	buildPerfButton()
 end
 
 function Core.UpdateCoords()
@@ -854,10 +978,265 @@ function Core.ApplyBars()
 	if addonTrigger then addonTrigger:SetShown(mod.db.addonButtons == true and mod.db.coords == true) end
 	if menu and mod.db.coords ~= true then menu:Hide() end
 	if addonPop and (mod.db.addonButtons ~= true or mod.db.coords ~= true) then addonPop:Hide() end
+	if perfBtn then
+		local on = mod.db.perfButton == true and mod.db.coords == true
+		perfBtn:SetShown(on)
+		-- sit left of the "+" trigger while it is up, else take its spot
+		perfBtn:ClearAllPoints()
+		if addonTrigger and addonTrigger:IsShown() then
+			perfBtn:SetPoint("RIGHT", addonTrigger, "LEFT", -4, 0)
+		else
+			perfBtn:SetPoint("RIGHT", coordsBar, "RIGHT", -3, 0)
+		end
+	end
+	if zoomIn then zoomIn:SetShown(mod.db.zoomButtons == true) end
+	if zoomOut then zoomOut:SetShown(mod.db.zoomButtons == true) end
+	if trackBtn then
+		trackBtn:SetShown(mod.db.trackButton == true)
+		if mod.db.trackButton ~= true and trackPop then trackPop:Hide() end
+	end
 	Core.ApplyZoneBar()
 end
 
 -- Mouse ---------------------------------------------------------------------------------
+
+-- shared zoom nudge: scroll wheel and the +/- buttons both land here
+local function zoomStep(delta)
+	local ok, zoom = pcall(Minimap.GetZoom, Minimap)
+	if not ok or type(zoom) ~= "number" or S.IsSecret(zoom) then return end
+	local maxZ = 5
+	if Minimap.GetZoomLevels then
+		local ok2, mz = pcall(Minimap.GetZoomLevels, Minimap)
+		if ok2 and type(mz) == "number" and mz > 0 then maxZ = mz end
+	end
+	pcall(Minimap.SetZoom, Minimap, math.max(0, math.min(maxZ, zoom + delta)))
+	if mod.db.zoomReset then
+		Core.zoomToken = (Core.zoomToken or 0) + 1
+		local token = Core.zoomToken
+		C_Timer.After(6, function()
+			local ok3, z = pcall(Minimap.GetZoom, Minimap)
+			if Core.zoomToken == token and ok3 and z and z > 0 then
+				pcall(Minimap.SetZoom, Minimap, 0)
+			end
+		end)
+	end
+end
+
+-- own zoom buttons at the map's bottom-right corner (where the classic
+-- magnifier pair used to sit): small +/- texts, quiet until hovered
+local function buildZoomButtons()
+	local function mk(txt, xOff, delta)
+		-- parented to our panel, anchored onto the map - same pattern the
+		-- docked blizzard elements use (no SetParent on minimap children)
+		local b = CreateFrame("Button", "SentiUIMinimapZoom" .. (delta > 0 and "In" or "Out"), panel)
+		b:SetSize(14, 14)
+		b:SetFrameStrata("MEDIUM")
+		b:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", xOff, 2)
+		b.fs = S.Font(b, 12, C.accent)
+		b.fs:SetPoint("CENTER")
+		b.fs:SetText(txt)
+		b:SetAlpha(0.5)
+		b:SetScript("OnEnter", function(self)
+			self:SetAlpha(1)
+			GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+			GameTooltip:AddLine(delta > 0 and L["Zoom in"] or L["Zoom out"])
+			GameTooltip:Show()
+		end)
+		b:SetScript("OnLeave", function(self)
+			self:SetAlpha(0.5)
+			GameTooltip:Hide()
+		end)
+		b:SetScript("OnClick", function() zoomStep(delta) end)
+		return b
+	end
+	zoomIn = mk("+", -16, 1)
+	zoomOut = mk("-", -4, -1)
+end
+
+-- tracking (Lupe) button ----------------------------------------------------------
+-- the classic magnifier at the map's top-left, as our own button + menu:
+-- blizzard's tracking chrome is absent or buried on this client and the
+-- dock+show path never revealed it. The menu lists the client's tracking
+-- types via C_Minimap (classic globals as fallback) and toggles them.
+-- both tracking APIs are read and merged (deduped by name): the modern
+-- C_Minimap table shape and the classic positional one list different
+-- subsets on this client, the standard entries only show up together
+local function trackingList()
+	local out, seen = {}, {}
+	local function add(id, name, active, nested)
+		name = Plain(name)
+		if type(name) ~= "string" or name == "" or seen[name] then return end
+		seen[name] = true
+		out[#out + 1] = { id = id, name = name, active = Plain(active) == true,
+			nested = Plain(nested) == true }
+	end
+	if C_Minimap and C_Minimap.GetNumTrackingTypes and C_Minimap.GetTrackingInfo then
+		local okN, n = pcall(C_Minimap.GetNumTrackingTypes)
+		n = okN and Plain(n) or 0
+		for i = 1, n do
+			local okI, info = pcall(C_Minimap.GetTrackingInfo, i)
+			info = okI and Plain(info)
+			if type(info) == "table" and not S.IsSecretTable(info) then
+				add(i, info.name, info.active, info.nested)
+			end
+		end
+	end
+	if GetNumTrackingTypes and GetTrackingInfo then
+		local okN, n = pcall(GetNumTrackingTypes)
+		n = okN and Plain(n) or 0
+		for i = 1, n do
+			local okI, name, _, active, _, nested = pcall(GetTrackingInfo, i)
+			if okI then add(i, name, active, nested) end
+		end
+	end
+	return out
+end
+
+local function setTracking(id, on)
+	if C_Minimap and C_Minimap.SetTracking then
+		pcall(C_Minimap.SetTracking, id, on)
+	elseif _G.SetTracking then
+		pcall(_G.SetTracking, id, on)
+	end
+end
+
+-- auto profession tracking: with Mining or Herbalism the matching
+-- tracking (Find Minerals / Find Herbs) turns itself on when nothing is
+-- tracked yet. A tracking the user turned off through our menu stays off.
+local PROFESSION_TRACK = {
+	{ skill = 186, patterns = { "mineral" } },                 -- Bergbau / Mining
+	{ skill = 182, patterns = { "kräuter", "kraeut", "herb" } }, -- Kräuterkunde / Herbalism
+}
+
+local function AutoTrack()
+	local db = mod and mod.db
+	if not (db and db.autoTrack) then return end
+	db.autoTrackOff = db.autoTrackOff or {}
+	local have = {}
+	if GetProfessions then
+		local ok, p1, p2, p3, p4 = pcall(GetProfessions)
+		if ok then
+			for _, p in ipairs({ p1, p2, p3, p4 }) do
+				if p then have[Plain(p)] = true end
+			end
+		end
+	end
+	local anyActive = false
+	local list = trackingList()
+	for _, tt in ipairs(list) do
+		if tt.active then anyActive = true break end
+	end
+	if anyActive then return end -- the user's current choice wins
+	for _, tt in ipairs(list) do
+		if not tt.nested and not tt.active and not db.autoTrackOff[tt.name] then
+			local lname = tt.name:lower()
+			for _, pt in ipairs(PROFESSION_TRACK) do
+				if have[pt.skill] then
+					for _, pat in ipairs(pt.patterns) do
+						if lname:find(pat, 1, true) then
+							setTracking(tt.id, true)
+							return
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+local function trackRow(i)
+	local r = trackRows[i]
+	if r then return r end
+	r = CreateFrame("Button", nil, trackPop)
+	r:SetHeight(18)
+	r.text = S.Font(r, 11)
+	r.text:SetPoint("LEFT", 6, 0)
+	r.hl = r:CreateTexture(nil, "HIGHLIGHT")
+	r.hl:SetAllPoints()
+	r.hl:SetTexture(BLANK)
+	r.hl:SetVertexColor(C.accent.r, C.accent.g, C.accent.b, 0.18)
+	trackRows[i] = r
+	return r
+end
+
+local function rebuildTrackRows()
+	for _, r in ipairs(trackRows) do r:Hide() end
+	local list = trackingList()
+	local y = -4
+	for i, tt in ipairs(list) do
+		local r = trackRow(i)
+		r.text:SetText((tt.active and "» " or "    ") .. tt.name)
+		local c = tt.active and C.accent or C.text
+		r.text:SetTextColor(c.r, c.g, c.b)
+		r:ClearAllPoints()
+		r:SetPoint("TOPLEFT", trackPop, "TOPLEFT", 4, y)
+		r:SetPoint("TOPRIGHT", trackPop, "TOPRIGHT", -4, y)
+		r:SetScript("OnClick", function()
+			setTracking(tt.id, not tt.active)
+			-- remember manual offs so the profession auto-activation
+			-- does not fight the user's choice on the next login
+			local db = mod and mod.db
+			if db and db.autoTrack then
+				db.autoTrackOff = db.autoTrackOff or {}
+				if tt.active then
+					db.autoTrackOff[tt.name] = true
+				else
+					db.autoTrackOff[tt.name] = nil
+				end
+			end
+			C_Timer.After(0.1, rebuildTrackRows)
+		end)
+		r:Show()
+		y = y - 20
+	end
+	trackPop:SetHeight(#list > 0 and (-y + 4) or 30)
+end
+
+local function buildTrackButton()
+	trackBtn = CreateFrame("Button", "SentiUIMinimapTracking", panel)
+	trackBtn:SetSize(16, 16)
+	trackBtn:SetFrameStrata("MEDIUM")
+	trackBtn:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 2, -2)
+	trackBtn.icon = trackBtn:CreateTexture(nil, "ARTWORK")
+	trackBtn.icon:SetAllPoints()
+	trackBtn.icon:SetTexture("Interface\\Icons\\Ability_Tracking")
+	trackBtn.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	trackBtn:SetAlpha(0.55)
+	trackBtn:RegisterForClicks("AnyUp")
+
+	trackPop = S.Panel(UIParent, 160, 30, "panel")
+	trackPop:SetFrameStrata("TOOLTIP")
+	trackPop:SetToplevel(true)
+	trackPop:SetClampedToScreen(true)
+	trackPop:Hide()
+
+	trackBtn:SetScript("OnClick", function()
+		if trackPop:IsShown() then trackPop:Hide() return end
+		S.SafeCall("minimap:trackrows", rebuildTrackRows)
+		trackPop:ClearAllPoints()
+		trackPop:SetPoint("TOPLEFT", trackBtn, "BOTTOMLEFT", -2, -2)
+		trackPop:Show()
+	end)
+	trackBtn:SetScript("OnEnter", function(b)
+		b:SetAlpha(1)
+		GameTooltip:SetOwner(b, "ANCHOR_LEFT")
+		GameTooltip:AddLine(L["Tracking"])
+		local any = false
+		for _, t in ipairs(trackingList()) do
+			if t.active then
+				GameTooltip:AddLine("  " .. t.name, 0.6, 1, 0.6)
+				any = true
+			end
+		end
+		if not any then GameTooltip:AddLine("  " .. L["None"], 0.7, 0.7, 0.7) end
+		GameTooltip:AddLine(L["Click: tracking menu"], 0.5, 0.5, 0.5)
+		GameTooltip:Show()
+	end)
+	trackBtn:SetScript("OnLeave", function(b)
+		b:SetAlpha(0.55)
+		GameTooltip:Hide()
+	end)
+end
 
 local function hookMouse()
 	-- every hook on its own, so one unsupported script doesn't kill the rest
@@ -865,24 +1244,7 @@ local function hookMouse()
 	pcall(Minimap.EnableMouseWheel, Minimap, true)
 	pcall(Minimap.SetScript, Minimap, "OnMouseWheel", function(m, delta)
 		if not mod.db.scrollZoom then return end
-		local ok, zoom = pcall(Minimap.GetZoom, Minimap)
-		if not ok or type(zoom) ~= "number" or S.IsSecret(zoom) then return end
-		local maxZ = 5
-		if Minimap.GetZoomLevels then
-			local ok2, mz = pcall(Minimap.GetZoomLevels, Minimap)
-			if ok2 and type(mz) == "number" and mz > 0 then maxZ = mz end
-		end
-		pcall(Minimap.SetZoom, Minimap, math.max(0, math.min(maxZ, zoom + delta)))
-		if mod.db.zoomReset then
-			Core.zoomToken = (Core.zoomToken or 0) + 1
-			local token = Core.zoomToken
-			C_Timer.After(6, function()
-				local ok3, z = pcall(Minimap.GetZoom, Minimap)
-				if Core.zoomToken == token and ok3 and z and z > 0 then
-					pcall(Minimap.SetZoom, Minimap, 0)
-				end
-			end)
-		end
+		zoomStep(delta)
 	end)
 	pcall(Minimap.HookScript, Minimap, "OnMouseUp", function(_, button)
 		if button == "RightButton" then
@@ -892,6 +1254,9 @@ local function hookMouse()
 			elseif t and t.OpenMenu then t:OpenMenu()
 			elseif t and t.Click then t:Click()
 			elseif MiniMapTrackingButton then MiniMapTrackingButton:Click()
+			elseif trackBtn and trackBtn:IsShown() then
+				-- no blizzard tracking chrome on this client: our own menu
+				trackBtn:Click()
 			end
 		elseif button == "MiddleButton" then
 			if ToggleCalendar then ToggleCalendar() end
@@ -963,6 +1328,12 @@ end
 -- buttons, indicator re-dock. Cheap loops, self-healing.
 local function tick()
 	if not mod or not mod.db.enabled then return end
+	-- hover self-heal: a map without mouse/wheel enabled kills every hover
+	-- function (zone text, wheel zoom, tracking menu) until re-enabled
+	local okM, mOn = pcall(Minimap.IsMouseEnabled, Minimap)
+	if okM and mOn == false then pcall(Minimap.EnableMouse, Minimap, true) end
+	local okW, wOn = pcall(Minimap.IsMouseWheelEnabled, Minimap)
+	if okW and wOn == false then pcall(Minimap.EnableMouseWheel, Minimap, true) end
 	Core.UpdateZoneText()
 	Core.UpdateCoords()
 	if zoneBar and zoneBar.clockText and zoneBar.clockText:IsShown() then
@@ -1029,11 +1400,22 @@ function Core.Enable(m)
 	step("deco", buildDeco)
 	step("zonebar", buildZoneBar)
 	step("coordsbar", buildCoordsBar)
+	step("zoombuttons", buildZoomButtons)
+	step("trackbutton", buildTrackButton)
 	step("mouse", hookMouse)
 	step("apply", Core.ApplyAll)
 	step("zone", Core.UpdateZoneText)
 	step("coords", Core.UpdateCoords)
 	C_Timer.NewTicker(1, tick)
+	-- profession tracking auto-activation: the tracking list is not
+	-- populated right at login, so a couple of delayed passes catch it
+	S.RegisterEvent("PLAYER_ENTERING_WORLD", function()
+		C_Timer.After(2, function() S.SafeCall("minimap:autotrack", AutoTrack) end)
+		C_Timer.After(6, function() S.SafeCall("minimap:autotrack", AutoTrack) end)
+	end)
+	S.RegisterEvent("SKILL_LINES_CHANGED", function()
+		C_Timer.After(1, function() S.SafeCall("minimap:autotrack", AutoTrack) end)
+	end)
 end
 
 function Core.SettingChanged(m, path)
@@ -1057,3 +1439,9 @@ S.RegisterEvent("PLAYER_ENTERING_WORLD", function()
 	end
 end)
 S.RegisterEvent("UPDATE_PENDING_MAIL", function() if mod then Core.PositionIndicators() end end)
+-- keep the tracking popup's checkmarks live while it is open
+S.RegisterEvent("MINIMAP_UPDATE_TRACKING", function()
+	if mod and trackPop and trackPop:IsShown() then
+		S.SafeCall("minimap:trackrows", rebuildTrackRows)
+	end
+end)

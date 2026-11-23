@@ -3,6 +3,52 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.17",
+		date = "2026-11-22",
+		changes = {
+			"Icon-glyph boxes fixed: the gem counter's '◆' diamonds and the stat group '▾/▸' collapse arrows are glyphs the SentiUI font does not carry - they rendered as empty squares and are now safe '•' bullets and 'v'/'>' ASCII arrows.",
+		},
+		changesDE = {
+			"Icon-Glyph-Kaesten gefixt: die '◆'-Diamanten des Gem-Counters und die '▾/▸'-Collapse-Pfeile der Stat-Gruppen sind Glyphen, die die SentiUI-Font nicht enthaelt - sie renderten als leere Vierecke und sind jetzt sichere '•'-Kugeln und 'v'/'>'-ASCII-Pfeile.",
+		},
+	},
+	{
+		version = "0.2.16",
+		date = "2026-11-22",
+		changes = {
+			"The custom character window is shelved for now: the module passes everything through to the Blizzard CharacterFrame - no window build, no hooks, no watcher. Menu/API callers (e.g. the panel's character and reputation entries) are forwarded to ToggleCharacter with the correct tab. The window code stays in place and returns by flipping ns.PASSTHROUGH in Core.lua.",
+		},
+		changesDE = {
+			"Das eigene Charakterfenster ist vorerst deaktiviert: Das Modul reicht alles an das Blizzard-Charakterfenster durch - kein Fensterbau, keine Hooks, kein Waechter. Menue-/API-Aufrufer (z.B. Charakter- und Ruf-Eintraege im Panel) werden mit dem passenden Tab an ToggleCharacter weitergeleitet. Der Fenster-Code bleibt erhalten und kommt per ns.PASSTHROUGH in Core.lua zurueck.",
+		},
+	},
+	{
+		version = "0.2.15",
+		date = "2026-11-22",
+		changes = {
+			"Tab chips size to their captions again: a core TabChip label fix (removed the right anchor that collapsed GetStringWidth to 0) restores readable tab text in the character window and everywhere else chips are used.",
+			"Gear slot icons now clip to soft rounded corners via the rewritten S.IconRound MaskTexture, and hovering a slot shows a subtle light sheen inside the icon box while the quality border stays untouched.",
+			"The player model now sits in a framed inset portrait panel instead of floating on the dark page.",
+		},
+		changesDE = {
+			"Tab-Chips passen sich wieder ihrer Beschriftung an: ein Core-TabChip-Label-Fix (entfernter rechter Anker, der GetStringWidth auf 0 kollabierte) stellt lesbaren Tab-Text im Charakterfenster und ueberall sonst wieder her.",
+			"Ausruestungs-Icons werden jetzt ueber die neu geschriebene S.IconRound-MaskTexture auf weich abgerundete Ecken geclippt, und Hover zeigt einen dezenten Lichtschimmer in der Icon-Box waehrend der Qualitaetsrahmen unberuehrt bleibt.",
+			"Das Spielermodell sitzt jetzt in einem gerahmten Inset-Portraet-Panel statt frei auf der dunklen Seite zu schweben.",
+		},
+	},
+	{
+		version = "0.2.14",
+		date = "2026-11-22",
+		changes = {
+			"Tab strip redesigned with the new shared Sentinel tab chip: a dark inset body with a 2px accent blade on the left edge - the blade glows on hover and burns on the active tab, active tabs raise with a lit border and accent text. One design language instead of scattered boxes.",
+			"Window refresh for the rounded look: the header title wears the class color, the Blizzard ornate X is replaced by the Sentinel close chip (accent on hover, Escape-close unchanged via S.EscClosable) and the equipment-set picker is a small chip in the footer.",
+		},
+		changesDE = {
+			"Tab-Leiste im neuen gemeinsamen Sentinel-Tab-Chip neu gestaltet: dunkler Inset-Koerper mit 2px Akzent-Klinge an der linken Kante - die Klinge glimmt bei Hover und brennt auf dem aktiven Tab, aktive Tabs heben sich mit leuchtendem Rahmen und Akzent-Text ab. Eine Designsprache statt verstreuter Kaestchen.",
+			"Fenster-Frischzelle fuer den abgerundeten Look: der Header-Titel traegt die Klassenfarbe, das Blizzard-Zier-X weicht dem Sentinel-Schliessen-Chip (Akzent bei Hover, Escape-Schliessen unveraendert ueber S.EscClosable) und der Equipment-Set-Picker ist ein kleiner Chip im Fuss.",
+		},
+	},
+	{
 		version = "0.2.13",
 		date = "2026-11-22",
 		changes = {

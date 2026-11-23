@@ -1,5 +1,42 @@
 # SentiUI Loot
 
+## 0.2.16 - 2026-11-22
+
+- Fixed the double loot window: the alpha/mouse kill on the game's LootFrame only ran inside a shown-state watch registered at enable time — a lazily created LootFrame (load-on-demand on this client) never got a watcher, so both windows stayed open. The kill now runs on every own-window update and the watch uses the resolver form that catches late-created frames.
+- Roll panel finishing: the scroll frame's scrollbar is actually anchored now (the UIPanelScrollFrame template leaves it unpositioned on this client) - it sits in the right gutter the frame reserves.
+- Mouse wheel on a roll card forwards to the panel scroll; roll glyph buttons show Need/Greed/Disenchant/Pass tooltips.
+- LOOT_ROLLS_COMPLETE clears all pending rolls at once instead of waiting for each card's timeout check.
+
+## 0.2.15 - 2026-11-22
+
+- Roll cards now show the item tooltip on hover: the card frame never enabled mouse input and the icon is a plain texture that cannot take scripts, so hovering a party/raid roll showed nothing. The card takes the hover itself and paints the item tooltip from the cached roll link; hovering also lights the card's border edge.
+
+## 0.2.14 - 2026-11-22
+
+- Fixed the recurring question-mark icons while looting: item data arrives async on this client, so the first draw often found nothing cached. A new RetryIcon helper (Item:CreateFromItemLink + ContinueOnItemLoad) re-resolves the icon once the item lands in the cache — applied to loot window rows, roll cards and the loot feed, with a suiIconLink guard against stale callbacks on recycled rows.
+- Loot window close button replaced with the shared W.Close — consistent Sentinel look.
+
+## 0.2.13 - 2026-11-22
+
+- Roll card icons now clip to soft rounded corners via the rewritten core S.IconRound MaskTexture — the icon itself is cut instead of being covered by overlay tiles.
+
+## 0.2.12 - 2026-11-22
+
+- Loot history close and clear buttons replaced with shared W.Close / W.Button — consistent Sentinel look.
+- Roll card icons have soft rounded corners via S.IconRound (4px radius).
+
+## 0.2.11 - 2026-11-22
+
+- Loot icons finally show: the quality border was created on the OVERLAY layer and painted as a solid square on top of the icon - every item looked like a plain quality-colored box (roll cards, loot rows, feed rows, Blizzard button styling). The ring now sits on the BORDER layer so only the 1px frame peeks out.
+- Roll button glyphs: a missing glyph texture (the disenchant sheet on this client) rendered as a grey box because SetTexture keeps dead paths. Glyph paths are now probed via GetFileIDFromPath when available, with fallback candidates and the letter fallback if nothing resolves.
+
+## 0.2.10 - 2026-11-22
+
+- The own loot window no longer dies instantly: hiding the game's LootFrame triggered its OnHide -> CloseLoot(), ending the loot session the moment it opened. The frame now gets alpha 0 and its mouse killed instead of hidden - the session stays alive, invisible.
+- Icons actually verify now: SetTexture silently drops secret/bad values on this client, so every icon (loot rows, roll cards, feed) is checked with GetTexture after setting and walks fallbacks - slot data, the game button's own icon, C_Item.GetItemIconByID, GetItemInfo, then a question mark.
+- The normal-loot modifier works again: IsModifiedClick can answer falsely on this client, so the held check reads the configured AUTOLOOTTOGGLE key via GetModifiedClick and tests the raw key state instead.
+- The group roll panel is a real Sentinel card now: the client's roll frames are hidden and click-dead while our cards show icon + quality border, quality-colored name, an accent countdown bar and the dice/coin/disenchant/pass glyphs - clicks go through RollOnLoot, rolls vanish when resolved.
+
 ## 0.2.9 - 2026-11-22
 
 - Loot window stayed closed with leftovers: LOOT_CLOSED hid it blindly. A full bag ends the session with items still inside - the window now re-checks a frame later and stays open while anything remains.

@@ -6,7 +6,7 @@ ns.DEFAULTS = {
 
 	fontSize = 11,
 	healthColorMode = "CLASS",   -- CLASS | REACTION | STATIC
-	healthTextMode = "BOTH",     -- PERCENT | VALUE | BOTH
+	healthTextMode = "VALUE",    -- PERCENT | VALUE | BOTH
 	smoothBars = true,
 	rangeFadeAlpha = 0.55,       -- alpha for out-of-range party/raid members
 	healPredict = true,
@@ -14,21 +14,29 @@ ns.DEFAULTS = {
 	player = {
 		enable = true, w = 220, h = 34, power = true, castbar = true,
 		auras = true, classPower = true, combatText = true,
+		portrait = "class", powerH = 8,
 	},
 	target = {
 		enable = true, w = 220, h = 34, power = true, castbar = true,
 		auras = true, maxBuffs = 8, maxDebuffs = 12, threatPct = true,
+		portrait = "class", powerH = 8,
 	},
-	tot = { enable = true, w = 110, h = 20, power = false, auras = false },
-	pet = { enable = true, w = 110, h = 20, power = false, auras = false },
+	tot = { enable = true, w = 110, h = 20, power = false, auras = false,
+		portrait = "off" },
+	pet = { enable = true, w = 110, h = 20, power = false, auras = false,
+		portrait = "off" },
 	focus = { enable = false, w = 160, h = 26, power = true, auras = false,
-		castbar = true },
+		castbar = true, portrait = "off" },
 
 	party = {
 		enable = true, w = 150, h = 30, spacing = 4, growth = "DOWN",
 		showPlayer = false, power = true, rangeFade = true,
 		showRole = true, auras = false, showPets = true,
+		defensiveIcons = true,    -- external defensive icons on party cells
+		portrait = "class",       -- class icon tile on the left edge
 	},
+	raidTools = { enable = true, collapsed = false }, -- top-edge foldable marker tray
+	altPower = true,               -- replacement for PlayerPowerBarAlt
 	raid = {
 		enable = true, w = 74, h = 26, spacing = 3, power = false,
 		growth = "RIGHT",         -- columns grow to the right, members stack upward
@@ -37,6 +45,8 @@ ns.DEFAULTS = {
 		unitsPerColumn = 5, maxColumns = 8,
 		rangeFade = true, showRole = true, readyCheck = true,
 		auras = false,            -- opt-in: aura icons on the small raid cells
+		defensiveIcons = true,    -- external defensive icons on raid cells
+		portrait = "off",         -- opt-in: class icon/3D portrait on raid cells
 	},
 	boss = { enable = true, w = 160, h = 26, power = true },
 	arena = { enable = true, w = 160, h = 26, power = true },

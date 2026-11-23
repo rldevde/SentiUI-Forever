@@ -4,6 +4,26 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.3",
+		date = "2026-11-22",
+		changes = {
+			"Close button replaced with the shared S.Widgets.Close — consistent Sentinel look across the whole suite instead of the Blizzard UIPanelCloseButton template.",
+		},
+		changesDE = {
+			"Schliessen-Button durch das gemeinsame S.Widgets.Close ersetzt — einheitliches Sentinel-Aussehen in der ganzen Suite statt des Blizzard-UIPanelCloseButton-Templates.",
+		},
+	},
+	{
+		version = "0.2.2",
+		date = "2026-11-22",
+		changes = {
+			"The Current session / Archive view tabs use the shared Sentinel tab chip now: a 2px accent blade on the left edge marks the active view - one design language across the whole suite.",
+		},
+		changesDE = {
+			"Die Aktuell/Archiv-Ansicht-Tabs nutzen jetzt den gemeinsamen Sentinel-Tab-Chip: eine 2px Akzent-Klinge an der linken Kante markiert die aktive Ansicht - eine Designsprache fuer die ganze Suite.",
+		},
+	},
+	{
 		version = "0.2.1",
 		date = "2026-11-22",
 		changes = {

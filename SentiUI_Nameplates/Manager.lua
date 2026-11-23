@@ -78,7 +78,7 @@ local function Release(p)
 	ns.Cast.Stop(p)
 	ns.Auras.Clear(p)
 	if p.unit then Manager.byUnit[p.unit] = nil end
-	p.unit, p.np, p.friendly = nil, nil, nil
+	p.unit, p.np, p.friendly, p._target = nil, nil, nil, nil
 	p:Hide()
 	p:ClearAllPoints()
 	p:SetParent(home)

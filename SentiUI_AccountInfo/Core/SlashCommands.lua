@@ -72,6 +72,39 @@ ns:RegisterCommand("sync", function()
 	ns.UI.Show(6)
 end, "sync", L.CMD_EXPORT)
 
+-- Manual rescan with diagnostics: prints which link in the
+-- boot->scan chain is missing when the dashboard shows no characters.
+ns:RegisterCommand("scan", function()
+	local charCount = 0
+	if ns.db and ns.db.chars then
+		for _ in pairs(ns.db.chars) do charCount = charCount + 1 end
+	end
+	local okKey, key = pcall(function() return ns.Store.OwnKey() end)
+	local okN, name = pcall(function() return ns:GetPlayerName() end)
+	local okR, realm = pcall(function() return ns.OwnRealm and ns.OwnRealm() end)
+	ns:Print("scan: booted=%s enabled=%s db=%s key=%s name=%s realm=%s chars=%d",
+		tostring(ns.booted), tostring(ns.enabled),
+		tostring(ns.db ~= nil),
+		okKey and tostring(key) or ("err:" .. tostring(key)),
+		okN and tostring(name) or ("err:" .. tostring(name)),
+		okR and tostring(realm) or ("err:" .. tostring(realm)),
+		charCount)
+	if not (ns.Scanner and ns.Scanner.Rescan) then
+		ns:Print("scan: Scanner.Rescan missing - boot never ran")
+		return
+	end
+	local ok, err = pcall(ns.Scanner.Rescan)
+	local after = 0
+	if ns.db and ns.db.chars then
+		for _ in pairs(ns.db.chars) do after = after + 1 end
+	end
+	if ok then
+		ns:Print("scan: Rescan done, chars now %d", after)
+	else
+		ns:Print("scan: Rescan failed: %s", tostring(err))
+	end
+end, "scan", L.CMD_SCAN or "Scan the current character now")
+
 ns.RegisterCallback(ns, "SAI_BOOT", function()
 	ns:Print(L.ADDON_LOADED, ns.version)
 end)

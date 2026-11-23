@@ -2,6 +2,234 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.38",
+		date = "2026-11-23",
+		changes = {
+			"Input bar only appears while typing: the client never hides its editbox (IsShown always true), so the bar tracks HasFocus - shows on focus, hides when focus leaves.",
+		},
+		changesDE = {
+			"Eingabeleiste erscheint nur noch beim Tippen: der Client versteckt die Editbox nie (IsShown immer true), darum folgt die Leiste jetzt HasFocus - zeigt sich bei Fokus, verschwindet beim Verlassen.",
+		},
+	},
+	{
+		version = "0.2.37",
+		date = "2026-11-23",
+		changes = {
+			"Input bar is now slightly transparent to match the chat panel (55% fill when the panel runs transparent, 80% otherwise) - the client never hides its editbox so the bar is a permanent fixture and must blend in.",
+		},
+		changesDE = {
+			"Eingabeleiste jetzt leicht transparent passend zum Chat-Panel (55% Fuellung bei transparentem Panel, sonst 80%) - der Client versteckt seine Editbox nie, die Leiste ist also Dauergast und muss sich einfuegen.",
+		},
+	},
+	{
+		version = "0.2.36",
+		date = "2026-11-23",
+		changes = {
+			"Input bar now actually appears: the show/hide fast path read f.editBox directly, but that field is not populated on every chat window on this client - anyEbShown stayed false forever and the bar never showed. It now uses FindEditBox with the global fallback like the rest of the module.",
+		},
+		changesDE = {
+			"Eingabeleiste erscheint jetzt wirklich: der Sichtbarkeits-Fast-Path las f.editBox direkt, aber das Feld ist auf diesem Client nicht bei jedem Chatfenster belegt - anyEbShown blieb fuer immer false und die Leiste zeigte sich nie. Jetzt wird FindEditBox mit dem globalen Fallback benutzt wie ueberall sonst im Modul.",
+		},
+	},
+	{
+		version = "0.2.35",
+		date = "2026-11-23",
+		changes = {
+			"Input bar no longer permanently visible: shown only while an edit box is open, hidden otherwise.",
+			"Input bar uses the same panel template as the chat panels - gold hairline top, channel-colour left strip.",
+		},
+		changesDE = {
+			"Eingabeleiste nicht mehr dauerhaft sichtbar: wird nur angezeigt, waehrend eine Editbox offen ist.",
+			"Eingabeleiste nutzt dasselbe Panel-Template wie die Chat-Panels - goldene Haarlinie oben, kanalfarbiger Streifen links.",
+		},
+	},
+	{
+		version = "0.2.34",
+		date = "2026-11-23",
+		changes = {
+			"Edit bar completely rebuilt: previous versions rendered behind the panel (LOW strata, invisible) or stacked conflicting layers that cancelled each other out. New bar lives at DIALOG strata level 5, slightly lighter dark fill, 1px border, gold hairline at the top edge, 3px channel-coloured left strip. Fixed 26px height so text, hairline and border all have room.",
+		},
+		changesDE = {
+			"Eingabeleiste komplett neu gebaut: Vorige Versionen renderten hinter dem Panel (LOW-Strata, unsichtbar) oder stapelten konkurrierende Layer, die sich gegenseitig aufhoben. Die neue Leiste liegt auf DIALOG-Strata Level 5, etwas hellerer dunkler Fill, 1px Rahmen, goldene Haarlinie oben, 3px kanalfarbiger linker Streifen. Feste 26px Hoehe, damit Text, Haarlinie und Rahmen Platz haben.",
+		},
+	},
+	{
+		version = "0.2.33",
+		date = "2026-11-23",
+		changes = {
+			"Edit bar now carries the gold top hairline the data bars use (inset past the corner arc), so the input strip reads as the same band family as the XP/rep bar above the panels.",
+		},
+		changesDE = {
+			"Die Eingabeleiste traegt jetzt die goldene Oberkanten-Haarlinie der Data Bars (hinter die Eckrundung eingesetzt), damit sie als dieselbe Leisten-Familie wie die EP-/Ruf-Leiste ueber den Panels wirkt.",
+		},
+	},
+	{
+		version = "0.2.32",
+		date = "2026-11-23",
+		changes = {
+			"Edit bar height now follows the Data Bars height setting (default 14px): the gold input strip, the XP bar and the rep bar all read as one uniform band. Gloss is anchored to the bar's center so it scales with the height.",
+		},
+		changesDE = {
+			"Die Hoehe der Eingabeleiste folgt jetzt der Data-Bars-Hoeheneinstellung (Standard 14px): die goldene Eingabeleiste, EP- und Ruf-Leiste lesen sich als ein einheitliches Band. Der Gloss ist am Leistenmittelpunkt verankert und skaliert mit der Hoehe.",
+		},
+	},
+	{
+		version = "0.2.31",
+		date = "2026-11-23",
+		changes = {
+			"Edit bar template switched from raised to inset: the thin gold wireframe on black read as a hollow rectangle. Now a dark recessed field - gold stays on the left accent strip and the corner ticks.",
+		},
+		changesDE = {
+			"Eingabeleiste von Raised auf Inset umgestellt: der duenne Goldrahmen auf Schwarz wirkte wie ein leeres Wireframe. Jetzt ein dunkles eingelassenes Feld - Gold bleibt nur am linken Akzentstreifen und den Eck-Ticks.",
+		},
+	},
+	{
+		version = "0.2.30",
+		date = "2026-11-23",
+		changes = {
+			"Edit bar restyled to the full Sentinel panel recipe: inner fade gradient (same as the chat panels), top-half gloss, left gold accent strip, corner ticks at the bottom, 26px tall and docked flush (1px gap) under the chat panel instead of floating loose.",
+		},
+		changesDE = {
+			"Eingabeleiste auf das volle Sentinel-Panel-Rezept umgestylt: innerer Fade-Verlauf (wie bei den Chat-Panels), Gloss in der oberen Haelfte, goldener Akzentstreifen links, Eck-Ticks unten, 26px hoch und bündig (1px Abstand) unter dem Chat-Panel angedockt statt frei zu schweben.",
+		},
+	},
+	{
+		version = "0.2.29",
+		date = "2026-11-23",
+		changes = {
+			"The chat input is now a real styled bar: templating the Blizzard edit box directly rendered through its NineSlice as a thin black sliver. A dedicated SentiUIChatEditBar (dark raised fill, gold border, accent strip, 24px tall) sits behind the box; the box itself is transparent and fills it. Click the bar to focus, channel color now tints the bar's border.",
+		},
+		changesDE = {
+			"Die Chat-Eingabe ist jetzt eine echte gestylte Leiste: Das Templating der Blizzard-Editbox renderte ueber deren NineSlice als duenner schwarzer Streifen. Eine eigene SentiUIChatEditBar (dunkler Raised-Fill, Goldrand, Akzentstreifen, 24px hoch) liegt hinter der Box; die Box selbst ist transparent und fuellt sie. Klick auf die Leiste fokussiert, die Kanalfarbe faerbt jetzt den Rahmen der Leiste.",
+		},
+	},
+	{
+		version = "0.2.28",
+		date = "2026-11-23",
+		changes = {
+			"Chat no longer jumps out of the panel on level up: the client re-anchors chat windows several seconds apart (banner, spec/spell toasts, floating text each trigger their own pass) and the old 1.5s burst only caught the first shove. The snap-back burst now runs 5s with full dock passes at 0.6s / 1.6s / 3s / 5s.",
+		},
+		changesDE = {
+			"Chat springt beim Level-Up nicht mehr aus dem Panel: der Client verankert Chatfenster mehrfach im Abstand von Sekunden neu (Banner, Spec-/Zauber-Toasts und Floating Text loesen je einen eigenen Pass aus) und der alte 1.5s-Burst fing nur den ersten Schub ab. Der Snap-Back-Burst laeuft jetzt 5s mit vollen Dock-Paessen nach 0.6s / 1.6s / 3s / 5s.",
+		},
+	},
+	{
+		version = "0.2.27",
+		date = "2026-11-23",
+		changes = {
+			"Scrollbars and scroll buttons no longer jump: Blizzard re-shows the chat ScrollBar, ScrollToBottomButton and the button-frame up/down arrows on scroll events, so they flickered back until the next restyle tick. Each one now gets an OnShow -> Hide guard on top of alpha 0 - hidden for good.",
+			"Edit box no longer jumps on open: Blizzard's header/resize passes re-anchor the edit box for a frame or two before the anchor watchdog caught it. A per-frame fast path re-anchors a shown edit box the same frame.",
+			"Edit box polish: 6px text insets so the caret no longer hugs the border, plus the Sentinel gold accent strip on the left edge.",
+		},
+		changesDE = {
+			"Scrollbalken und Scroll-Buttons springen nicht mehr: Blizzard zeigt den Chat-ScrollBar, den ScrollToBottomButton und die Hoch/Runter-Pfeile im Button-Frame bei Scroll-Events wieder an - sie flackerten bis zum naechsten Restyle-Tick auf. Jeder bekommt jetzt zusaetzlich zu Alpha 0 eine OnShow -> Hide-Sperre - dauerhaft weg.",
+			"Schreibleiste springt beim Oeffnen nicht mehr: Blizzards Header-/Resize-Pass verankert die Editbox fuer ein, zwei Frames neu, bevor der Anker-Watchdog griff. Ein Fast-Path pro Frame setzt eine sichtbare Editbox noch im selben Frame zurueck.",
+			"Schreibleiste aufgehuebscht: 6px Text-Inset, damit der Cursor nicht mehr am Rand klebt, plus der goldene Sentinel-Akzentstreifen an der linken Kante.",
+		},
+	},
+	{
+		version = "0.2.26",
+		date = "2026-11-22",
+		changes = {
+			"Chat tabs ride the generated ChatTab/ChatTabActive plates instead of a tinted blank fill - the active tab swaps to its own plate art, inactive tabs dim the same texture.",
+		},
+		changesDE = {
+			"Chat-Tabs nutzen die generierten ChatTab/ChatTabActive-Plates statt einer gefaerbten Leer-Fuellung - der aktive Tab wechselt auf seine eigene Plate-Art, inaktive Tabs dimmen dieselbe Textur.",
+		},
+	},
+	{
+		version = "0.2.25",
+		date = "2026-11-22",
+		changes = {
+			"The loot window's floating channel tab is now hidden while the window lives inside the right chat panel - it poked out over the panel's top edge and clicking it toggled the whole chat frame off. It is also taken off the mouse so no click can reach it.",
+			"Loot window detection hardened: the frame itself is remembered and matched, plus the German \"Plündern\" label - previously a loot window whose tab label did not match the list was never docked into the right panel and floated loose with its tab sticking out.",
+		},
+		changesDE = {
+			"Der freischwebende Channel-Tab des Beute-Fensters wird jetzt ausgeblendet, solange das Fenster im rechten Chat-Panel liegt - er ragte ueber die obere Panel-Kante hinaus und ein Klick darauf schaltete das ganze Chatfenster aus. Er ist zusaetzlich nicht mehr klickbar.",
+			"Beute-Fenster-Erkennung gehaertet: der Frame selbst wird gemerkt und verglichen, plus das deutsche Label \"Plündern\" - vorher wurde ein Beute-Fenster, dessen Tab-Label nicht in der Liste stand, nie ins rechte Panel gedockt und schwebte mit herausragendem Tab frei herum.",
+		},
+	},
+	{
+		version = "0.2.24",
+		date = "2026-11-22",
+		changes = {
+			"Chat tabs now have a dark inset background chip: each tab gets a subtle dark fill (80% opacity active, 55% inactive) so the tab label reads clearly against the game world. The gold hairline at the bottom shows only on the active tab.",
+			"Chat copy frame close button replaced with the shared W.Close — consistent Sentinel look instead of the Blizzard UIPanelCloseButton.",
+			"Bottom corner ticks fixed: the right tick hung 4px outside the panel edge (same sign for both sides); both are now mirrored and inset past the rounded corner arc.",
+			"The panel fade layer is now inset 7px so it can no longer show a dark square wedge behind each rounded corner.",
+		},
+		changesDE = {
+			"Chat-Tabs haben jetzt einen dunklen Inset-Hintergrund-Chip: Jeder Tab bekommt einen dezenten dunklen Fill (80% aktiv, 55% inaktiv), damit das Tab-Label klar lesbar gegen die Spielwelt ist. Die goldene Haarlinie am unteren Rand ist nur beim aktiven Tab sichtbar.",
+			"Schliessen-Button im Chat-Kopierfenster durch das gemeinsame W.Close ersetzt — einheitliches Sentinel-Aussehen statt dem Blizzard-UIPanelCloseButton.",
+			"Eck-Ticks unten gefixt: der rechte Tick hing 4px ausserhalb der Panel-Kante (gleiches Vorzeichen fuer beide Seiten); beide sind jetzt gespiegelt und hinter die gerundete Ecke eingesetzt.",
+			"Die Fade-Ebene des Panels ist jetzt 7px eingesetzt, damit hinter den abgerundeten Ecken kein dunkler Keil mehr durchscheint.",
+		},
+	},
+	{
+		version = "0.2.23",
+		date = "2026-11-22",
+		changes = {
+			"Chat sizes scale for real now: neither frame:SetFont nor the Font object path reach a ScrollingMessageFrame on this client - the game's own wrapper FCF_SetChatWindowFontSize(nil, frame, size) is the path that works, and every size change (settings, installer, watchdog) goes through it now. The outline still applies via the Font object path when it differs.",
+			"The watchdog re-pushes a drifted size only when the observed size actually moved, so a font API that never reflects the push cannot rebuild the chat lines every quarter second.",
+			"The installer chat step no longer bails on an unready module - an empty step was cached forever; the controls now always render and write settings the module picks up when it runs.",
+		},
+		changesDE = {
+			"Chat-Groessen skalieren jetzt wirklich: weder frame:SetFont noch der Font-Objekt-Pfad erreichen ein ScrollingMessageFrame auf diesem Client - der eigene Wrapper des Spiels FCF_SetChatWindowFontSize(nil, frame, size) ist der Weg, der funktioniert, und jede Groessenaenderung (Einstellungen, Installer, Watchdog) läuft jetzt darueber. Die Kontur greift weiterhin ueber den Font-Objekt-Pfad, wenn sie abweicht.",
+			"Der Watchdog pusht eine abweichende Groesse nur noch, wenn die beobachtete Groesse sich wirklich bewegt hat - eine Font-API, die den Push nie reflektiert, kann so nicht alle Viertelsekunde die Chatzeilen neu bauen.",
+			"Der Installer-Chat-Schritt bricht nicht mehr bei einem unbereiten Modul ab - ein leerer Schritt wurde fuer immer gecacht; die Bedienelemente erscheinen jetzt immer und schreiben Einstellungen, die das Modul uebernimmt, sobald es laeuft.",
+		},
+	},
+	{
+		version = "0.2.22",
+		date = "2026-11-22",
+		changes = {
+			"Chat font sizes now actually apply: frame.SetFont silently does nothing on this client, so every size change (settings, installer, watchdog) went into the database while the visible size stayed whatever the game had cached. Fonts go through a real Font object via SetFontObject now, verified with GetFont, plain SetFont as fallback - the same reliable path the rest of the suite uses. Tab texts included.",
+			"The watchdog no longer adopts a size that was never applied: a silent font failure used to be read back as a 'menu change' and overwrote the saved choice.",
+			"The loot chat window reopens when it was closed by hand: EnsureLootChat shows the found window again and the dock pass re-anchors it into the right panel.",
+		},
+		changesDE = {
+			"Chat-Schriftgroessen greifen jetzt wirklich: frame.SetFont tut auf diesem Client still nichts - jede Groessenaenderung (Einstellungen, Installer, Watchdog) landete in der Datenbank, waehrend die sichtbare Groesse beim vom Spiel gespeicherten Wert blieb. Schriften laufen jetzt ueber ein echtes Font-Objekt via SetFontObject, verifiziert mit GetFont, plain SetFont als Fallback - derselbe verlaessliche Pfad wie in der ganzen Suite. Auch die Tab-Texte.",
+			"Der Watchdog uebernimmt keine Groesse mehr, die nie angewendet wurde: ein stummer Font-Fehler wurde bisher als 'Menue-Aenderung' gelesen und hat die gespeicherte Wahl ueberschrieben.",
+			"Das Beute-Chatfenster oeffnet sich wieder, wenn es von Hand geschlossen wurde: EnsureLootChat zeigt das gefundene Fenster erneut an und der Dock-Durchlauf verankert es im rechten Panel.",
+		},
+	},
+	{
+		version = "0.2.21",
+		date = "2026-11-22",
+		changes = {
+			"New installer step 'Chat': font size and tab font size sliders, the loot chat window toggle and the panel backdrop dropdown. Everything applies live through the module's setting path - every chat window (general, loot, whispers ...) takes the size immediately and the loot window is created and docked on the spot.",
+		},
+		changesDE = {
+			"Neuer Installer-Schritt 'Chat': Schriftgroessen- und Tab-Schriftgroessen-Slider, der Beute-Chatfenster-Schalter und das Panel-Hintergrund-Dropdown. Alles greift sofort ueber den eigenen Einstellungspfad des Moduls - jedes Chatfenster (Allgemein, Beute, Fluestern ...) uebernimmt die Groesse sofort, und das Beute-Fenster wird direkt erstellt und angedockt.",
+		},
+	},
+	{
+		version = "0.2.20",
+		date = "2026-11-22",
+		changes = {
+			"Default chat background came back after every reload: the frame styling ran once per frame and Blizzard's chat init finished after it, repainting the default background and buttons over the styled frame. The chrome kill is idempotent now and re-runs in the watchdog for every frame, plus a NineSlice/backdrop kill for backgrounds that are not plain regions.",
+			"Font size arbitration after login: a mismatch seen in the first 15 seconds is Blizzard's chat-cache restore clobbering our application and gets put back to the saved size; a later mismatch is a live tab-menu change and is adopted into the settings. Before, the sync read the wrong GetFont return and never fired at all.",
+			"The own-timestamp switch now uses C_CVar.SetCVar - the legacy SetCVar global is not guaranteed on this client.",
+		},
+		changesDE = {
+			"Der Standard-Chat-Hintergrund kam nach jedem Neuladen zurueck: Das Frame-Styling lief pro Frame nur einmal und Blizzards Chat-Initialisierung beendete sich danach - sie malte Hintergrund und Buttons neu ueber das gestylte Frame. Der Chrome-Kill ist jetzt idempotent und laeuft im Watchdog fuer jedes Frame mit, plus NineSlice/Backdrop-Kill fuer Hintergruende, die keine einfachen Regionen sind.",
+			"Font-Groessen-Schlichtung nach dem Login: Eine Abweichung in den ersten 15 Sekunden ist Blizzards Chat-Cache-Restore, der unsere Anwendung ueberschreibt - sie wird auf die gespeicherte Groesse zurueckgesetzt; eine spaetere Abweichung ist eine Live-Aenderung uebers Tab-Menue und wird in die Einstellungen uebernommen. Vorher las der Sync den falschen GetFont-Rueckgabewert und griff nie.",
+			"Der eigene Zeitstempel-Schalter nutzt jetzt C_CVar.SetCVar - das legacy SetCVar-Global ist auf diesem Client nicht garantiert.",
+		},
+	},
+	{
+		version = "0.2.19",
+		date = "2026-11-22",
+		changes = {
+			"Chat font size now persists no matter where it is changed: a size set through Blizzard's tab menu is written back into the module settings, so the next login applies your choice instead of resetting to the default 12.",
+			"Font calls are now skipped when nothing changed - every SetFont rebuilds all chat lines and their links, so the unconditional per-tick calls could swallow link clicks.",
+		},
+		changesDE = {
+			"Die Chat-Schriftgröße bleibt jetzt erhalten, egal wo sie geändert wird: Eine über Blizzards Tab-Menü eingestellte Größe wird in die Modul-Einstellungen zurückgeschrieben - beim nächsten Login wird deine Wahl angewendet statt auf 12 zurückzusetzen.",
+			"Font-Aufrufe werden jetzt übersprungen, wenn sich nichts geändert hat - jedes SetFont baut alle Chatzeilen samt Links neu auf, die bisherigen Aufrufe pro Tick konnten Link-Klicks verschlucken.",
+		},
+	},
+	{
 		version = "0.2.18",
 		date = "2026-11-22",
 		changes = {

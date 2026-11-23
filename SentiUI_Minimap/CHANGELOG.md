@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.3.18 - 2026-11-22
+
+- Square-minimap corner brackets ride the generated `MinimapBorder.tga` — one authored gold bracket texture replaces the eight rastered strips (kept out of the accent tint so its gold survives accent customization).
+
+## 0.3.17 - 2026-11-22
+
+- New installer step 'Minimap': shape (square/round) and size sliders, applied live through the module's setting path. The step no longer bails on an unready module - an empty step was cached forever.
+
+## 0.3.16 - 2026-11-22
+
+- The tracking menu now merges both tracking APIs (the modern C_Minimap table shape and the classic positional one) and dedupes by name - on this client each API lists a different subset, so the standard entries only showed up together.
+- Auto profession tracking: with Mining or Herbalism the matching tracking (Find Minerals / Find Herbs) turns itself on at login when nothing is tracked yet. A tracking turned off through the menu stays off on the next login.
+- New Tracking options group: the magnifier button and the auto profession tracking.
+
+## 0.3.15 - 2026-11-22
+
+- The tracking magnifier is back as our own button: a magnifier at the map's top-left (the classic spot) that shows the active tracking on hover and opens a tracking menu on click - built on the client's own C_Minimap tracking API, since Blizzard's tracking chrome never showed through the dock path. Right-click on the map opens it as the last fallback. Toggle under Minimap > Elements.
+- Hover self-heal: the map's mouse and wheel enablement are checked every second - something disabling them killed every hover function (zone text, wheel zoom, tracking) until re-enabled.
+
+## 0.3.14 - 2026-11-22
+
+- New performance icon next to the addon-button collection: a gear that shows home/world latency, framerate, addon memory and the heaviest addons on hover - the panel plugin's minimap twin. Right-click opens the settings. Toggle under Minimap > Elements.
+- Zoom buttons are back: small + and - texts at the map's bottom-right corner (where the classic magnifier pair sat), quiet until hovered. The wheel zoom shares the same zoom step now. Toggle under Minimap > Zoom.
+- Tracking magnifier gets an explicit Show on dock: the client can keep the frame hidden, and re-anchoring alone never revealed it.
+
+## 0.3.13 - 2026-11-22
+
+- Fixed flapping tooltips when hovering the minimap: interactive Blizzard chrome (zone text button, zoom buttons/hit area, calendar, addon compartment, toggle/world-map buttons) was being hidden while the client's hover scripts kept re-showing it - a show/hide war. These frames are now reparented into a hidden trash frame the ElvUI way: their Show() calls land nowhere, no flicker, no tooltips. Pure visuals still use the alpha fade.
+
 ## 0.3.12 - 2026-11-22
 
 - Minimap menu secure rows (Reload, /click micro forwards) no longer replace the template OnClick - hardware clicks now run the macro through the client's own secure dispatch instead of flagged addon code.

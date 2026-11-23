@@ -52,23 +52,12 @@ function W.ScrollArea(parent)
 	return scroll, holder
 end
 
--- pill chip with label/active styling
+-- pill chip with label/active styling - the shared Sentinel tab chip
+-- (blade + lit active), same SetLabel/SetActive API as before
 function W.Chip(parent, onClick)
-	local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
-	b:SetHeight(20)
-	S.Template(b, "inset")
-	b.fs = S.Font(b, 10, S.colors.textDim)
-	b.fs:SetPoint("CENTER")
-	b.fs:SetJustifyH("CENTER")
-	function b:SetLabel(t)
-		self.fs:SetText(t)
-		self:SetWidth((self.fs:GetStringWidth() or 40) + 18)
-	end
-	function b:SetActive(on)
-		local c = on and S.colors.accent or S.colors.textDim
-		self.fs:SetTextColor(c.r, c.g, c.b)
-		S.SetBorderLit(self, on == true)
-	end
+	local b = S.TabChip(parent, 20)
+	b.autoWidth = true
+	function b:SetActive(on) self:SetSelected(on) end
 	b:SetScript("OnClick", function(self) onClick(self) end)
 	return b
 end

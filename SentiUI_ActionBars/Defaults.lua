@@ -47,4 +47,5 @@ ns.DEFAULTS = {
 	extras = {                    -- extra action, zone ability, vehicle/taxi exit
 		enabled = true,
 	},
+	cooldownViewers = false,      -- opt-in: Cooldown Manager viewers un-parked + skinned
 }

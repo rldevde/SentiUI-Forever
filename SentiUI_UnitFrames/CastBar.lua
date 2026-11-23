@@ -91,13 +91,52 @@ function CB.Create(f)
 	cb:SetMinMaxValues(0, 1)
 	cb:SetValue(0)
 	cb:SetHeight(14)
-	S.Template(cb, "inset")
+	-- player/target cast bars match their frames: raised panel, gold edge
+	-- at the same 0.70 alpha the unit frames carry
+	S.Template(cb, "raised")
+	if f.key == "player" or f.key == "target" then
+		local ac = S.colors.accent
+		pcall(cb.SetBackdropBorderColor, cb, ac.r, ac.g, ac.b, 0.70)
+		cb._suiBorderNorm = { ac.r, ac.g, ac.b, 0.70 }
+	end
 	cb:SetFrameStrata("MEDIUM")
+	-- glass: darker unfilled area + the top-fade sheen the bars carry
+	local cbg = cb:CreateTexture(nil, "BACKGROUND")
+	cbg:SetAllPoints()
+	cbg:SetColorTexture(0, 0, 0, 0.55)
+	local gloss = cb:CreateTexture(nil, "OVERLAY")
+	gloss:SetAllPoints()
+	gloss:SetTexture("Interface\\Buttons\\WHITE8X8")
+	if CreateColor then
+		gloss:SetGradient("VERTICAL",
+			CreateColor(1, 1, 1, 0.18), CreateColor(1, 1, 1, 0))
+	end
 
-	cb.icon = cb:CreateTexture(nil, "ARTWORK")
-	cb.icon:SetSize(14, 14)
-	cb.icon:SetPoint("RIGHT", cb, "LEFT", -2, 0)
-	cb.icon:Hide()
+	-- the spell icon sits in its own inset tile, like the plate cast icon
+	cb.iconBox = CreateFrame("Frame", nil, cb)
+	S.Template(cb.iconBox, "inset")
+	cb.iconBox:SetSize(16, 16)
+	cb.iconBox:SetPoint("RIGHT", cb, "LEFT", -3, 0)
+	cb.iconBox:Hide()
+	cb.icon = cb.iconBox:CreateTexture(nil, "ARTWORK")
+	cb.icon:SetPoint("TOPLEFT", 1, -1)
+	cb.icon:SetPoint("BOTTOMRIGHT", -1, 1)
+	cb.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	-- spark riding the fill's right edge; anchored to the status bar
+	-- texture itself so it follows the fill without per-frame updates
+	local spark = cb:CreateTexture(nil, "OVERLAY", nil, 2)
+	local sparkTex = S.Tex and S.Tex("BarSpark")
+	if sparkTex then
+		spark:SetTexture(sparkTex)
+		spark:SetSize(9, 20)
+	else
+		spark:SetTexture("Interface\\Buttons\\WHITE8X8")
+		spark:SetSize(2, 16)
+	end
+	spark:SetVertexColor(1, 0.88, 0.55, 0.9)
+	spark:SetBlendMode("ADD")
+	spark:SetPoint("CENTER", cb:GetStatusBarTexture(), "RIGHT")
+	cb.spark = spark
 	cb.text = ns.Font(cb, 10)
 	cb.text:SetPoint("LEFT", cb, "LEFT", 4, 0)
 	cb.text:SetPoint("RIGHT", cb, "RIGHT", -32, 0)
@@ -105,9 +144,10 @@ function CB.Create(f)
 	cb.text:SetWordWrap(false)
 	cb.time = ns.Font(cb, 10)
 	cb.time:SetPoint("RIGHT", cb, "RIGHT", -3, 0)
-	cb.shield = cb:CreateTexture(nil, "OVERLAY")
-	cb.shield:SetSize(10, 10)
-	cb.shield:SetPoint("RIGHT", cb, "LEFT", -18, 0)
+	-- uninterruptible: shield badge sits on the icon tile, Blizzard-style
+	cb.shield = cb.iconBox:CreateTexture(nil, "OVERLAY", nil, 2)
+	cb.shield:SetSize(12, 12)
+	cb.shield:SetPoint("CENTER", cb.iconBox, "BOTTOMRIGHT", -1, 1)
 	cb.shield:Hide()
 
 	cb.anchor = f
@@ -120,7 +160,8 @@ local function Paint(cb, notInt)
 	local c = S.colors
 	if notInt then
 		cb:SetStatusBarColor(c.accent2.r, c.accent2.g, c.accent2.b)
-		cb.shield:SetTexture("Interface\\Icons\\Spell_Holy_DevotionAura")
+		cb.shield:SetTexture((S.Tex and S.Tex("CastShield"))
+			or "Interface\\Icons\\Spell_Holy_DevotionAura")
 		cb.shield:Show()
 	else
 		cb:SetStatusBarColor(c.accent.r, c.accent.g, c.accent.b)
@@ -146,7 +187,7 @@ function CB.Update(f)
 	cb:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 0, drop)
 	cb:SetPoint("TOPRIGHT", f, "BOTTOMRIGHT", 0, drop)
 	pcall(cb.icon.SetTexture, cb.icon, icon)
-	cb.icon:SetShown(type(icon) ~= "nil")
+	cb.iconBox:SetShown(type(icon) ~= "nil")
 	Paint(cb, Plain(notInt) == true)
 	pcall(cb.text.SetText, cb.text, name)
 	cb.startT, cb.endT, cb.channel = st, et, channel

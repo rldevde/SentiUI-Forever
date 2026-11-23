@@ -1,5 +1,191 @@
 # SentiUI Action Bars
 
+## 0.3.60 - 2026-11-23
+
+- Loss-of-control banner (stun/root/silence) gets a dedicated skin: Blizzard blackBg and red line art removed outright, icon docked to the left edge at bar height (was overlapping the ability text), SentiUI panel + gold edge, restyled fonts.
+
+## 0.3.59 - 2026-11-23
+
+- Fixed Lua ordering error: SKINS.MirrorTimerContainer called the local SweepStart function before its definition line, so it resolved nil and errored on load - the mirror timer skin never ran. The proxy + skin are now defined after SweepStart.
+
+## 0.3.58 - 2026-11-23
+
+- Mirror timer bars (breath, fatigue, feign death) now get the SentiUI skin properly: the StatusBar fill widget is found inside the MirrorTimerN container (it lives on a child on this client, not the container itself), gets a flat gold fill, and the wooden border texture is killed outright instead of dimmed to 15%.
+
+## 0.3.57 - 2026-11-23
+
+- Breath/fatigue bars (MirrorTimer) stay unskinned no longer: they spawn lazily on first use on this client, so the one-time `MirrorTimer1..3` loop found nothing. The container is now wired into the lazy sweep with a proxy that merges container children and `MirrorTimer1..10` globals — every new bar gets the flat fill, dark panel + gold edge and SentiUI font as it appears.
+
+## 0.3.56 - 2026-11-23
+
+- Cooldowns surviving a reload: `PLAYER_ENTERING_WORLD` repaints all buttons, but action data is often unreadable at that moment and already-running cooldowns fire no events afterwards — long cooldowns stayed unpainted until a new cast. PEW now also schedules delayed cooldown-only sweeps at +0.5s/+1.5s/+3s so restored cooldowns get their swipe and countdown numbers back.
+
+## 0.3.55 - 2026-11-23
+
+- Cooldown number readability: the countdown font was `GameFontHighlightSmall` (plain white, no outline) — unreadable over bright spell icons. Now `SystemFont_Outline_Small`, which carries a dark outline for contrast (same look as Blizzard's cooldown digits).
+
+## 0.3.54 - 2026-11-23
+
+- NPC/quest/gossip dialog text: parchment-dark strings stay near-black now (like the originals) instead of being lifted to the bright text color — readability on the dark panel comes from a tiny 1px white shadow offset bottom-right (alpha 0.85), a hairline rim that doesn't glare. Applies to every dialog RestyleFonts touches.
+
+## 0.3.53 - 2026-11-23
+
+- Cooldown numbers on action buttons: the `ActionBarButtonTemplate` cooldown hides its countdown digits on this client, so only the swipe showed. `MakeButton` now calls `SetHideCountdownNumbers(false)` / `SetShowCountdownNumbers(true)` and hands the widget `GameFontHighlightSmall` via `SetCountdownFont` (each call guarded for older builds). Also picks up the template's `ChargeCooldown`/`LossOfControlCooldown` children — they were never assigned, so charge-recharge and loss-of-control swipes never painted; they are anchored to the icon in `StyleButton` like the main cooldown.
+
+## 0.3.52 - 2026-11-23
+
+- Action bar frame: replaced the 4 thin gold edge strips with `S.Template(holder, "panel")` — the holder now gets a proper dark panel backdrop with an accent-tinted border that sits flush behind the button grid (3px pad) instead of floating as a thin disconnected line at the outer edge.
+
+## 0.3.51 - 2026-11-23
+
+- Mail compose window: `SkinMail` finds the body ScrollFrame (`MailBody`, `MailScroll*`, or any ScrollFrame containing an EditBox) and applies the dark `inset` fill to the whole message area instead of just the thin EditBox inside it. The parchment texture is faded — no more black bar floating on orange paper.
+- `SkinQuestDialog` moved after `SkinDialog` in the file — Lua local functions must be declared before use; the original order caused `attempt to call a nil value` on QuestFrame and GossipFrame.
+
+## 0.3.50 - 2026-11-23
+
+- Quest/NPC dialog font fix: removed the `OUTLINE` flag from `RestyleFonts` — the thick black stroke produced a heavy black border around all white text on the dark panel. Quest and gossip fonts carry their own subtle shadow and read cleanly without the extra outline.
+- Quest/Gossip frame structure: `SkinQuestDialog` adds a subtle gold divider (28% alpha, 1px) at y=-55 below the NPC greeting/portrait area, giving the frame a titled section structure instead of floating text on a blank dark panel.
+- Action bar gold border: four 1px gold accent strips on the bar holder's BORDER layer (below button art) frame every bar in Sentinel gold at 55% alpha.
+- Action bar bottom offset raised from 10px to 16px for better clearance from the screen edge.
+- Action bar button icon inset increased from 1px to 3px — the icon was bleeding into the PillEdge backdrop's corner arc and appearing visually cut off at the edges.
+
+## 0.3.49 - 2026-11-23
+
+- Cooldown fix: complete rewrite of `PaintCooldown` / `sweep` to never inspect secret/tainted values in Lua.
+  - **Root cause**: `startTime`, `duration` and `isActive` are secret/tainted values on this client. Any Lua comparison on them (`== true`, `S.IsSecret(...)`) throws under addon taint, aborting the painter. Even wrapping `isActive == true` in `pcall` and treating a throw as "not active" was wrong — it caused `sweep` to explicitly `Clear()` all running cooldowns.
+  - **Fix**: `isActive` is never read. The raw `info` table is passed directly to `CooldownFrame_Set` (Blizzard C++ function that handles secrets internally). The C++ layer itself decides show/hide based on `duration`. Fallback chain: `SetCooldownFromDurationObject` → `CooldownFrame_Set` → `cd:SetCooldown` (direct frame method, for clients where the FrameXML global is absent).
+
+## 0.3.48 - 2026-11-23
+
+- Dark text in quest/gossip/book dialogs: raised the luminance threshold for the dark-text lift from `0.35` to `0.52`. This catches the parchment mid-tones WoW's `QuestFont`/`GossipFont` objects use (~0.40–0.50 luminance) which previously slipped through and stayed black on the dark panel.
+
+## 0.3.47 - 2026-11-22
+
+- `SkinPanelish` windows: dark fill via `raised` template (gold border tint), four clean corner-to-corner gold strips — no arc offsets, no `EdgeArc` gaps. Action buttons get a 1px gold ring overlay on hover and while a spell is toggled active.
+
+## 0.3.46 - 2026-11-22
+
+- The golden window edge uses the `GoldEdge` edgeFile again — now backed by the regenerated, spec-correct texture (continuous side lines + rounded corners), it replaces the strip+arc raster as intended.
+
+## 0.3.45 - 2026-11-22
+
+- Reverted the `GoldEdge.tga` window edge: the generated file renders a fat band on one side and open corners instead of a closed thin ring — the gold contrast edge is back to the strip+arc raster.
+- Black dialog text: gossip/quest/book bodies are re-painted by the game after the show pass, so the dark-text lift now re-runs on the content events (`GOSSIP_SHOW`, `QUEST_*`, `ITEM_TEXT_*`) and also catches strings whose font object carries the dark color while the vertex color reads white.
+
+## 0.3.44 - 2026-11-22
+
+- Action-button states ride the media: the pushed state uses the `ButtonPushed` soft-light overlay instead of a white blank tint, and the checked state uses the `ButtonChecked` gold outline ring instead of an accent fill — pressed and toggled buttons now read as designed states, not color washes.
+
+## 0.3.43 - 2026-11-22
+
+- Generated media in the window skin: the golden contrast edge uses the `GoldEdge.tga` edgeFile — one anti-aliased accent ring replaces the strip+arc raster on every skinned window. Scrollbar thumbs ride the real `SliderThumb.tga` glyph (accent-tinted) instead of a solid strip, and checkboxes use the `CheckOn`/`CheckEmpty` widget art — dark box, gold check — instead of a tinted Blizzard check.
+
+## 0.3.42 - 2026-11-22
+
+- Forbidden-object hardening, second pass: TradeFrame's own `GetRegions` passes but a child inside it is forbidden — `RestyleFonts` walked in and threw "Attempt to access forbidden object". The probe now checks both `GetRegions` and `GetChildren`, and every walk entry point carries the cached check.
+
+## 0.3.41 - 2026-11-22
+
+- The gold window edge was missing its corners: the four accent strips ended 7px short of every corner, leaving the border open on all skinned Blizzard windows. Rasterized quarter arcs (new core S.EdgeArc) now close the frame - center and radius land exactly on the strip ends and follow the panel's rounded corner.
+
+## 0.3.40 - 2026-11-22
+
+- Fix: forbidden objects (TradeFrame, StoreFrame) threw "Attempt to access forbidden object" on login and every open - GetRegions/GetName is refused there. The skin probes a frame once, caches the verdict and leaves forbidden objects completely alone. Child-level probes (object type, name) are silent pcalls now, so protected children skip quietly instead of printing "blocked api" warnings.
+
+## 0.3.39 - 2026-11-22
+
+- Golden contrast edge: every skinned Blizzard window now carries the 1px accent frame around its panel - strong on top, softer on the other three sides, inset past the corner arcs like every own SentiUI window.
+- Fix: styled windows flipped back to the old Blizzard look mid-session. The game rebuilds its chrome on every open (NineSlice children, region alphas, backdrops) - the chrome kill now re-runs on every show, and scrollbars, checkboxes and status bars re-apply their skin every walk instead of once. A deferred re-walk catches content populated a tick after OnShow (AH result rows).
+
+## 0.3.38 - 2026-11-22
+
+- Skinned dialog buttons light their border on hover - the same border-lit feedback every own SentiUI widget has. Icon/art buttons stay untouched.
+
+## 0.3.37 - 2026-11-22
+
+- Close buttons keep their X glyph but tint accent gold; window titles (TitleText, TitleContainer) read in accent gold.
+
+## 0.3.36 - 2026-11-22
+
+- Scrollbar up/down arrow buttons get tinted accent gold - the glyph stays but the wooden button look dies.
+
+## 0.3.35 - 2026-11-22
+
+- Widget sweep now also covers UIWidgetCenterDisplayFrame; pet battle queue ready popup and old browse/raid browser frame names join the dialog list.
+
+## 0.3.34 - 2026-11-22
+
+- Closed the leftover gaps inside styled windows (visible at the auction house): the chrome pass now runs at every depth of the child walk, so nested panels lose their own NineSlice/Border fields and named inset children. The window's own backdrop edge is cleared (BackdropTemplateMixin borders are not texture regions and survived the fade). Modern MenuUtil DropdownButton objects (AH filter dropdowns) get the raised style, and ornate border art on the ARTWORK layer fades when the region name reads border/background-ish.
+
+## 0.3.33 - 2026-11-22
+
+- Fixed erased icons in the group finder (LFG role/activity tiles): the deep walk faded buttons whose names did not read icon-ish. The guard now keeps a button's art when any texture region sits on the ARTWORK layer or when the button has textures but no label text. Added alternate finder frame names (GroupFinderFrame, PremadeGroupsFrame, LFGFrame).
+
+## 0.3.32 - 2026-11-22
+
+- Chat popup menus (chat menu, emotes, language, voice macros) and the chat autocomplete dropdown get panel + fonts. Pet battle frame and dungeon difficulty banner get fonts only - their buttons are content art and a generic skin would break more than it fixes.
+
+## 0.3.31 - 2026-11-22
+
+- World map gets its own skin (panel + top-level chrome + fonts, no child walk - map pins are plain buttons without icon-ish names and would have been faded invisible). The per-show deep re-walk now only runs for real dialogs, so panel-only skins keep their button art.
+- More stragglers: barber shop, audio options, transmogrify frame, raid parent, contribution collection, torghast level picker; battleground always-up score gets the font pass.
+
+## 0.3.30 - 2026-11-22
+
+- The deep child walk re-runs on every window show, not just once: widgets the game builds lazily (tab pages on first click, scroll rows on populate, late-spawned buttons) get styled as soon as the window reopens. Marker flags keep already-skinned children cheap.
+
+## 0.3.29 - 2026-11-22
+
+- Backdrop chrome dies too: modern inset frames carry their border through the backdrop mixin rather than texture regions - the chrome pass now clears SetBackdrop on NineSlice/Border/Inset/Bg/TopTileStreaks children and fades one child level deeper, so the frame edge can no longer survive the texture fade.
+- Last named stragglers: battle tag invite, recruit-a-friend dialogs, quest sync dialogs, edit mode system settings, generic popup, loss-of-control splash (panel+fonts).
+
+## 0.3.28 - 2026-11-22
+
+- Fourth wave of window skins: auction house (both frame names), black market, read-mail window, stable master, arena registrar, movie frame, store, script errors, bonus roll, party pose screens, keystone frame, macro icon picker, community ticket manager, quest log popup detail, recruit-a-friend, scrapper, azerite frames, reputation detail and token popups, all calendar sub-windows, tutorial frame - plus panel+fonts on the compact raid manager pullout.
+
+## 0.3.27 - 2026-11-22
+
+- Third wave of window skins: modern SettingsPanel, click bindings, edit mode manager, group-finder popups (ready/invite/role check), PvP match results/scoreboard, player choice, warboard, archaeology, item interaction, obliterum, islands, chromie time, guild control/invite/text edit, model preview, splash, death recap, report, generic traits, delves pickers, crafting orders and the garrison/order hall/covenant/soulbind/runeforge/anima system windows.
+- Chrome in named child frames (NineSlice, Border, Inset, Bg, TopTileStreaks) now fades along with field-based chrome; status bars inside windows swap the wood fill for the flat blank texture and keep their status color.
+
+## 0.3.26 - 2026-11-22
+
+- The window skin now walks the full child tree: nested page buttons, scroll children and tab-page widgets get the raised/inset look instead of staying wooden. Text tabs (merchant, spellbook, friends, character) become raised chips; dropdown fields lose their pill chrome and sit in a dark inset (label and arrow stay).
+- The icon guard got sharper: buttons whose name, icon field or texture regions read icon/item/slot/spell/glyph/portrait keep their art - spellbook and glyph icons can not be erased by the deep walk.
+
+## 0.3.25 - 2026-11-22
+
+- Second wave of window skins: collections, encounter journal, achievements, calendar, guild/communities, PvE finder, challenges, talents, professions/tradeskill, wardrobe/transmog, void storage, item upgrade/socketing, weekly rewards, perks, landing pages, flight map, loot history, BG scoreboard, quest log detail, raid info, guild registrar, color picker and opacity frames all get the Sentinel dialog skin (load-on-demand frames resolve through the show watcher).
+- Scrollbars and checkboxes inside the skinned windows get a deep styling pass: scrollbar tracks fade, thumbs become solid accent bars (arrow art stays), checkbox checks tint accent gold.
+
+## 0.3.24 - 2026-11-22
+
+- Dark text on the dark panel is readable now: Blizzard dialog fonts are painted black for parchment, so a luminance check in the font pass lifts only strings that still read dark onto the normal text color - quality/link/header colors keep their role color. The font pass also re-runs on every show, since the game repaints text colors per open (quest pages, merchant tabs).
+
+## 0.3.23 - 2026-11-22
+
+- The dialog skin now covers the big everyday windows too: quest giver/log, gossip, merchant, mail, spellbook, trade, inspect, taxi, dressing room, tabard, petition, friends, macro, trainer/craft, battlefield/PvP/honor/LFG, bank/guild bank/auction, quest timer, time manager, help, interface options/keybindings and the addon list. Missing names are skipped; load-on-demand windows are styled on first show via the visibility watcher.
+- Item slot buttons inside those windows keep their icons: the child-button skin faded every texture region, which would have erased merchant slots, quest reward icons and mail attachments - item/icon/slot/tab/attachment buttons now only get the font pass.
+
+## 0.3.22 - 2026-11-22
+
+- Cooldown Manager viewers opt-in (Extra buttons page): the parked Essential/Utility/Buff viewers come back with a SentiUI skin and movable positions — off by default.
+- Mover-framed Blizzard UI gets the SentiUI look: TalkingHead, mirror timers and the vehicle seat indicator lose their chrome and gain the dark panel; large screen texts (zone/subzone, raid warnings, boss emotes, UI errors) use the SentiUI font with accent colors.
+- Remaining Blizzard leftovers skinned: ESC game menu, StaticPopup dialogs, ready check, item text, chat config, stack split and cinematic close dialogs get the dark panel with SentiUI buttons/fonts; dropdown menus, Battle.net toasts, queue and ticket status, durability doll and ghost button get the panel look; boss/level-up banners switch font; alert toasts, UI widgets (top-center/below-minimap) and battleground timer bars are styled on spawn via a slow sweep.
+
+## 0.3.21 - 2026-11-22
+
+- Fixed a cooldown error: the button template's own handlers call `SetCooldown(start, duration, modRate)` with values that are secret on this client — `SetCooldown` refuses secrets under addon taint. Our buttons now swallow that throw on their own cooldown widget; the visible cooldown still paints via `SetCooldownFromDurationObject` and the game's untainted cooldown events.
+
+## 0.3.20 - 2026-11-22
+
+- Empty action slots dim their button body to 18% opacity instead of showing a full dark square — the bar grid stays readable without prominent black boxes.
+- Icon rounding now uses the rewritten core S.IconRound: the icon is clipped by a real MaskTexture (rounded-square silhouette).
+
+## 0.3.19 - 2026-11-22
+
+- Action button icons now have soft rounded corners via S.IconRound — background-colored arc pieces cover each icon's square corner (6px radius, matching the button body rounding).
+
 ## 0.3.18 - 2026-11-22
 
 - Talent alert pill: same secure-click fix - the /click forward keeps the template's own OnClick handler so the macro runs untainted.

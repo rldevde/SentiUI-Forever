@@ -106,6 +106,16 @@ local function MakeSlot(parent, slot, side)
 	b.icon:SetPoint("TOPLEFT", 2, -2)
 	b.icon:SetPoint("BOTTOMRIGHT", -2, 2)
 	b.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	-- subtle 2px corner clip via the shared mask helper (b.icon lives on
+	-- b.box, IconRound picks the icon's own parent for the mask host)
+	S.IconRound(b, 2)
+
+	-- hover sheen inside the box; the quality border color stays untouched
+	b.box.hover = b.box:CreateTexture(nil, "OVERLAY")
+	b.box.hover:SetAllPoints(b.icon)
+	b.box.hover:SetTexture(BLANK)
+	b.box.hover:SetVertexColor(1, 1, 1, 0.07)
+	b.box.hover:Hide()
 
 	if side ~= "bottom" then
 		b.name = S.Font(b, 10)
@@ -137,13 +147,17 @@ local function MakeSlot(parent, slot, side)
 		Sl.Click(self, btn)
 	end)
 	b:SetScript("OnEnter", function(self)
+		if self.box.hover then self.box.hover:Show() end
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		local ok = pcall(function()
 			GameTooltip:SetInventoryItem("player", self.slot)
 		end)
 		if ok then GameTooltip:Show() end
 	end)
-	b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	b:SetScript("OnLeave", function(self)
+		if self.box.hover then self.box.hover:Hide() end
+		GameTooltip:Hide()
+	end)
 	return b
 end
 
@@ -262,7 +276,7 @@ local function RefreshOne(b)
 				end
 				if ench > 0 then line = line .. "  |cff4ec24e" .. L["E"] .. "|r" end
 				if gems > 0 then
-					line = line .. "  |cff339eff" .. string.rep("◆", gems) .. "|r"
+					line = line .. "  |cff339eff" .. string.rep("•", gems) .. "|r"
 				end
 				b.sub:SetText(line)
 				b.sub:Show()

@@ -212,11 +212,26 @@ end
 function S.EscClosable(f)
 	if not f or f._suiEsc then return end
 	f._suiEsc = true
-	f:EnableKeyboard(true)
-	f:SetPropagateKeyboardInput(true)
+	-- SetPropagateKeyboardInput is restricted during combat on this client
+	-- (ADDON_ACTION_FORBIDDEN). Bail there and pcall everywhere else.
+	local function propagate(self, on)
+		if InCombatLockdown() then return end
+		pcall(self.SetPropagateKeyboardInput, self, on)
+	end
+	-- a frame that cannot be told to propagate would swallow every game
+	-- key, so the keyboard only goes live once propagation really took
+	local function arm(self)
+		if InCombatLockdown() then return end
+		propagate(self, true)
+		local ok, on = pcall(self.GetPropagateKeyboardInput, self)
+		self:EnableKeyboard(ok and on or false)
+	end
+	arm(f)
+	f:HookScript("OnShow", arm)
 	f:SetScript("OnKeyDown", function(self, key)
+		if InCombatLockdown() then return end
 		local esc = key == "ESCAPE"
-		self:SetPropagateKeyboardInput(not esc)
+		propagate(self, not esc)
 		if not esc then return end
 		-- a focused edit box inside the window gets Escape first: it clears
 		-- its focus, the window stays (like the game's own popups)
@@ -227,6 +242,10 @@ function S.EscClosable(f)
 		if ours then foc:ClearFocus() return end
 		self:Hide()
 	end)
+	-- a swallowed Escape must not leave the game's keys stuck on this
+	-- frame: reset propagation on key-up and when the window goes away
+	f:SetScript("OnKeyUp", function(self) propagate(self, true) end)
+	f:HookScript("OnHide", function(self) propagate(self, true) end)
 end
 
 -- secure reload overlay -------------------------------------------------------
@@ -235,27 +254,24 @@ end
 -- the real button runs "/reload" through the engine's secure macro path
 -- instead - the same trick the panel's /click forwards use. Returns nil in
 -- combat (attributes cannot be set there).
-function S.SecureReload(host, postClick)
+function S.SecureReload(host)
 	if type(host) ~= "table" or InCombatLockdown() then return nil end
 	local sb = CreateFrame("Button", nil, host, "SecureActionButtonTemplate")
 	sb:SetAllPoints()
-	sb:RegisterForClicks("LeftButtonUp", "LeftButtonDown")
+	sb:RegisterForClicks("AnyDown", "AnyUp")
 	pcall(sb.SetAttribute, sb, "type", "macro")
 	pcall(sb.SetAttribute, sb, "type1", "macro")
 	pcall(sb.SetAttribute, sb, "macrotext", "/reload")
 	pcall(sb.SetAttribute, sb, "macrotext1", "/reload")
-	-- LeftButtonUp clicks only fire when the engine is not in key-down mode.
+	-- without this the dispatch follows the key-down CVar and can ignore
+	-- the Up click entirely
 	pcall(sb.SetAttribute, sb, "useOnKeyDown", false)
-	-- IMPORTANT: no SetScript("OnClick", ...) here - replacing the template's
-	-- own secure handler with an insecurely stored function makes the whole
-	-- click dispatch insecure and RunMacroText gets flagged FORBIDDEN.
+	-- IMPORTANT: no SetScript at all here (OnClick, PostClick, OnEnter, ...).
+	-- An insecurely stored script on the secure frame makes the whole click
+	-- dispatch insecure and RunMacroText gets flagged FORBIDDEN. Side
+	-- effects belong on the caller's side, not on this button.
 	if host.GetFrameLevel then
 		sb:SetFrameLevel((host:GetFrameLevel() or 1) + 5)
-	end
-	if type(postClick) == "function" then
-		sb:SetScript("PostClick", function(_, button)
-			if button == "LeftButton" then postClick() end
-		end)
 	end
 	return sb
 end
@@ -288,8 +304,16 @@ local function WatchPump(self)
 			-- happened
 			if not ok or type(raw) ~= "boolean" then raw = w.shown end
 			local shown = raw == true
-			if w.shown == nil then w.shown = shown end
-			if w.shown ~= shown then
+			if w.shown == nil then
+				w.shown = shown
+				-- a frame discovered already shown (load-on-demand UI
+				-- spawns visible on its first open) still counts as a
+				-- transition - silent init used to swallow it and the
+				-- onShow callback only ever fired from the second open
+				if shown and w.onShow then
+					S.SafeCall("watchShown", w.onShow, f)
+				end
+			elseif w.shown ~= shown then
 				w.shown = shown
 				local cb = shown and w.onShow or w.onHide
 				if cb then S.SafeCall("watchShown", cb, f) end
@@ -650,6 +674,17 @@ function S:Set(scope, path, value)
 	end
 	S.Fire("SettingChanged", scope, path, value)
 	return true
+end
+
+-- the game's own UI scale: the client does not persist the uiScale CVar
+-- (config-cache.wtf), so the choice is kept in general.gameScale and
+-- re-applied on every login (PLAYER_LOGIN in Installer.lua). Shared by
+-- the installer's scale step and the settings' Interface page.
+function S.ApplyGameScale(v)
+	if not (C_CVar and C_CVar.SetCVar) then return end
+	pcall(C_CVar.SetCVar, "useUiScale", "1")
+	pcall(C_CVar.SetCVar, "uiScale", string.format("%.2f", v))
+	S.DB.General().gameScale = v
 end
 
 -- slash commands ------------------------------------------------------------------------

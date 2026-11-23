@@ -1300,6 +1300,24 @@ ns.RegisterCallback(Scanner, "SAI_BOOT", function()
 -- stays fresh within a session.
 ns:Every(600, RequestPlaytime)
 
+-- PLAYER_ENTERING_WORLD may already have fired by the time the module
+-- enables on PLAYER_LOGIN (event order is not guaranteed on this client),
+-- so scan right away too - a beat later so the first bag data has
+-- arrived. The realm name can still be unknown very early; retry until
+-- OwnKey resolves, otherwise every Scan* call would bail on a nil char.
+local bootTries = 0
+local function BootScan()
+	bootTries = bootTries + 1
+	local ok, key = pcall(Store.OwnKey)
+	if ok and key then
+		pcall(InitialScan)
+	elseif bootTries < 15 then
+		ns:After(1, BootScan)
+	else
+		ns:Print("could not resolve the character key (name/realm unavailable) - /sai scan for details")
+	end
+end
+ns:After(1, BootScan)
 ns:RegisterEvent("PLAYER_ENTERING_WORLD", InitialScan)
 ns:RegisterEvent("PLAYER_LEVEL_UP", function()
 	ScanMeta()

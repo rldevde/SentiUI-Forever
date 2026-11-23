@@ -1,5 +1,24 @@
 # Changelog — SentiUI_Character
 
+## 0.2.17 - 2026-11-22
+
+- Icon-glyph boxes fixed: the gem counter's `◆` diamonds and the stat group `▾`/`▸` collapse arrows are glyphs the SentiUI font does not carry — they rendered as empty squares and are now safe `•` bullets and `v`/`>` ASCII arrows.
+
+## 0.2.16 - 2026-11-22
+
+- The custom character window is shelved for now: everything passes through to the Blizzard CharacterFrame (no window build, no hooks, no watcher). Menu/API callers are forwarded to ToggleCharacter with the correct tab. The window code stays in place and returns via `ns.PASSTHROUGH` in Core.lua.
+
+## 0.2.15 - 2026-11-22
+
+- Tab chips size to their captions again (core TabChip label fix) — readable tab text in the character window and everywhere chips are used.
+- Gear slot icons clip to soft rounded corners via the rewritten S.IconRound MaskTexture; hovering a slot shows a subtle light sheen while the quality border stays untouched.
+- The player model now sits in a framed inset portrait panel.
+
+## 0.2.14 - 2026-11-22
+
+- Tab strip redesigned with the new shared Sentinel tab chip: a dark inset body with a 2px accent blade on the left edge - the blade glows on hover and burns on the active tab, active tabs raise with a lit border and accent text. One design language instead of scattered boxes.
+- Window refresh for the rounded look: the header title wears the class color, the Blizzard ornate X is replaced by the Sentinel close chip (accent on hover, Escape-close unchanged via S.EscClosable) and the equipment-set picker is a small chip in the footer.
+
 ## 0.2.13 - 2026-11-22
 
 - Window now closes on Escape via the shared S.EscClosable helper instead of a UISpecialFrames entry - addon-written entries in that game table taint the Escape dispatch, which made protected calls (spell stop, reload) fail and get blamed on the addon.

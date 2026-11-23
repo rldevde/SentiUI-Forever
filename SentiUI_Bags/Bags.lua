@@ -188,6 +188,8 @@ function Core.Layout(w)
 	w.grid:SetSize(fw, gh)
 	w.grid:SetPoint("TOPLEFT", w.frame, "TOPLEFT", 0, -topOff)
 	w.frame:SetSize(fw, gh + topOff + FOOT_H + 6)
+	-- repair button only when auto-repair is off; it runs automatically
+	if w.tool_repair then w.tool_repair:SetShown(not db.autoRepair) end
 	Footer(w)
 end
 
@@ -276,6 +278,7 @@ function Core.MakeWindow(key, opts)
 		for i = #opts.tools, 1, -1 do
 			local t = opts.tools[i]
 			local b = Tool(w, t.label, nil, t.fn)
+			if t.key then w["tool_" .. t.key] = b end
 			if not anchor then
 				b:SetPoint("TOPRIGHT", w.frame, "TOPRIGHT", -PAD, toolTop)
 			else
@@ -373,6 +376,9 @@ function Core.Sync()
 	syncPending = true
 	C_Timer.After(0, function()
 		syncPending = nil
+		-- merchant opened the window explicitly; IsAnyBagOpen() reads
+		-- the game's own bag frames (not ours) and would close it again
+		if Core.forceOpen then Core.ApplyGameState(true) return end
 		local open = Core.GameBagOpen()
 		if open == nil then open = Core.gameOpen end -- event-tracked fallback
 		-- nil reaches ApplyGameState as a blind toggle: only possible when
@@ -414,7 +420,7 @@ function Core.Enable(mod)
 						or SortBags
 					if type(f) == "function" then pcall(f) end
 				end },
-				{ label = L["Repair"], fn = function() ns.Merchant.Repair() end },
+				{ key = "repair", label = L["Repair"], fn = function() ns.Merchant.Repair() end },
 			},
 		})
 		ns.Bank.Enable()

@@ -12,6 +12,13 @@ local function UnitGroup(key, label, extra)
 		{ type = "slider", key = key .. ".h", label = L["Height"], min = 12, max = 80, step = 1, unit = "px" },
 		{ type = "toggle", key = key .. ".power", label = L["Show power bar"], reload = true },
 		{ type = "toggle", key = key .. ".auras", label = L["Show auras"], reload = true },
+		{ type = "dropdown", key = key .. ".portrait", label = L["Portrait"],
+			options = {
+				{ value = "off", label = L["Off"] },
+				{ value = "class", label = L["Class icon"] },
+				{ value = "model", label = L["3D portrait"] },
+			},
+			desc = L["Portrait tile on the left edge: class icon for players, a 3D face for everything else, or the 3D portrait for all."] },
 	}
 	if extra then
 		for _, it in ipairs(extra) do items[#items + 1] = it end
@@ -115,6 +122,15 @@ ns.OPTIONS = { pages = {
 					{ type = "toggle", key = "party.showPets", label = L["Show pets"], reload = true,
 						desc = L["Small pet bars attached below each party member."] },
 					{ type = "toggle", key = "party.auras", label = L["Show auras"], reload = true },
+					{ type = "toggle", key = "party.defensiveIcons", label = L["Defensive icons"],
+						desc = L["Small corner icons for external defensive cooldowns on party cells."] },
+					{ type = "dropdown", key = "party.portrait", label = L["Portrait"],
+						options = {
+							{ value = "off", label = L["Off"] },
+							{ value = "class", label = L["Class icon"] },
+							{ value = "model", label = L["3D portrait"] },
+						},
+						desc = L["Portrait tile on the left edge: class icon for players, a 3D face for everything else, or the 3D portrait for all."] },
 				},
 			},
 		},
@@ -150,6 +166,17 @@ ns.OPTIONS = { pages = {
 					{ type = "toggle", key = "raid.readyCheck", label = L["Ready check"], reload = true },
 					{ type = "toggle", key = "raid.auras", label = L["Show auras"], reload = true,
 						desc = L["Aura icons on raid cells - busy on small cells."] },
+					{ type = "toggle", key = "raid.defensiveIcons", label = L["Defensive icons"],
+						desc = L["Small corner icons for external defensive cooldowns on raid cells."] },
+					{ type = "toggle", key = "raidTools.enable", label = L["Raid tools"], reload = true,
+						desc = L["Strip with target/world markers, ready check and a pull timer. Only shows while grouped."] },
+					{ type = "dropdown", key = "raid.portrait", label = L["Portrait"],
+						options = {
+							{ value = "off", label = L["Off"] },
+							{ value = "class", label = L["Class icon"] },
+							{ value = "model", label = L["3D portrait"] },
+						},
+						desc = L["Portrait tile on the left edge: class icon for players, a 3D face for everything else, or the 3D portrait for all."] },
 				},
 			},
 		},
@@ -182,6 +209,8 @@ ns.OPTIONS = { pages = {
 						desc = L["Lighter fill showing heals landing on the unit."] },
 					{ type = "toggle", key = "player.combatText", label = L["Combat text"],
 						desc = L["Damage and healing numbers rising out of the player frame."] },
+					{ type = "toggle", key = "altPower", label = L["Alt power bar"],
+						desc = L["The encounter power bar (replaces the parked Blizzard bar)."] },
 				},
 			},
 		},
@@ -204,6 +233,13 @@ function ns.SettingChanged(mod, path)
 					if not ns.db.party.showRole and b.RoleIcon then b.RoleIcon:Hide() end
 					ns.UF.UpdateIcons(b)
 				end
+			elseif path:match("portrait$") then
+				-- portrait tile resizes the health bar: reconfigure, then
+				-- refresh so UpdatePortrait paints the new mode
+				for _, b in ipairs(G.partyButtons) do
+					ns.UF.Configure(b)
+					ns.UF.Refresh(b)
+				end
 			else
 				G.PartyLayout()
 			end
@@ -212,11 +248,30 @@ function ns.SettingChanged(mod, path)
 	end
 	if path and path:match("^raid%.") then
 		local G = ns.Group
-		if G and G.raidHeader then G.ApplyRaidAttributes(G.raidHeader) end
+		if G and G.raidHeader then
+			G.ApplyRaidAttributes(G.raidHeader)
+			if path:match("portrait$") then
+				for i = 1, 40 do
+					local c
+					if G.raidHeader.GetFrameRef then
+						local ok, c2 = pcall(G.raidHeader.GetFrameRef, G.raidHeader, "child" .. i)
+						c = ok and c2
+					end
+					c = c or _G[G.raidHeader:GetName() .. "UnitButton" .. i]
+					if not c then break end
+					if c.suiInit then ns.UF.Refresh(c) end
+				end
+			end
+		end
 		return
 	end
 	local key = path and path:match("^(%a+)%.[wh]$")
 	if key and ns.units[key] then
 		ns.UF.Configure(ns.units[key])
+	end
+	local pkey = path and path:match("^(%a+)%.portrait$")
+	if pkey and ns.units[pkey] then
+		ns.UF.Configure(ns.units[pkey])
+		ns.UF.Refresh(ns.units[pkey])
 	end
 end

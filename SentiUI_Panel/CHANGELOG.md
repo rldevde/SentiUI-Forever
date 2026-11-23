@@ -1,5 +1,29 @@
 # SentiUI Panel
 
+## 0.5.34 - 2026-11-22
+
+- Layer channel parking fix: the join/leave timers in the world plugin ran unguarded seconds later, tripping 'forbidden call: UNKNOWN()' when combat started in between. Each timer step now bails under InCombatLockdown.
+
+## 0.5.33 - 2026-11-22
+
+- Accent edge lines (top/bottom bars, plugins menu, toasts) are now inset 7px past the corner arc so they end on the straight edge instead of poking past the rounded frame silhouette.
+
+## 0.5.32 - 2026-11-22
+
+- The blacklist window's filter chips use the shared Sentinel tab chip now: dark inset body with a 2px accent blade on the left edge that glows on hover and burns on the active chip - one design language across the whole suite.
+
+## 0.5.31 - 2026-11-22
+
+- New installer step 'Bottom bar plugins': a scrollable checklist of every registered plugin - tick what should show on the bottom bar, untick what should not. Changes apply live and stay editable under SentiUI > Panel > Plugins.
+
+## 0.5.30 - 2026-11-22
+
+- The performance plugin defaults to hidden: the same readout now lives as a gear icon on the minimap (SentiUI_Minimap 0.3.14). The bar entry stays available under Panel > Plugins; existing configs keep their choice.
+
+## 0.5.29 - 2026-11-22
+
+- Overlapping plugin texts fixed: GetStringWidth can return 0 (not nil) before a string has rendered on this client - the width fallback never kicked in, so a freshly updated plugin collapsed to icon width and its neighbor drew over it.
+
 ## 0.5.28 - 2026-11-22
 
 - Plugin secure overlays (item/macro targets) no longer replace the template OnClick - clicks run through the client's secure dispatch.

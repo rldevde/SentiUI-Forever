@@ -2,6 +2,42 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.8",
+		changes = {
+			"Gold hairline now spans the bar's full width (was inset 5px each side - read as a golden section smaller than the bar itself).",
+		},
+		changesDE = {
+			"Goldene Haarlinie laeuft jetzt ueber die volle Leistenbreite (war je Seite 5px eingezogen - wirkte wie ein goldener Abschnitt kleiner als die Leiste).",
+		},
+	},
+	{
+		version = "0.1.7",
+		changes = {
+			"XP and rep bars now dock flush against the chat panel top edge (removed the 1px gap).",
+		},
+		changesDE = {
+			"EP- und Ruf-Leisten docken jetzt bündig an der Oberkante des Chat-Panels an (1px Spalt entfernt).",
+		},
+	},
+	{
+		version = "0.1.6",
+		changes = {
+			"Dark-glass gloss overlay on the bar fill area, matching the unit frame / castbar look.",
+		},
+		changesDE = {
+			"Dark-Glass-Glanz auf dem Fuellbereich der Leisten, passend zum Unit-Frame-/Castbar-Look.",
+		},
+	},
+	{
+		version = "0.1.5",
+		changes = {
+			"The accent line along the top edge is now inset 5px on each side so it ends on the straight edge instead of poking past the rounded corners.",
+		},
+		changesDE = {
+			"Die Akzentlinie an der Oberkante ist jetzt je 5px eingesetzt, damit sie an der geraden Kante endet statt ueber die abgerundeten Ecken hinauszuragen.",
+		},
+	},
+	{
 		version = "0.1.4",
 		changes = {
 			"Fixed broken bar fills: the orientation helper was declared below the fill function, so it resolved to a nil global and errored on every update - bars rendered uncolored (white).",

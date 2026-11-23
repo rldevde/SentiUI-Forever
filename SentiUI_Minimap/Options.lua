@@ -45,9 +45,20 @@ ns.OPTIONS = {
 					label = L["Zoom"],
 					items = {
 						{ type = "toggle", key = "scrollZoom", label = L["Mouse wheel zoom"] },
+						{ type = "toggle", key = "zoomButtons", label = L["Zoom buttons"],
+							desc = L["Small + and - buttons at the map's bottom-right corner, where the classic magnifier pair used to sit."] },
 						{ type = "toggle", key = "zoomReset", label = L["Zoom resets after a pause"],
 							desc = L["A few seconds after the last scroll the map zooms fully out again."],
 							disabled = function(get) return not get("scrollZoom") end },
+					},
+				},
+				{
+					label = L["Tracking"],
+					items = {
+						{ type = "toggle", key = "trackButton", label = L["Tracking button"],
+							desc = L["Our own magnifier at the map's top-left: shows the active tracking on hover, a click opens the tracking menu."] },
+						{ type = "toggle", key = "autoTrack", label = L["Auto profession tracking"],
+							desc = L["With Mining or Herbalism the matching tracking (Find Minerals / Find Herbs) turns itself on at login when nothing is tracked yet. A tracking you turned off through the menu stays off."] },
 					},
 				},
 				{
@@ -61,6 +72,8 @@ ns.OPTIONS = {
 						{ type = "toggle", key = "hide.mail", label = L["Hide mail icon"],
 							desc = L["Otherwise it sits top-right when new mail arrives."] },
 						{ type = "toggle", key = "hide.difficulty", label = L["Hide difficulty flag"] },
+						{ type = "toggle", key = "perfButton", label = L["Performance icon"],
+							desc = L["A gear icon next to the addon buttons: latency, framerate and addon memory on hover, right-click opens the options."] },
 					},
 				},
 				{

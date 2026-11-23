@@ -25,6 +25,8 @@ local CAST_EVENTS = {
 	"UNIT_SPELLCAST_CHANNEL_START", "UNIT_SPELLCAST_CHANNEL_STOP",
 	"UNIT_SPELLCAST_CHANNEL_UPDATE", "UNIT_SPELLCAST_INTERRUPTIBLE",
 	"UNIT_SPELLCAST_NOT_INTERRUPTIBLE",
+	"UNIT_SPELLCAST_EMPOWER_START", "UNIT_SPELLCAST_EMPOWER_UPDATE",
+	"UNIT_SPELLCAST_EMPOWER_STOP",
 }
 
 -- per-frame fill from the stored timestamps; arithmetic stays in pcall so
@@ -39,6 +41,10 @@ local function FillFromTimes(self)
 	self:SetMinMaxValues(0, dur)
 	self:SetValue(self.channel and math.max(0, rem)
 		or math.max(0, dur - rem))
+	if self.timeText then
+		pcall(self.timeText.SetFormattedText, self.timeText,
+			"%.1f", math.max(0, rem))
+	end
 end
 
 -- per-frame fill straight off the engine duration object. The getters
@@ -51,6 +57,16 @@ local function FillFromDuration(self)
 	local d = self.duration
 	if not d then return end
 	pcall(function()
+		-- the remaining-time text works on either fill path and reads
+		-- the same duration object the fill does
+		local t = self.timeText
+		if t then
+			local remFn = d.GetRemainingDuration
+			local okR, rem = remFn and pcall(remFn, d)
+			if okR and rem then
+				pcall(t.SetFormattedText, t, "%.1f", rem)
+			end
+		end
 		local pctFn = d[self.channel and "GetRemainingPercent"
 			or "GetElapsedPercent"]
 		local ok, pct = pctFn and pcall(pctFn, d)
@@ -90,12 +106,16 @@ function Cast.Refresh(p)
 		pcall(p.castIcon.SetTexture, p.castIcon, texture)
 	end
 	pcall(p.castText.SetText, p.castText, name)
-	-- non-interruptible reads darker so you see at a glance not to waste the kick
-	if plain(ni) == true then
+	if p.castTime then p.castTime:SetText("") end
+	-- non-interruptible reads darker + carries the shield badge so you
+	-- see at a glance not to waste the kick
+	local niCast = plain(ni) == true
+	if niCast then
 		p.cast:SetStatusBarColor(0.45, 0.45, 0.50)
 	else
 		p.cast:SetStatusBarColor(ACC.r, ACC.g, ACC.b)
 	end
+	if p.castShield then p.castShield:SetShown(niCast) end
 	p.cast.startT, p.cast.endT, p.cast.channel = st, et, channel
 	-- preferred: the engine's duration object drives the bar. The
 	-- per-frame fill reads its getters every frame (secret-safe raw

@@ -2,6 +2,218 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.36",
+		date = "2026-11-23",
+		changes = {
+			"Castbar visual pass (player/target - covers interact casts like opening chests): raised panel with the 0.70-alpha gold border of the frames, darker unfilled area + glass sheen, spell icon in its own inset tile, uninterruptible shield as a badge on the icon corner.",
+			"Empower cast events added so empower spells drive the castbar too.",
+		},
+		changesDE = {
+			"Castleisten-Optik (Spieler/Ziel - deckt auch Interaktions-Casts wie Truhen oeffnen ab): raised-Panel mit dem 0.70-Alpha-Goldrand der Frames, dunklerer unfuellter Bereich + Glasreflex, Zauber-Icon in eigener Inset-Kachel, Unterbrechbarkeits-Schild als Badge auf der Icon-Ecke.",
+			"Empower-Cast-Events ergaenzt, damit Empower-Zauber die Castleiste auch treiben.",
+		},
+	},
+	{
+		version = "0.2.35",
+		date = "2026-11-23",
+		changes = {
+			"Layout fix: bars now inset 4px from all edges so they sit cleanly inside the PillEdge backdrop fill area (not bleeding into the gold border). Health top y=-4 (was -1), power bottom y=4 (was 1).",
+			"Removed AccentLine and BottomLine interior textures from player/target frames.",
+			"Player/target backdrop border alpha raised from 0.45 to 0.70.",
+			"healthTextMode migration: BOTH (old default) auto-updated to VALUE on first load.",
+		},
+		changesDE = {
+			"Layout-Fix: Leisten jetzt 4px von allen Raendern eingerueckt, damit sie sauber im PillEdge-Backdrop-Bereich sitzen. Health oben y=-4 (war -1), Power unten y=4 (war 1).",
+			"AccentLine und BottomLine interne Texturen von Spieler-/Ziel-Frames entfernt.",
+			"Spieler-/Ziel-Backdrop-Rand-Alpha von 0.45 auf 0.70 erhoehen.",
+			"healthTextMode-Migration: BOTH (alter Standard) wird beim ersten Laden automatisch auf VALUE aktualisiert.",
+		},
+	},
+	{
+		version = "0.2.34",
+		date = "2026-11-23",
+		changes = {
+			"Visual overhaul - player/unit/party/raid frames: HP text shows absolute value (no percent). Power bar 8px for player/target. Bar bg opacity 0.55->0.65. Class colour dimmed 12% on health bars. Glass sheen 0.14->0.20. CornerCut on health (r3) and power (r2) bars for rounded pill ends. Top gold accent 90% alpha. New 1px bottom gold closure line. Portrait separator.",
+		},
+		changesDE = {
+			"Visuelle Ueberarbeitung - Spieler-/Einheits-/Gruppen-/Raid-Frames: HP-Text zeigt absoluten Wert (kein Prozent). Power-Leiste 8px fuer Spieler/Ziel. Leisten-BG-Opazitaet 0.55->0.65. Klassenfarbe auf Gesundheitsbalken um 12% gedaempft. Glasreflex 0.14->0.20. CornerCut auf Gesundheits- (r3) und Mana-Leiste (r2) fuer abgerundete Pill-Enden. Obere Goldlinie 90% Alpha. Neue 1px untere Gold-Abschlusslinie. Portrait-Trenner.",
+		},
+	},
+	{
+		version = "0.2.33",
+		date = "2026-11-23",
+		changes = {
+			"Aggro/threat/dispel border strips still partially hidden: EdgeGlow container g was at f:GetFrameLevel()+6, below the text-holder frame th at f:GetFrameLevel()+8. th has SetAllPoints() and sits higher in Z-order, covering the strips. Fixed: EdgeGlow raised to f:GetFrameLevel()+10, above all internal unit-frame layers (portrait +2, bars +1, text-holder +8).",
+		},
+		changesDE = {
+			"Aggro-/Threat-/Dispel-Rahmen-Streifen noch teilweise versteckt: EdgeGlow-Container g war bei f:GetFrameLevel()+6, unterhalb des Text-Holder-Frames th bei f:GetFrameLevel()+8. th hat SetAllPoints() und liegt hoeher im Z-Order und verdeckte die Streifen. Fix: EdgeGlow auf f:GetFrameLevel()+10 angehoben, ueber allen internen Unit-Frame-Ebenen (Portrait +2, Leisten +1, Text-Holder +8).",
+		},
+	},
+	{
+		version = "0.2.32",
+		date = "2026-11-23",
+		changes = {
+			"Aggro/threat border incomplete: ns.EdgeGlow keyed strips by their first anchor point (p1). Both the top horizontal strip (TOPLEFT->TOPRIGHT) and the left vertical strip (TOPLEFT->BOTTOMLEFT) share 'TOPLEFT' as p1, so the left strip silently overwrote the top in g.strips. SetEdgeColor colored only left/bottom/right; the top strip stayed white/invisible. Fixed: array indices (#g.strips+1) ensure all four strips are stored and colored.",
+		},
+		changesDE = {
+			"Aggro-/Threat-Rahmen unvollständig: ns.EdgeGlow schlüsselte Streifen über ihren ersten Ankerpunkt (p1). Sowohl der obere horizontale Streifen (TOPLEFT->TOPRIGHT) als auch der linke vertikale Streifen (TOPLEFT->BOTTOMLEFT) teilen 'TOPLEFT' als p1 - der linke Streifen überschrieb den oberen in g.strips. SetEdgeColor färbte nur links/unten/rechts; der obere Streifen blieb weiß/unsichtbar. Fix: Array-Indizes (#g.strips+1) stellen sicher, dass alle vier Streifen gespeichert und gefärbt werden.",
+		},
+	},
+	{
+		version = "0.2.31",
+		date = "2026-11-23",
+		changes = {
+			"Player and target frames use the 'raised' panel style: Sentinel gold border tint and lifted bgRaised background give them visual prominence over secondary frames (pet, focus, tot, party, raid) which stay on 'panel'. A 2px gold top accent line is added to player and target frames.",
+		},
+		changesDE = {
+			"Spieler- und Ziel-Frames nutzen jetzt den 'raised'-Panel-Stil: Sentinel-Gold-Border-Tint und angehobener bgRaised-Hintergrund geben ihnen visuelle Prominenz gegenüber sekundären Frames (Begleiter, Fokus, ZdZ, Party, Raid), die auf 'panel' bleiben. Eine 2px-Gold-Akzentlinie wird Spieler- und Ziel-Frame hinzugefügt.",
+		},
+	},
+	{
+		version = "0.2.30",
+		date = "2026-11-22",
+		changes = {
+			"EdgeGlow (threat/dispel ring on unit frames) replaced with a simple square 4-strip border - no corner arcs, no OnSizeChanged complexity, immune to the chevron geometry bug on short bars. CastBar CornerCut removed to match the flat bar style.",
+		},
+		changesDE = {
+			"EdgeGlow (Threat-/Dispel-Ring auf Unit-Frames) durch einen einfachen quadratischen 4-Streifen-Rand ersetzt - keine Eck-Boegen, keine OnSizeChanged-Komplexitaet, kein Chevron-Geometrie-Bug auf kurzen Balken. CastBar-CornerCut entfernt um dem flachen Balken-Stil zu entsprechen.",
+		},
+	},
+	{
+		version = "0.2.29",
+		date = "2026-11-22",
+		changes = {
+			"Threat/dispel edge ring on short frames: ns.EdgeGlow now clamps the corner inset to half the frame height and (re)builds strips+arcs via OnSizeChanged once the frame has a real size - previously radius-7 arcs overlapped on ~12px bars and rendered as pointed pink chevrons at the bar ends while the side strips collapsed.",
+		},
+		changesDE = {
+			"Threat-/Dispel-Ring auf kurzen Frames: ns.EdgeGlow klemmt den Eck-Inset jetzt auf die halbe Frame-Hoehe und (re)baut Streifen+Boegen ueber OnSizeChanged sobald der Frame echte Masse hat - vorher ueberlappten Radius-7-Boegen auf ~12px-Balken und zeichneten als spitze pinke Klammern an den Balkenenden, waehrend die Seitenstreifen zusammenfielen.",
+		},
+	},
+	{
+		version = "0.2.28",
+		date = "2026-11-22",
+		changes = {
+			"Generated icons wired in: role icons use the RoleTank/RoleHeal/RoleDps glyph files instead of the Blizzard atlas texcoords, the leader crown uses LeaderIcon.tga, resting/combat use RestingIcon/CombatIcon.tga, and every aura tile gets the thin IconBorder ring. Fix: AbsorbBar.tga was dark-based and muddied the shield overlay - reverted to the pale band; IncomingHeal.tga is already green so it tints white now instead of double-darkening.",
+		},
+		changesDE = {
+			"Generierte Icons verdrahtet: Rollen-Icons nutzen die RoleTank/RoleHeal/RoleDps-Glyph-Dateien statt des Blizzard-Atlas-TexCoords, die Leader-Krone LeaderIcon.tga, Ruhe/Kampf RestingIcon/CombatIcon.tga, und jede Auren-Kachel bekommt den duennen IconBorder-Ring. Fix: AbsorbBar.tga war dunkel basiert und trübte das Schild-Overlay - zurueck zur hellen Bande; IncomingHeal.tga ist bereits gruen und tont jetzt weiss statt doppelt abzudunkeln.",
+		},
+	},
+	{
+		version = "0.2.27",
+		date = "2026-11-22",
+		changes = {
+			"Generated media wired in: threat/dispel rings now use the ThreatGlow.tga edgeFile - one anti-aliased border texture replaces the strip+arc raster, so the outline is bilinear-smooth at every size. The cast bar spark uses BarSpark.tga (soft glow instead of a hard 2px line), the uninterruptible shield uses CastShield.tga, and heal-prediction/absorb overlays ride the IncomingHeal/AbsorbBar textures. Every asset is probed and falls back to the rastered look when missing.",
+		},
+		changesDE = {
+			"Generierte Media verdrahtet: Bedrohungs-/Dispel-Ringe nutzen jetzt die ThreatGlow.tga-EdgeFile - eine geglattete Bordueren-Textur ersetzt die Streifen+Bogen-Rasterung, die Kontur ist bei jeder Groesse bilinear glatt. Der Zauberleisten-Funke nutzt BarSpark.tga (weiches Glühen statt harter 2px-Linie), das Unterbrechungs-Schild CastShield.tga, und Heil-Vorhersage/Absorb fahren auf den IncomingHeal-/AbsorbBar-Texturen. Jedes Asset wird geprobt und faellt bei Fehlen auf das rasterte Aussehen zurueck.",
+		},
+	},
+	{
+		version = "0.2.26",
+		date = "2026-11-22",
+		changes = {
+			"Bar corner caps moved to OVERLAY sublevel 7: the sheen overlay created after the bars drew over the caps and poked a faint white tip into every rounded corner - visible pixel errors on player, target, target-of-target, pet, focus, party and raid bars. The cast bar caps get the same pin.",
+		},
+		changesDE = {
+			"Balken-Eckkappen auf OVERLAY-Sublevel 7 gehoben: der nach den Leisten erzeugte Glanz-Overlay zeichnete ueber die Kappen und ragte als helle weisse Spitze in jede abgerundete Ecke - sichtbare Pixelfehler auf Spieler-, Ziel-, Ziel-des-Ziels-, Begleiter-, Fokus-, Party- und Raid-Leisten. Die Zauberleisten-Kappen bekommen denselben Pin.",
+		},
+	},
+	{
+		version = "0.2.25",
+		date = "2026-11-22",
+		changes = {
+			"Edge glow corners: the threat highlight and dispel-type border were four strips ending 7px short of every corner - rasterized quarter arcs (new core S.EdgeArc) now close the outline, and SetEdgeColor recolors strips and arcs together so threat states and dispel types keep one continuous ring.",
+		},
+		changesDE = {
+			"Edge-Glow-Ecken: Bedrohungs-Markierung und Dispel-Typ-Rahmen waren vier Streifen, die 7px vor jeder Ecke endeten - rasterte Viertelboegen (neuer Core-Helper S.EdgeArc) schliessen die Kontur jetzt, und SetEdgeColor faerbt Streifen und Boegen gemeinsam: Bedrohungsstufen und Dispel-Typen behalten einen durchgehenden Ring.",
+		},
+	},
+	{
+		version = "0.2.24",
+		date = "2026-11-22",
+		changes = {
+			"Rounded bars: health and power bars now read as rounded rects - anti-aliased caps in the panel color cover the corner notches (new core S.CornerCut). Applies to every frame sharing the bar plumbing: player, target, target-of-target, pet, focus, party and raid.",
+			"Cast bar fill ends rounded the same way with inset-colored caps; the alternate power bar picks up the look automatically.",
+		},
+		changesDE = {
+			"Abgerundete Leisten: Gesundheits- und Ressourcenleisten wirken jetzt als abgerundete Rechtecke - geglattete Kappen in Panel-Farbe decken die Eckkerben ab (neuer Core-Helper S.CornerCut). Gilt fuer alle Frames mit der Leisten-Plumbing: Spieler, Ziel, Ziel-des-Ziels, Begleiter, Fokus, Party und Raid.",
+			"Zauberleisten-Enden ebenfalls abgerundet mit Kappen in Inset-Farbe; die alternative Ressourcenleiste uebernimmt den Look automatisch.",
+		},
+	},
+	{
+		version = "0.2.23",
+		date = "2026-11-22",
+		changes = {
+			"Portrait tile now sits centered in the left edge (2px inset, clear of the corner arcs), and both bars share one flush left edge right of it - the power bar no longer runs underneath. Both bars also end 4px before the right edge: the square power bar otherwise poked past the panel's rounded bottom-right corner and looked longer than the health bar.",
+		},
+		changesDE = {
+			"Porträt-Kachel sitzt jetzt zentriert am linken Rand (2px eingesetzt, frei von den Eckbögen), beide Leisten teilen sich eine bündige linke Kante rechts davon - die Ressourcenleiste läuft nicht mehr darunter. Beide Leisten enden außerdem 4px vor der rechten Kante: der eckige Ressourcenbalken ragte sonst über die abgerundete rechte untere Ecke des Panels hinaus und wirkte länger als die Gesundheitsleiste.",
+		},
+	},
+	{
+		version = "0.2.22",
+		date = "2026-11-22",
+		changes = {
+			"Portrait tile for party and raid frames (Unit Frames > Party / Raid): the shared portrait machinery is now offered on the group cells too - a square tile on the left edge showing the class icon for players or the engine's 3D portrait for everything else (and in model mode for all units). Party defaults to the class icon; raid stays off by default since cells are small. The health bar shifts right to make room; the option flips live without a reload.",
+			"Fix: portrait tiles rendered as empty dark squares. The icon was only painted during a full Refresh, but Configure builds the tile lazily after the first Refresh (party layout, late raid children) and unit events never call UpdatePortrait - the icon is now painted inside Configure and re-painted on UNIT_PORTRAIT_UPDATE. Also the class icon atlas switched to the WorldStateFrame Icons-Classes sheet that actually ships on this client.",
+		},
+		changesDE = {
+			"Porträt-Kachel für Party- und Raid-Frames (Einheitenfenster > Party / Raid): die vorhandene Porträt-Mechanik gibt es jetzt auch auf den Gruppen-Zellen - eine quadratische Kachel am linken Rand mit dem Klassen-Icon für Spieler oder dem 3D-Porträt der Engine für alles andere (im Model-Modus für alle Einheiten). Party steht standardmäßig auf Klassen-Icon; Raid bleibt standardmäßig aus, da die Zellen klein sind. Die Gesundheitsleiste rückt zur Seite, um Platz zu schaffen; die Option greift ohne Reload.",
+			"Fix: Porträt-Kacheln blieben leere dunkle Quadrate. Das Icon wurde nur beim vollen Refresh gemalt, Configure baut die Kachel aber erst nach dem ersten Refresh (Party-Layout, späte Raid-Kinder) und Unit-Events rufen UpdatePortrait nie - das Icon wird jetzt direkt im Configure gemalt und bei UNIT_PORTRAIT_UPDATE neu gesetzt. Außerdem nutzt das Klassen-Icon jetzt die WorldStateFrame-Icons-Classes-Datei, die auf diesem Client wirklich existiert.",
+		},
+	},
+	{
+		version = "0.2.21",
+		date = "2026-11-22",
+		changes = {
+			"New raid tools tray (Unit Frames > Raid): a slim tab docked to the top screen edge unfolds a tray with target markers, world markers, ready check and a 10s pull timer - visible only while grouped. Click the tab to fold the tray away (works in combat); the fold state is remembered. Marker buttons run through the client's own /tm and /wm slash commands in the secure macro path, so no protected calls leave addon code.",
+			"Alternate power bar: a SentiUI bar replaces the parked PlayerPowerBarAlt - it watches the encounter power index via UnitPower/UnitPowerMax (secret-safe, values feed the widget raw) and shows name and percent while a bar is active. Movable via its own mover.",
+			"External defensive indicators on party and raid cells: small corner icons fed by an engine AuraContainer filtered to HELPFUL|EXTERNAL_DEFENSIVE (pain suppression, ironbark, ...), so the icons render even while aura data is secret.",
+		},
+		changesDE = {
+			"Neue Raid-Werkzeugleiste (Einheitenfenster > Raid): eine schmale Leiste am oberen Bildschirmrand klappt eine Ablage mit Zielmarken, Weltmarken, Bereitschaftscheck und 10s-Pull-Timer aus - nur in der Gruppe sichtbar. Klick auf die Leiste klappt die Ablage weg (funktioniert im Kampf); der Zustand bleibt gespeichert. Die Marken-Buttons laufen über die /tm- und /wm-Kommandos des Clients im sicheren Makro-Pfad - keine geschützten Aufrufe aus Addon-Code.",
+			"Alternative Kraftleiste: eine SentiUI-Leiste ersetzt die versteckte PlayerPowerBarAlt - sie überwacht den Encounter-Kraftindex über UnitPower/UnitPowerMax (secret-sicher, Werte gehen roh ins Widget) und zeigt Name und Prozent, solange eine Leiste aktiv ist. Über eigenen Mover verschiebbar.",
+			"Externe Defensiv-Indikatoren auf Party- und Raid-Zellen: kleine Eck-Icons aus einem Engine-AuraContainer mit Filter HELPFUL|EXTERNAL_DEFENSIVE (Schmerzunterdrückung, Eisenborke, ...) - die Icons rendern auch bei geheimen Aura-Daten.",
+		},
+	},
+	{
+		version = "0.2.20",
+		date = "2026-11-22",
+		changes = {
+			"Fixed the dark blob hanging below the unit frame: the aura tile's dark fill was registered with the engine's dispel-type texture system with showWithoutDispelType = true. The engine may scale a managed dispel texture past the button bounds, so an always-on dark one rendered as a lumpy dark mass under every debuff row. The tile fill is now an unmanaged texture, and the engine-managed dispel overlay only appears with a real dispel type (tinted by type).",
+			"Heal prediction and absorb bars showed far too small: the band anchors at the health fill's right edge so it only spans the missing-health region, but its scale used UnitHealthMax - the fill came out (max-cur)/max times too small (a sliver at high health). The scale now uses UnitHealthMissing with a UnitHealthMax fallback, secret-safe.",
+		},
+		changesDE = {
+			"Dunkle Masse unter dem Einheitenfenster behoben: die dunkle Fuellung der Auren-Kachel war beim Engine-Dispel-System mit showWithoutDispelType = true registriert. Die Engine kann verwaltete Dispel-Texturen ueber den Button hinaus skalieren - eine dauerhaft sichtbare dunkle Textur ergab eine klumpige Masse unter jeder Debuff-Reihe. Die Kachel-Fuellung ist jetzt eine unverwaltete Textur, das Engine-Dispel-Overlay erscheint nur bei echtem Dispel-Typ (typgefaerbt).",
+			"Heilungs-Prognose und Absorb-Balken zeigten viel zu wenig: die Band haengt an der rechten Kante der Health-Fuellung und deckt nur den fehlenden Bereich ab, skalierte aber mit UnitHealthMax - die Fuellung kam (max-cur)/max mal zu klein raus (ein Fliz bei hoher HP). Die Skala nutzt jetzt UnitHealthMissing mit UnitHealthMax-Fallback, secret-sicher.",
+		},
+	},
+	{
+		version = "0.2.19",
+		date = "2026-11-22",
+		changes = {
+			"New portrait option per single frame (Unit Frames > Player & Target): Off, Class icon or 3D portrait. The portrait is a rounded tile inside the left edge, sized to the health bar's height; the health bar starts right of it while the power bar keeps full width. 'Class icon' shows the class emblem from the UI-CHARACTERCREATE-CLASSES atlas for players and falls back to the engine's 3D portrait for creatures or when the class is secret; '3D portrait' uses SetPortraitTexture for every unit. Player and target default to the class icon. The tile builds lazily so the option applies live without a reload.",
+		},
+		changesDE = {
+			"Neue Portraet-Option pro Einzelframe (Einheitenfenster > Spieler & Ziel): Aus, Klassen-Icon oder 3D-Portraet. Das Portraet ist eine gerundete Kachel am linken Rand in Health-Bar-Hoehe; die Lebensleiste beginnt rechts davon, die Ressourcenleiste behaelt volle Breite. 'Klassen-Icon' zeigt das Klassen-Emblem aus dem UI-CHARACTERCREATE-CLASSES-Atlas fuer Spieler und faellt bei Kreaturen oder geheimer Klasse auf das 3D-Portraet der Engine zurueck; '3D-Portraet' nutzt SetPortraitTexture fuer jede Einheit. Spieler und Ziel nutzen standardmaessig das Klassen-Icon. Die Kachel wird erst bei Bedarf gebaut, die Option gilt also live ohne Reload.",
+		},
+	},
+	{
+		version = "0.2.18",
+		date = "2026-11-22",
+		changes = {
+			"Threat highlight redesigned: the square backdrop ring behind the frame is gone - a new ns.EdgeGlow draws four thin strips that follow the rounded panel silhouette (inset past the corner arc), colored red/orange by threat state. The dispel-type border on group frames uses the same edge glow instead of a square backdrop edge.",
+			"Ambient bar tints: health and power bar backdrops pick up a whisper of the health/power color instead of flat black (secret-safe - skipped when the client hides the rgb).",
+			"Aura icons clip to soft rounded corners via S.IconRound, and the dispel-type background shares the same mask so the whole aura tile keeps one rounded silhouette. The cast bar icon is clipped the same way, and the cast bar fill rides a warm spark at its leading edge. The class-colored health blade is inset past the corner arc.",
+		},
+		changesDE = {
+			"Bedrohungs-Markierung neu: der eckige Backdrop-Ring hinter dem Frame ist weg - ein neuer ns.EdgeGlow zeichnet vier duenne Streifen, die der gerundeten Panel-Silhouette folgen (hinter den Eckbogen eingesetzt), je nach Bedrohung rot/orange gefaerbt. Der Dispel-Typ-Rahmen der Gruppenframes nutzt denselben Edge-Glow statt einer eckigen Backdrop-Kante.",
+			"Ambient-Balkentints: Health- und Power-Hintergruende nehmen einen Hauch der Balkenfarbe an statt flachem Schwarz (secret-sicher - uebersprungen wenn der Client das rgb versteckt).",
+			"Auren-Icons werden ueber S.IconRound auf weich runde Ecken geclippt, der Dispel-Hintergrund teilt sich dieselbe Maske - die ganze Auren-Kachel behaelt eine runde Silhouette. Das Zauberleisten-Icon wird genauso geclippt, die Fuellung traegt einen warmen Funken an ihrer Spitze. Die klassenfarbene Health-Klinge ist hinter den Eckbogen eingesetzt.",
+		},
+	},
+	{
 		version = "0.2.17",
 		changes = {
 			"Dispatcher rollback: PLAYER_TARGET_CHANGED/PLAYER_FOCUS_CHANGED/RAID_TARGET_UPDATE events are back; the poll is the plain targettarget poll again.",

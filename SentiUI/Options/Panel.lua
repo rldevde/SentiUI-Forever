@@ -281,6 +281,14 @@ local function cardAt(i)
 	local card = cardPool[i]
 	if not card then
 		card = S.Panel(contentChild, 10, 10, "raised")
+		-- subtle gold accent stripe along the top of every card: gives each
+		-- section a clear anchor line without a heavy border
+		local topLine = card:CreateTexture(nil, "OVERLAY")
+		topLine:SetTexture(S.media.blank)
+		topLine:SetVertexColor(C.accent.r, C.accent.g, C.accent.b, 0.4)
+		topLine:SetHeight(1)
+		topLine:SetPoint("TOPLEFT", 1, -1)
+		topLine:SetPoint("TOPRIGHT", -1, -1)
 		card.label = S.Font(card, 12, C.accent)
 		card.label:SetPoint("TOPLEFT", 10, -8)
 		card.desc = S.Font(card, 10, C.textDim)

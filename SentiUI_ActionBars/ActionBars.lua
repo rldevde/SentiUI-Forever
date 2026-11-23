@@ -142,6 +142,13 @@ local function PaintIcon(btn, slot)
 	local tex = GetActionTexture(slot)
 	icon:SetTexture(tex)
 	icon:SetShown(tex ~= nil)
+	-- dim the slot body for empty buttons: a full-opacity dark Roundize fill
+	-- reads as a prominent black square; 18% makes the slot barely visible
+	-- while keeping the grid readable (similar to ElvUI / DaylightUI behavior)
+	if btn.SetRoundFill then
+		local c = S.colors.bgInset
+		btn:SetRoundFill(c.r, c.g, c.b, tex and 1 or 0.18)
+	end
 end
 
 local function PaintCount(btn, slot)
@@ -204,53 +211,63 @@ end
 
 local function PaintEquipped(btn, slot) PaintChecked(btn, slot) end
 
--- cooldown sweep: the widget compares `start` in Lua and secret times
--- throw under addon taint, so a DurationObject goes first - the C++ side
--- handles secrets with no Lua compare. Without one, raw times are used
--- only while actually readable; if neither works the old sweep simply
--- stays (never Clear an active cooldown just because the values are
--- unreadable).
-local function sweep(cd, on, duration, info)
+-- cooldown sweep: never inspect isActive / startTime / duration in Lua -
+-- those values are secret/tainted and comparisons throw under addon taint.
+-- Pass the raw info table straight to the Blizzard C++ layer: CooldownFrame_Set
+-- reads start+duration internally and shows or hides the animation without
+-- any Lua logic. DurationObject via SetCooldownFromDurationObject is tried
+-- first (zero Lua comparison); CooldownFrame_Set is the main fallback; and
+-- cd:SetCooldown (the direct frame method) handles clients where the global
+-- does not exist. (AGENTS: "pass raw values to CooldownFrame_Set without
+-- inspecting them")
+local function sweep(cd, info, durFn)
 	if type(cd) ~= "table" then return end
-	if on then
-		if duration and cd.SetCooldownFromDurationObject then
-			cd:SetCooldownFromDurationObject(duration)
-		elseif info and not S.IsSecret(info.startTime) and not S.IsSecret(info.duration) then
+	if type(info) == "table" then
+		if durFn then
+			local dur = durFn()
+			if dur and cd.SetCooldownFromDurationObject then
+				pcall(cd.SetCooldownFromDurationObject, cd, dur)
+				return
+			end
+		end
+		if CooldownFrame_Set then
 			pcall(CooldownFrame_Set, cd, info.startTime, info.duration,
 				info.isEnabled, false, info.modRate)
+		else
+			-- some clients lack the FrameXML global; use the frame method
+			pcall(cd.SetCooldown, cd, info.startTime, info.duration,
+				info.modRate)
 		end
-		return
 	end
-	if cd.Clear then
-		cd:Clear()
-	elseif CooldownFrame_Clear then
-		pcall(CooldownFrame_Clear, cd)
-	end
+end
+
+local function cdClear(cd)
+	if type(cd) ~= "table" then return end
+	if cd.Clear then pcall(cd.Clear, cd)
+	elseif CooldownFrame_Clear then pcall(CooldownFrame_Clear, cd) end
 end
 
 local function PaintCooldown(btn, slot)
 	if not GetActionCooldown then return end
 	if GetActionTexture(slot) == nil then
-		sweep(btn.lossOfControlCooldown, false)
-		sweep(btn.cooldown, false)
-		sweep(btn.chargeCooldown, false)
+		cdClear(btn.lossOfControlCooldown)
+		cdClear(btn.cooldown)
+		cdClear(btn.chargeCooldown)
 		return
 	end
 	local loc = GetActionLossOfControlCooldownInfo
 		and GetActionLossOfControlCooldownInfo(slot)
-	local locOn = type(loc) == "table" and loc.isActive == true
-	sweep(btn.lossOfControlCooldown, locOn,
-		locOn and GetActionLossOfControlCooldownDuration
-			and GetActionLossOfControlCooldownDuration(slot), loc)
+	sweep(btn.lossOfControlCooldown, loc,
+		GetActionLossOfControlCooldownDuration
+			and function() return GetActionLossOfControlCooldownDuration(slot) end)
 	local info = GetActionCooldown(slot)
-	local on = type(info) == "table" and info.isActive == true
-		and not (locOn and loc.shouldReplaceNormalCooldown == true)
-	sweep(btn.cooldown, on,
-		on and GetActionCooldownDuration and GetActionCooldownDuration(slot), info)
+	sweep(btn.cooldown, info,
+		GetActionCooldownDuration
+			and function() return GetActionCooldownDuration(slot) end)
 	local charges = GetActionCharges and GetActionCharges(slot)
-	local chOn = type(charges) == "table" and charges.isActive == true
-	sweep(btn.chargeCooldown, chOn,
-		chOn and GetActionChargeDuration and GetActionChargeDuration(slot))
+	sweep(btn.chargeCooldown, charges,
+		GetActionChargeDuration
+			and function() return GetActionChargeDuration(slot) end)
 end
 
 local function PaintProc(btn, slot)
@@ -425,7 +442,17 @@ local EVENTS = {
 	UPDATE_VEHICLE_ACTIONBAR = "all",
 	UPDATE_OVERRIDE_ACTIONBAR = "all",
 	SPELLS_CHANGED = "all",
-	PLAYER_ENTERING_WORLD = "all",
+	PLAYER_ENTERING_WORLD = function()
+		QueueAll()
+		-- a reload drops every already-running cooldown's events, and PEW
+		-- can land before the action data is readable - late cooldown-only
+		-- sweeps pick up whatever the first paint missed
+		for _, d in ipairs({ 0.5, 1.5, 3 }) do
+			C_Timer.After(d, function()
+				S.SafeCall("paint:latecd", QueuePaint, COOLDOWN)
+			end)
+		end
+	end,
 	UPDATE_BINDINGS = function() Core.UpdateHotkeys() end,
 }
 
@@ -580,23 +607,41 @@ local function StyleButton(btn, name)
 	if icon then
 		if btn.IconMask and icon.RemoveMaskTexture then pcall(icon.RemoveMaskTexture, icon, btn.IconMask) end
 		icon:ClearAllPoints()
-		icon:SetPoint("TOPLEFT", btn, "TOPLEFT", 1, -1)
-		icon:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -1, 1)
+		-- 3 px inset keeps the icon inside the PillEdge backdrop fill
+		-- area; 1 px lets it bleed into the border arc and look cut off
+		icon:SetPoint("TOPLEFT", btn, "TOPLEFT", 3, -3)
+		icon:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -3, 3)
 		icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 		icon:SetDrawLayer("ARTWORK")
 	end
-	if btn.cooldown then
-		btn.cooldown:ClearAllPoints()
-		btn.cooldown:SetAllPoints(icon or btn)
+	for _, cd in ipairs({ btn.cooldown, btn.chargeCooldown,
+		btn.lossOfControlCooldown }) do
+		if type(cd) == "table" then
+			cd:ClearAllPoints()
+			cd:SetAllPoints(icon or btn)
+		end
 	end
-	pcall(btn.SetPushedTexture, btn, BLANK)
+	local pushTex = S.Tex and S.Tex("ButtonPushed")
+	local chkTex = S.Tex and S.Tex("ButtonChecked")
+	pcall(btn.SetPushedTexture, btn, pushTex or BLANK)
 	pcall(btn.SetHighlightTexture, btn, BLANK)
-	pcall(btn.SetCheckedTexture, btn, BLANK)
+	pcall(btn.SetCheckedTexture, btn, chkTex or BLANK)
 	local C = S.colors
 	local pushed, hl, checked = btn:GetPushedTexture(), btn:GetHighlightTexture(), btn:GetCheckedTexture()
-	if pushed then pushed:SetVertexColor(1, 1, 1, 0.25) SetInside(pushed, btn, 1, 1) end
+	-- ButtonPushed carries its own soft-light fill; the blank fallback
+	-- still needs the white tint. ButtonChecked is a gold outline ring
+	-- and shows its art as-is instead of an accent fill.
+	if pushed then
+		if pushTex then pushed:SetVertexColor(1, 1, 1, 1)
+		else pushed:SetVertexColor(1, 1, 1, 0.25) end
+		SetInside(pushed, btn, 1, 1)
+	end
 	if hl then hl:SetVertexColor(1, 1, 1, 0.2) SetInside(hl, btn, 1, 1) end
-	if checked then checked:SetVertexColor(C.accent.r, C.accent.g, C.accent.b, 0.4) SetInside(checked, btn, 1, 1) end
+	if checked then
+		if chkTex then checked:SetVertexColor(1, 1, 1, 0.9)
+		else checked:SetVertexColor(C.accent.r, C.accent.g, C.accent.b, 0.4) end
+		SetInside(checked, btn, 1, 1)
+	end
 	if btn.hotkey then
 		btn.hotkey:ClearAllPoints()
 		btn.hotkey:SetPoint("TOPRIGHT", btn, "TOPRIGHT", -2, -2)
@@ -616,6 +661,35 @@ local function StyleButton(btn, name)
 		btn.name:SetDrawLayer("OVERLAY", 2)
 	end
 	S.Template(btn, "inset")
+	-- gold border ring: a 1px overlay frame shown on hover and while
+	-- a spell is active/auto-repeating — sets the border via backdrop
+	local ring = CreateFrame("Frame", nil, btn)
+	ring:SetAllPoints()
+	ring:SetFrameLevel(btn:GetFrameLevel() + 2)
+	if BackdropTemplateMixin and not ring.SetBackdrop then
+		Mixin(ring, BackdropTemplateMixin)
+		if ring.OnBackdropLoaded then ring:OnBackdropLoaded() end
+	end
+	if ring.SetBackdrop then
+		ring:SetBackdrop({ bgFile = BLANK, edgeFile = BLANK, edgeSize = 1 })
+		ring:SetBackdropColor(0, 0, 0, 0)
+		ring:SetBackdropBorderColor(C.accent.r, C.accent.g, C.accent.b, 0)
+	end
+	btn.suiRing = ring
+	local function ringAlpha(self, a)
+		if self.suiRing and self.suiRing.SetBackdropBorderColor then
+			self.suiRing:SetBackdropBorderColor(C.accent.r, C.accent.g, C.accent.b, a)
+		end
+	end
+	btn:HookScript("OnEnter", function(self) ringAlpha(self, 0.7) end)
+	btn:HookScript("OnLeave", function(self)
+		-- keep ring visible when spell is toggled on
+		local slot = SlotOf(self)
+		local active = slot and pcall(IsCurrentAction, slot)
+			and IsCurrentAction(slot) or false
+		local ok2, autoR = pcall(IsAutoRepeatAction, slot or 0)
+		ringAlpha(self, (active or (ok2 and autoR)) and 0.55 or 0)
+	end)
 end
 
 -- kill the mouse on the template's overlay container; may be called
@@ -745,12 +819,49 @@ local function MakeButton(holder, def, i)
 	-- template regions (defensive access)
 	btn.icon = btn.icon or btn.Icon or _G[name .. "Icon"]
 	btn.cooldown = btn.cooldown or btn.Cooldown or _G[name .. "Cooldown"]
+	btn.chargeCooldown = btn.chargeCooldown or btn.ChargeCooldown
+		or _G[name .. "ChargeCooldown"]
+	btn.lossOfControlCooldown = btn.lossOfControlCooldown
+		or btn.LossOfControlCooldown or _G[name .. "LossOfControlCooldown"]
 	btn.count = btn.count or btn.Count or _G[name .. "Count"]
 	btn.hotkey = btn.hotkey or btn.HotKey or _G[name .. "HotKey"]
 	btn.name = btn.name or btn.Name or _G[name .. "Name"]
 	btn.checkedTex = btn.GetCheckedTexture and btn:GetCheckedTexture() or nil
 	if btn.cooldown and btn.cooldown.SetSwipeColor then
 		pcall(btn.cooldown.SetSwipeColor, btn.cooldown, 0, 0, 0, 0.8)
+	end
+	-- the template cooldown hides its countdown digits on this client;
+	-- unhide them and give the widget a font object it can render with.
+	-- SystemFont_Outline_Small carries a dark outline - plain highlight
+	-- white is unreadable over bright spell icons.
+	-- SetCountdownFont is absent on older builds, so each call is guarded.
+	for _, cd in ipairs({ btn.cooldown, btn.chargeCooldown,
+		btn.lossOfControlCooldown }) do
+		if type(cd) == "table" then
+			if cd.SetHideCountdownNumbers then
+				pcall(cd.SetHideCountdownNumbers, cd, false)
+			end
+			if cd.SetShowCountdownNumbers then
+				pcall(cd.SetShowCountdownNumbers, cd, true)
+			end
+			if cd.SetCountdownFont then
+				pcall(cd.SetCountdownFont, cd, "SystemFont_Outline_Small")
+			end
+		end
+	end
+	-- the template's own handlers (OnHide etc.) call
+	-- SetCooldown(start, duration, modRate); those numbers are secret on
+	-- this client and SetCooldown refuses secrets under addon taint.
+	-- Swallow the throw - the visible cooldown is painted by our painter
+	-- via SetCooldownFromDurationObject and by the game's own untainted
+	-- cooldown events, so nothing is lost.
+	if btn.cooldown and btn.cooldown.SetCooldown
+		and not btn.cooldown.suiCdSafe then
+		btn.cooldown.suiCdSafe = true
+		local rawCd = btn.cooldown.SetCooldown
+		btn.cooldown.SetCooldown = function(self, ...)
+			pcall(rawCd, self, ...)
+		end
 	end
 	SetFont(btn.count, 10, "OUTLINE")
 	SetFont(btn.hotkey, 10, "OUTLINE")
@@ -819,6 +930,11 @@ local function CreateBar(def, dbBar)
 	holder:SetSize(10, 10)
 	holder:SetFrameStrata("LOW")
 	holder:SetAttribute("_onstate-page", PAGE_SNIPPET)
+	-- dark panel behind the button grid: S.Template paints the inset
+	-- fill plus the accent-tinted border directly on the holder, so the
+	-- frame edge is flush with the outer button edges (3px pad) instead
+	-- of floating as a thin strip. "panel" keeps it subtle, not gold-lit.
+	S.Template(holder, "panel")
 	local bar = { holder = holder, def = def, dbBar = dbBar, buttons = {} }
 	local page = def.page or 1
 	for i = 1, 12 do
@@ -844,7 +960,7 @@ end
 
 local function Restack()
 	local positions = S.DB.Positions()
-	local bottom = SC(10)
+	local bottom = SC(16)
 	local prev
 	for i = 1, 3 do
 		local b = bars[i]
@@ -1004,7 +1120,11 @@ local function RecheckPark()
 	end
 	for _, name in ipairs(PARK_LIST) do
 		local frame = _G[name]
-		if name:find("StatusTrackingBar") then
+		-- cooldown viewers stay usable when the opt-in is on - they get a
+		-- movable holder and the SentiUI skin instead of the hidden parent
+		if db and db.cooldownViewers and name:find("CooldownViewer") then
+			-- skip parking
+		elseif name:find("StatusTrackingBar") then
 			-- never reparent these: layout passes (e.g. a minimap zoom)
 			-- call manager methods that expect their real parent - they
 			-- stay put, events off, alpha 0, mouse off (the WHOLE subtree:
@@ -1204,6 +1324,11 @@ function Core.Enable(mod)
 	-- pet / stance / totem / extra buttons
 	S.SafeCall("extras", function()
 		if ns.Extras then ns.Extras.Enable(mod) end
+	end)
+
+	-- Blizzard-frame skins + optional cooldown viewers
+	S.SafeCall("skins", function()
+		if ns.Skins then ns.Skins.Enable(mod) end
 	end)
 
 	-- the client's global FX model scenes and the widget containers' model
@@ -1411,4 +1536,5 @@ function Core.SettingChanged(mod, path)
 		QueueAll()
 	end
 	if ns.Extras then ns.Extras.SettingChanged(mod, path) end
+	if ns.Skins then ns.Skins.SettingChanged(path) end
 end

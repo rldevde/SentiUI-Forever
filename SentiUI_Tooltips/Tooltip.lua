@@ -51,10 +51,12 @@ local function IntentionallyAnchored(tip)
 	local at = tip.GetAnchorType and tip:GetAnchorType() or nil
 	if S.IsSecret(at) then at = nil end
 	if type(at) ~= "string" then return false end
-	-- ANCHOR_NONE = free-floating (default spot), ANCHOR_CURSOR is the
-	-- game's cursor-follow - both get redirected when the user wants a
-	-- fixed point; cursor mode leaves ANCHOR_CURSOR alone
-	if at == "ANCHOR_CURSOR" then return cfg.anchor == "cursor" end
+	-- ANCHOR_NONE = free-floating (default spot) - the fixed point claims
+	-- those. ANCHOR_CURSOR is a deliberate at-cursor placement (map POIs,
+	-- minimap hovers, chat links): yanking it to the dock is what made
+	-- minimap tooltips appear in the wrong place - always respected,
+	-- the way DaylightUI/ElvUI leave them at the hovered thing.
+	if at == "ANCHOR_CURSOR" then return true end
 	return at ~= "ANCHOR_NONE"
 end
 
@@ -97,6 +99,8 @@ local function InstallHooks()
 				ns.Skin.ResetBorder(tip)
 				ns.Skin.ResetAccent(tip)
 				ns.Skin.Reflow(tip)
+				-- hide ARTWORK textures that failed to load (blank white squares)
+				ns.Skin.FixBlankIcons(tip)
 			end)
 		end)
 	end

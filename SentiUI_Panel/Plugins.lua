@@ -241,7 +241,12 @@ function P.SizeButton(def)
 	end
 	b.text:ClearAllPoints()
 	b.text:SetPoint("LEFT", b, "LEFT", PAD / 2 + iconW, 0)
-	b.w = PAD + iconW + (b.text:GetStringWidth() or 40)
+	-- GetStringWidth can return 0 (not nil) on this client when the
+	-- string has not rendered yet - a 0 width collapses the button so
+	-- the next plugin draws over its text
+	local tw = b.text:GetStringWidth() or 0
+	if type(tw) ~= "number" or tw <= 0 then tw = 40 end
+	b.w = PAD + iconW + tw
 	b:SetWidth(b.w)
 end
 

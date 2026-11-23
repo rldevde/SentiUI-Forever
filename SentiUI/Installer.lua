@@ -10,7 +10,7 @@ local W = S.Widgets
 local Inst = {}
 S.Installer = Inst
 
-local frame, titleText, bodyText, counter, backBtn, nextBtn, stepHost, reloadOverlay
+local frame, titleText, bodyText, counter, backBtn, nextBtn, stepHost, finishBtn
 local stepIndex = 1
 local stepFrames = {} -- lazily built content frame per step
 
@@ -22,6 +22,17 @@ function Inst.AddStep(step)
 	Inst.steps[#Inst.steps + 1] = step
 end
 
+--- Append a module-provided step; it is placed before the final "Done"
+--- step, so module content never shows after the finish page.
+function Inst.AddModuleStep(step)
+	if type(step) ~= "table" then return end
+	local at = #Inst.steps
+	for i = 1, #Inst.steps do
+		if Inst.steps[i].last then at = i - 1 break end
+	end
+	table.insert(Inst.steps, at + 1, step)
+end
+
 local function markDone()
 	S.DB.General().installDone = true
 end
@@ -29,6 +40,37 @@ end
 local function stepText(i)
 	local t = Inst.steps[i].text
 	return type(t) == "function" and t() or t
+end
+
+-- the visible secure Finish button, built the proven DaylightUI way:
+-- parented to UIParent (never inside a window whose scripts could touch
+-- the dispatch), laid over the Next button on show, both click phases
+-- plus useOnKeyDown=false - without that attribute the dispatch follows
+-- the key-down CVar and ignores the Up click, so the macro never fired.
+-- Textures and strings are not scripts - a SecureActionButton may carry
+-- them safely.
+local function buildFinish()
+	if finishBtn or InCombatLockdown() then return end
+	finishBtn = CreateFrame("Button", "SentiUIInstallerFinish", UIParent, "SecureActionButtonTemplate")
+	finishBtn:SetSize(110, 26)
+	finishBtn:RegisterForClicks("AnyDown", "AnyUp")
+	pcall(finishBtn.SetAttribute, finishBtn, "type", "macro")
+	pcall(finishBtn.SetAttribute, finishBtn, "type1", "macro")
+	pcall(finishBtn.SetAttribute, finishBtn, "macrotext", "/reload")
+	pcall(finishBtn.SetAttribute, finishBtn, "macrotext1", "/reload")
+	pcall(finishBtn.SetAttribute, finishBtn, "useOnKeyDown", false)
+	S.Template(finishBtn, "raised")
+	S.SetBorderLit(finishBtn, true)
+	local t = S.Font(finishBtn, 11, C.accent)
+	t:SetAllPoints()
+	t:SetJustifyH("CENTER")
+	t:SetText(L["Finish & reload"])
+	if finishBtn.SetHighlightTexture then
+		pcall(finishBtn.SetHighlightTexture, finishBtn, "Interface\\Buttons\\WHITE8X8", "ADD")
+		local hl = finishBtn.GetHighlightTexture and finishBtn:GetHighlightTexture()
+		if hl then pcall(hl.SetVertexColor, hl, C.accent.r, C.accent.g, C.accent.b, 0.25) end
+	end
+	finishBtn:Hide()
 end
 
 local function showStep(i)
@@ -39,16 +81,49 @@ local function showStep(i)
 	bodyText:SetText(stepText(stepIndex) or "")
 	counter:SetText(stepIndex .. " / " .. n)
 	backBtn:SetEnabled(stepIndex > 1)
+	if stepIndex == n then
+		-- the finish button may be missing when the frame was built during
+		-- combat (secure attributes cannot be set there) - retry lazily
+		if not finishBtn then buildFinish() end
+		-- mark done when the finish step shows: the secure button carries
+		-- no addon scripts, so there is no PostClick to save it later.
+		-- Closing via X marks done the same way.
+		markDone()
+	end
+	-- the last step swaps Next for the visible secure Finish button; if
+	-- the secure build failed (combat) Next stays with its no-reload
+	-- fallback click instead of a dead-looking button
+	nextBtn:SetShown(stepIndex ~= n or not finishBtn)
 	nextBtn:SetText((stepIndex == n and L["Finish & reload"] or L["Next"]) or "")
-	if reloadOverlay then reloadOverlay:SetShown(stepIndex == n) end
+	if finishBtn then
+		finishBtn:SetShown(stepIndex == n)
+		if stepIndex == n then
+			-- laid over Next, one level up - the DaylightUI placement
+			finishBtn:ClearAllPoints()
+			finishBtn:SetAllPoints(nextBtn)
+			finishBtn:SetFrameStrata("DIALOG")
+			finishBtn:SetFrameLevel((nextBtn:GetFrameLevel() or 1) + 5)
+		end
+	end
 
 	-- per-step interactive content
 	for _, f in pairs(stepFrames) do if f then f:Hide() end end
 	local f = stepFrames[stepIndex]
 	if f == nil and type(st.build) == "function" and stepHost then
 		local ok, built = pcall(st.build, stepHost)
-		f = ok and built or nil
-		stepFrames[stepIndex] = f or false
+		if not ok then
+			-- a swallowed build error shows as a mysteriously empty step
+			print("|cffebad33SentiUI|r installer step '" .. tostring(st.title) .. "' failed: " .. tostring(built))
+			f = nil
+		elseif built then
+			f = built
+		else
+			-- a nil build (module not ready) is not cached: the next visit
+			-- retries instead of leaving the step empty forever
+			print("|cffebad33SentiUI|r installer step '" .. tostring(st.title) .. "' is not ready yet - it builds on the next visit.")
+			f = nil
+		end
+		stepFrames[stepIndex] = f
 	end
 	if f then f:Show() end
 end
@@ -65,8 +140,9 @@ local function build()
 	S.EscClosable(frame)
 
 	local edge = S.Line(frame, C_.accent, 2)
-	edge:SetPoint("TOPLEFT", 0, 0)
-	edge:SetPoint("TOPRIGHT", 0, 0)
+	-- inset past the corner arc so the line ends on the straight edge
+	edge:SetPoint("TOPLEFT", 7, 0)
+	edge:SetPoint("TOPRIGHT", -7, 0)
 
 	local close = W.Button(frame, "x", 24, 24)
 	close:SetPoint("TOPRIGHT", -10, -10)
@@ -95,30 +171,26 @@ local function build()
 	stepHost:SetPoint("TOPLEFT", 20, -196)
 	stepHost:SetSize(520, 120)
 
-	backBtn = W.Button(frame, L["Back"], 90, 26)
-	backBtn:SetPoint("BOTTOMRIGHT", -120, 16)
-	backBtn:SetScript("OnClick", function() showStep(stepIndex - 1) end)
-
-	nextBtn = W.Button(frame, L["Next"], 110, 26)
+	-- Next first, Back anchored to ITS left: the pair can never overlap,
+	-- no matter how wide the localized labels get ("Fertig & neu laden")
+	nextBtn = W.Button(frame, L["Next"], 140, 26)
 	nextBtn:SetPoint("BOTTOMRIGHT", -16, 16)
 	nextBtn:SetScript("OnClick", function()
 		if stepIndex < #Inst.steps then
 			showStep(stepIndex + 1)
 		else
-			-- the secure overlay normally eats this click and runs /reload;
-			-- reaching this means it could not be built (combat) - finish
-			-- without the reload instead of a blocked call
+			-- the visible secure Finish button normally takes this click
+			-- and runs /reload; reaching this means it could not be built
+			-- (combat) - finish without the reload instead of a blocked call
 			markDone()
 			frame:Hide()
 		end
 	end)
-	-- C_UI.Reload is a protected call on this client: the real reload runs
-	-- through a secure macro overlay, visible only on the last step
-	reloadOverlay = S.SecureReload(nextBtn, function()
-		markDone()
-		frame:Hide()
-	end)
-	if reloadOverlay then reloadOverlay:Hide() end
+	backBtn = W.Button(frame, L["Back"], 90, 26)
+	backBtn:SetPoint("RIGHT", nextBtn, "LEFT", -8, 0)
+	backBtn:SetScript("OnClick", function() showStep(stepIndex - 1) end)
+	-- C_UI.Reload is a protected call on this client: the finish step shows
+	-- a real secure macro button instead (built lazily, see buildFinish).
 end
 
 function Inst.Show()
@@ -143,9 +215,8 @@ local function currentUIScale()
 end
 
 local function applyUIScale(v)
-	if not (C_CVar and C_CVar.SetCVar) then return end
-	pcall(C_CVar.SetCVar, "useUiScale", "1")
-	pcall(C_CVar.SetCVar, "uiScale", string.format("%.2f", v))
+	-- shared with the settings' Interface page (S.ApplyGameScale)
+	S.ApplyGameScale(v)
 end
 
 -- Built-in steps. Modules can append more from their files.
@@ -182,6 +253,10 @@ Inst.AddStep {
 		local cur = currentUIScale()
 		sl:SetValue(cur, true)
 		val:SetText(string.format("%.2fx", cur))
+		-- persist the untouched current scale too: the slider only fires
+		-- on real changes, and the client keeps neither the CVar nor an
+		-- untouched choice across relogs
+		S.DB.General().gameScale = cur
 
 		local note = S.Font(f, 10, C.textDim)
 		note:SetPoint("TOPLEFT", sl, "BOTTOMLEFT", 0, -16)
@@ -194,27 +269,76 @@ Inst.AddStep {
 Inst.AddStep {
 	title = "Your controls",
 	text = L["INSTALLER_CONTROLS"],
+	build = function(host)
+		local f = CreateFrame("Frame", nil, host)
+		f:SetAllPoints()
+		local b1 = W.Button(f, L["Unlock move mode"], 180, 24)
+		b1:SetPoint("TOPLEFT", 0, -2)
+		b1:SetScript("OnClick", function()
+			if S.Movers and S.Movers.Toggle then S.Movers.Toggle() end
+		end)
+		local b2 = W.Button(f, L["Open settings"], 140, 24)
+		b2:SetPoint("LEFT", b1, "RIGHT", 12, 0)
+		b2:SetScript("OnClick", function()
+			if S.OptionsPanel and S.OptionsPanel.Toggle then S.OptionsPanel.Toggle() end
+		end)
+		return f
+	end,
 }
 Inst.AddStep {
 	title = "Modules",
-	text = function()
-		local names = {}
-		for name, mod in S.Modules() do
-			names[#names + 1] = mod.label or name
+	text = L["INSTALLER_MODULES_HEADER"],
+	build = function(host)
+		local f = CreateFrame("Frame", nil, host)
+		f:SetAllPoints()
+		local scroll, child = W.Scroll(f)
+		scroll:SetPoint("TOPLEFT", 0, 0)
+		scroll:SetPoint("BOTTOMRIGHT", -6, 0)
+		child:SetWidth(496)
+		local list = {}
+		for name, mod in S.Modules() do list[#list + 1] = { name = name, mod = mod } end
+		table.sort(list, function(a, b)
+			return (a.mod.label or a.name) < (b.mod.label or b.name)
+		end)
+		local y = -2
+		for _, e in ipairs(list) do
+			local row = CreateFrame("Button", nil, child)
+			row:SetHeight(20)
+			row:SetPoint("TOPLEFT", 0, y)
+			row:SetPoint("TOPRIGHT", 0, y)
+			row.hl = row:CreateTexture(nil, "HIGHLIGHT")
+			row.hl:SetAllPoints()
+			row.hl:SetTexture("Interface\\Buttons\\WHITE8X8")
+			row.hl:SetVertexColor(C.accent.r, C.accent.g, C.accent.b, 0.12)
+			local cb = W.Check(row)
+			cb:SetPoint("LEFT", 2, 0)
+			cb:SetChecked(S:Get(e.name, "enabled") ~= false)
+			local lab = S.Font(row, 11)
+			lab:SetPoint("LEFT", cb, "RIGHT", 6, 0)
+			lab:SetText(e.mod.label or e.name)
+			-- the write lands in the module db; the finish reload applies it
+			cb.onChanged = function(v) S:Set(e.name, "enabled", v) end
+			row:SetScript("OnClick", function() cb:Click() end)
+			y = y - 20
 		end
-		if #names == 0 then
-			return L["INSTALLER_MODULES_NONE"]
-		end
-		return string.format(L["INSTALLER_MODULES_LIST"], table.concat(names, ", "))
+		child:SetHeight(-y + 2)
+		return f
 	end,
 }
 Inst.AddStep {
 	title = "Done",
 	text = L["INSTALLER_DONE"],
+	last = true,
 }
 
 -- First-run popup, a moment after login and never during combat.
 S.RegisterEvent("PLAYER_LOGIN", function()
+	-- re-apply the game UI scale chosen in the installer: the client
+	-- does not persist uiScale in config-cache.wtf
+	local gs = S.DB.General().gameScale
+	if type(gs) == "number" then
+		C_Timer.After(0.5, function() applyUIScale(gs) end)
+	end
 	if S.DB.General().installDone then return end
 	C_Timer.After(1.5, function()
 		if not InCombatLockdown() then

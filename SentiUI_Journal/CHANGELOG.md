@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.12 - 2026-11-22
+
+- Close button replaced with the shared S.Widgets.Close — consistent Sentinel look instead of the raw hand-built "x" text button.
+
+## 0.1.11 - 2026-11-22
+
+- Filter chips use the shared Sentinel tab chip now: dark inset body with a 2px accent blade on the left edge that glows on hover and burns on the active chip - one design language across the whole suite instead of scattered boxes.
+
 ## 0.1.10 - 2026-11-22
 
 - Window now closes on Escape via the shared S.EscClosable helper instead of a UISpecialFrames entry - addon-written entries in that game table taint the Escape dispatch, which made protected calls (spell stop, reload) fail and get blamed on the addon.

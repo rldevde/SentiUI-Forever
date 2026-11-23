@@ -1,5 +1,21 @@
 # SentiUI Data Bars
 
+## 0.1.8 - 2026-11-23
+
+- Gold hairline now spans the bar's full width (was inset 5px each side, which read as a golden section smaller than the bar itself).
+
+## 0.1.7 - 2026-11-23
+
+- XP and rep bars now dock flush against the chat panel top edge (removed the 1px gap that left a hairline seam between bar and panel).
+
+## 0.1.6 - 2026-11-23
+
+- Dark-glass gloss overlay on the bar fill area, matching the unit frame / castbar look.
+
+## 0.1.5 - 2026-11-22
+
+- The accent line along the top edge is inset 5px on each side so it ends on the straight edge instead of poking past the rounded corners.
+
 ## 0.1.4
 
 - Fixed broken bar fills: the orientation helper was declared below

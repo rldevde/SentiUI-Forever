@@ -295,17 +295,20 @@ local function build()
 	line:SetPoint("TOPLEFT", 10, -24)
 	line:SetPoint("TOPRIGHT", -10, -24)
 
-	local close = CreateFrame("Button", nil, win, "UIPanelCloseButton")
-	close:SetPoint("TOPRIGHT", -4, -4)
+	local close = S.Widgets.Close(win, function() win:Hide() end)
+	close:SetPoint("TOPRIGHT", -6, -6)
 
 	-- view buttons: the current session is home; older sessions live in
-	-- the archive so the list shows only what is actually new
+	-- the archive so the list shows only what is actually new. Sentinel
+	-- tab chips - the blade marks the active view.
 	local x = 10
 	for _, spec in ipairs({
 		{ "current", L["Current session"], 110 },
 		{ "archive", L["Archive"], 70 },
 	}) do
-		local b = Btn(win, spec[2], spec[3])
+		local b = S.TabChip(win, 20)
+		b:SetLabel(spec[2])
+		b:SetWidth(spec[3])
 		b:SetPoint("TOPLEFT", x, -30)
 		b.key = spec[1]
 		b:SetScript("OnClick", function() selectFilter(b.key) end)

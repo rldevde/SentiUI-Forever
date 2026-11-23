@@ -31,6 +31,10 @@ ns.DEFAULTS = {
 	sellJunk = false,       -- auto-sell grey items when a vendor opens
 	autoRepair = false,     -- auto repair at repair-capable vendors
 	repairGuild = false,    -- try guild funds first
+
+	-- per-bag category preference: bagID -> category key ("" = everything)
+	-- e.g. bagPref["1"] = "quest" marks bag 1 for quest items
+	bagPref = {},
 }
 
 -- flat keys from 0.1.0 moved into db.bags; fold them over once so old

@@ -26,6 +26,8 @@ function Store.OwnKey()
 end
 
 -- Own char record, creating it on first use. Nil early in loading.
+-- A record written while the realm was unknown ("Name-") is folded
+-- into the real key once a realm resolves, so nothing is stranded.
 function Store.OwnChar()
 	local key = Store.OwnKey()
 	if not key or not ns.db then
@@ -35,6 +37,13 @@ function Store.OwnChar()
 	if not char then
 		char = {}
 		ns.db.chars[key] = char
+	end
+	local bare = key:match("^(.-%-)")
+	if bare and ns.db.chars[bare] and ns.db.chars[bare] ~= char then
+		for k, v in pairs(ns.db.chars[bare]) do
+			if char[k] == nil then char[k] = v end
+		end
+		ns.db.chars[bare] = nil
 	end
 	return char, key
 end

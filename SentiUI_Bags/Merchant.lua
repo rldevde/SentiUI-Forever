@@ -86,28 +86,40 @@ end
 -- repair: guild funds first when allowed, otherwise own gold
 function Merchant.Repair()
 	if not (type(CanMerchantRepair) == "function" and CanMerchantRepair()) then
-		print("|cffebad33SentiUI|r " .. L["Repair not possible here."])
 		return
 	end
 	local cost = 0
+	local costKnown = false
 	if type(GetRepairAllCost) == "function" then
 		local ok, c = pcall(GetRepairAllCost)
-		if ok and type(c) == "number" and not S.IsSecret(c) then cost = c end
+		if ok and type(c) == "number" and not S.IsSecret(c) then
+			cost = c
+			costKnown = true
+		end
 	end
-	if cost <= 0 then return end
+	-- skip early return when cost is secret: we can't know the price but
+	-- the repair may still be valid; try anyway and let the game decide
+	if costKnown and cost <= 0 then return end
 	local paid
-	if GuildRepairOK() and type(RepairAllItems) == "function" then
-		pcall(RepairAllItems, true)
-		paid = L["guild funds"]
-	else
-		if type(RepairAllItems) == "function" then
-			pcall(RepairAllItems, false)
+	local function callRepair(g)
+		if type(securecall) == "function" then
+			securecall(RepairAllItems, g)
+		else
+			pcall(RepairAllItems, g)
+		end
+	end
+	if type(RepairAllItems) == "function" then
+		if GuildRepairOK() then
+			callRepair(true)
+			paid = L["guild funds"]
+		else
+			callRepair(false)
 			paid = L["own gold"]
 		end
 	end
 	if paid then
 		print("|cffebad33SentiUI|r " .. L["Repaired for"] .. " "
-			.. MoneyStr(cost) .. " (" .. paid .. ")")
+			.. (costKnown and MoneyStr(cost) or "?") .. " (" .. paid .. ")")
 	end
 end
 
@@ -118,14 +130,26 @@ function Merchant.Enable(d)
 	hooked = true             -- read db live, so register them exactly once
 	-- MERCHANT_SHOW fires inside the vendor-window dispatch; item API
 	-- calls (UseContainerItem, RepairAllItems) run a frame later so the
-	-- client's own merchant work in that dispatch is not tainted
+	-- client's own merchant work in that dispatch is not tainted.
+	-- Opening the bags window always happens regardless of the toggles —
+	-- like the game does when a merchant opens.
 	S.RegisterEvent("MERCHANT_SHOW", function()
 		vendorOpen = true
-		if not (db.autoRepair or db.sellJunk) then return end
+		-- forceOpen keeps Core.Sync from closing the window right away:
+		-- IsAnyBagOpen() reads the game's own bag frames, not ours, and
+		-- would report false while the merchant is open.
+		if ns.Core then ns.Core.forceOpen = true end
 		C_Timer.After(0, function()
+			if ns.Core and ns.Core.Open then ns.Core.Open() end
 			if db.autoRepair then S.SafeCall("bags:repair", Merchant.Repair) end
 			if db.sellJunk then S.SafeCall("bags:sell", Merchant.SellJunk) end
 		end)
 	end)
-	S.RegisterEvent("MERCHANT_CLOSED", function() vendorOpen = false end)
+	S.RegisterEvent("MERCHANT_CLOSED", function()
+		vendorOpen = false
+		if ns.Core then
+			ns.Core.forceOpen = nil
+			ns.Core.Close()
+		end
+	end)
 end

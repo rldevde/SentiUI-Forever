@@ -9,7 +9,11 @@ local Skin = {}
 ns.Skin = Skin
 
 local BLANK = S.media.blank
-local BACKDROP = { bgFile = BLANK, edgeFile = BLANK, edgeSize = 1 }
+local TIP_EDGE = S.Tex and S.Tex("TooltipEdge")
+local BACKDROP = TIP_EDGE
+	and { bgFile = BLANK, edgeFile = TIP_EDGE, edgeSize = 16,
+		insets = { left = 2, right = 2, top = 2, bottom = 2 } }
+	or  { bgFile = BLANK, edgeFile = BLANK, edgeSize = 1 }
 
 local skinned = setmetatable({}, { __mode = "k" })
 
@@ -76,7 +80,10 @@ function Skin.Tip(tip)
 	for _, r in ipairs({ tip:GetRegions() }) do
 		if type(r) == "table" and r.IsObjectType and r:IsObjectType("Texture") then
 			local ok, layer = pcall(r.GetDrawLayer, r)
-			if ok and (layer == "BACKGROUND" or layer == "BORDER") then
+			-- a secret layer value cannot be compared (throws) - skip
+			-- classification for it rather than alpha-ing a possible icon
+			if ok and not S.IsSecret(layer)
+				and (layer == "BACKGROUND" or layer == "BORDER") then
 				pcall(r.SetAlpha, r, 0)
 			end
 		end
@@ -170,5 +177,46 @@ function Skin.Ensure(tip)
 	if type(tip) == "table" and tip.GetObjectType
 		and tip:GetObjectType() == "GameTooltip" then
 		Skin.Tip(tip)
+	end
+end
+
+-- Blank-icon guard: tooltips embed ARTWORK textures for item/spell icons.
+-- When the icon path cannot be resolved (failed atlas lookup, nil from
+-- GetItemIcon, unregistered spell icon) the region draws as the WHITE8X8
+-- fallback or stays un-textured — both appear as a bright white square on
+-- the dark panel. Scan ARTWORK textures in the tip: hide any that are
+-- using WHITE8X8 or have no texture set, as long as they are large enough
+-- to be an icon slot (>= 8px) and are not our own overlay accent line
+-- (which lives on OVERLAY, not ARTWORK, so it passes this filter safely).
+function Skin.FixBlankIcons(tip)
+	if type(tip) ~= "table" or not tip.GetRegions then return end
+	for _, r in ipairs({ tip:GetRegions() }) do
+		if type(r) == "table" and r.IsObjectType
+			and r:IsObjectType("Texture") then
+			local okL, layer = pcall(r.GetDrawLayer, r)
+			if okL and not S.IsSecret(layer) and layer == "ARTWORK" then
+				local okT, path = pcall(r.GetTexture, r)
+				if not okT or S.IsSecret(path) then
+					-- can't inspect: leave it alone
+				else
+					local isBlank = (path == nil or path == "")
+						or (type(path) == "string"
+							and (path:find("WHITE8X8")
+								or path:find("white8x8")))
+					if isBlank then
+						local okW, w = pcall(r.GetWidth, r)
+						local okH, h = pcall(r.GetHeight, r)
+						-- only icon-sized regions: tiny structural
+						-- spacers (< 8px) are left untouched
+						if okW and okH
+							and not S.IsSecret(w) and not S.IsSecret(h)
+							and type(w) == "number" and type(h) == "number"
+							and w >= 8 and h >= 8 then
+							pcall(r.SetAlpha, r, 0)
+						end
+					end
+				end
+			end
+		end
 	end
 end

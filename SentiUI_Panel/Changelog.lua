@@ -2,6 +2,66 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.34",
+		date = "2026-11-22",
+		changes = {
+			"Layer channel parking fix: the join/leave timers in the world plugin ran unguarded seconds later, tripping 'forbidden call: UNKNOWN()' when combat started in between. Each timer step now bails under InCombatLockdown.",
+		},
+		changesDE = {
+			"Layer-Channel-Parking-Fix: die Join/Leave-Timer im World-Plugin liefen ungeschuetzt Sekunden spaeter und loesten 'forbidden call: UNKNOWN()' aus, wenn zwischendurch Kampf begann. Jeder Timer-Schritt bricht jetzt unter InCombatLockdown ab.",
+		},
+	},
+	{
+		version = "0.5.33",
+		date = "2026-11-22",
+		changes = {
+			"Accent edge lines (top/bottom bars, plugins menu, toasts) are now inset 7px past the corner arc so they end on the straight edge instead of poking past the rounded frame silhouette.",
+		},
+		changesDE = {
+			"Akzent-Kantenlinien (obere/untere Leisten, Plugins-Menue, Toasts) sind jetzt 7px hinter den Eckbogen eingesetzt, damit sie an der geraden Kante enden statt ueber die gerundete Rahmensilhouette hinauszuragen.",
+		},
+	},
+	{
+		version = "0.5.32",
+		date = "2026-11-22",
+		changes = {
+			"The blacklist window's filter chips use the shared Sentinel tab chip now: dark inset body with a 2px accent blade on the left edge that glows on hover and burns on the active chip - one design language across the whole suite.",
+		},
+		changesDE = {
+			"Die Filter-Chips des Blacklist-Fensters nutzen jetzt den gemeinsamen Sentinel-Tab-Chip: dunkler Inset-Koerper mit 2px Akzent-Klinge an der linken Kante, die bei Hover glimmt und auf dem aktiven Chip brennt - eine Designsprache fuer die ganze Suite.",
+		},
+	},
+	{
+		version = "0.5.31",
+		date = "2026-11-22",
+		changes = {
+			"New installer step 'Bottom bar plugins': a scrollable checklist of every registered plugin - tick what should show on the bottom bar, untick what should not. Changes apply live and stay editable under SentiUI > Panel > Plugins.",
+		},
+		changesDE = {
+			"Neuer Installer-Schritt 'Plugins der unteren Leiste': eine scrollbare Checkliste aller gemeldeten Plugins - ankreuzen, was unten erscheinen soll, abhaken, was nicht. Aenderungen greifen sofort und bleiben unter SentiUI > Panel > Plugins editierbar.",
+		},
+	},
+	{
+		version = "0.5.30",
+		date = "2026-11-22",
+		changes = {
+			"The performance plugin defaults to hidden: the same readout now lives as a gear icon on the minimap (SentiUI_Minimap 0.3.14). The bar entry stays available under Panel > Plugins; existing configs keep their choice.",
+		},
+		changesDE = {
+			"Das Leistungs-Plugin ist jetzt standardmäßig versteckt: dieselbe Anzeige liegt als Zahnrad-Symbol an der Minimap (SentiUI_Minimap 0.3.14). Der Leisten-Eintrag bleibt unter Panel > Plugins verfügbar; bestehende Konfigurationen behalten ihre Wahl.",
+		},
+	},
+	{
+		version = "0.5.29",
+		date = "2026-11-22",
+		changes = {
+			"Overlapping plugin texts fixed: GetStringWidth can return 0 (not nil) before a string has rendered on this client - the width fallback never kicked in, so a freshly updated plugin collapsed to icon width and its neighbor drew over it.",
+		},
+		changesDE = {
+			"Überlappende Plugin-Texte behoben: GetStringWidth kann auf diesem Client 0 liefern (nicht nil), bevor ein String gerendert wurde - der Breiten-Fallback griff nie, ein frisch aktualisiertes Plugin kollabierte auf Iconbreite und der Nachbar zeichnete darüber.",
+		},
+	},
+	{
 		version = "0.5.28",
 		date = "2026-11-22",
 		changes = {

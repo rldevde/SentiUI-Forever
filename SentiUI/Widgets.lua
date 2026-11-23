@@ -35,12 +35,25 @@ end
 function W.Check(parent)
 	local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
 	b:SetSize(16, 16)
-	S.Template(b, "inset")
-	b.mark = b:CreateTexture(nil, "OVERLAY")
-	b.mark:SetTexture(BLANK)
-	b.mark:SetVertexColor(C.accent.r, C.accent.g, C.accent.b, 1)
-	b.mark:SetPoint("TOPLEFT", 3, -3)
-	b.mark:SetPoint("BOTTOMRIGHT", -3, 3)
+	local chkOn = S.Tex and S.Tex("CheckOn")
+	local chkOff = S.Tex and S.Tex("CheckEmpty")
+	if chkOn and chkOff then
+		-- full widget art: dark box, gold check
+		S.Template(b, "none")
+		local off = b:CreateTexture(nil, "BACKGROUND")
+		off:SetAllPoints()
+		off:SetTexture(chkOff)
+		b.mark = b:CreateTexture(nil, "OVERLAY")
+		b.mark:SetAllPoints()
+		b.mark:SetTexture(chkOn)
+	else
+		S.Template(b, "inset")
+		b.mark = b:CreateTexture(nil, "OVERLAY")
+		b.mark:SetTexture(BLANK)
+		b.mark:SetVertexColor(C.accent.r, C.accent.g, C.accent.b, 1)
+		b.mark:SetPoint("TOPLEFT", 3, -3)
+		b.mark:SetPoint("BOTTOMRIGHT", -3, 3)
+	end
 	b.mark:Hide()
 	b.checked = false
 	function b:SetChecked(v)
@@ -82,6 +95,14 @@ function W.Slider(parent, min, max, step)
 	f.thumb:SetSize(10, 16)
 	S.Template(f.thumb, "raised")
 	S.SetBorderLit(f.thumb, true)
+	local thTex = S.Tex and S.Tex("SliderThumb")
+	if thTex then
+		local ti = f.thumb:CreateTexture(nil, "OVERLAY")
+		ti:SetTexture(thTex)
+		ti:SetSize(6, 10)
+		ti:SetPoint("CENTER")
+		ti:SetVertexColor(C.accent.r, C.accent.g, C.accent.b)
+	end
 	f.thumb:SetScript("OnMouseDown", function() f:GetScript("OnMouseDown")(f) end)
 
 	local function frac()
@@ -154,9 +175,18 @@ function W.Dropdown(parent, w)
 	b.text = S.Font(b, 11)
 	b.text:SetPoint("LEFT", 8, 0)
 	b.text:SetPoint("RIGHT", -20, 0)
-	b.arrow = S.Font(b, 11, C.textDim)
-	b.arrow:SetPoint("RIGHT", -7, 0)
-	b.arrow:SetText("v")
+	local ddTex = S.Tex and S.Tex("DropdownArrow")
+	if ddTex then
+		b.arrow = b:CreateTexture(nil, "OVERLAY")
+		b.arrow:SetTexture(ddTex)
+		b.arrow:SetSize(10, 8)
+		b.arrow:SetPoint("RIGHT", -6, 0)
+		b.arrow:SetVertexColor(C.textDim.r, C.textDim.g, C.textDim.b)
+	else
+		b.arrow = S.Font(b, 11, C.textDim)
+		b.arrow:SetPoint("RIGHT", -7, 0)
+		b.arrow:SetText("v")
+	end
 	b.values, b.order = {}, {}
 	b:SetScript("OnEnter", function(f) S.SetBorderLit(f, true) end)
 	b:SetScript("OnLeave", function(f)
@@ -530,14 +560,15 @@ function S.Dialog(opts)
 		d.ok:SetPoint("BOTTOMRIGHT", d, "BOTTOM", -4, 12)
 	end
 	if opts.secureAccept == "/reload" then
+		-- no addon scripts on the secure button (an insecure script taints
+		-- the dispatch): the dialog simply stays until the reload fires -
+		-- or stays open as feedback when the reload was blocked.
 		if not d.secOverlay then
-			d.secOverlay = S.SecureReload(d.ok, function()
-				local text = d.edit.holder:IsShown() and d.edit:GetText() or nil
-				d:Hide()
-				if d.onAccept then S.SafeCall("dialog:accept", d.onAccept, text) end
-			end)
+			d.secOverlay = S.SecureReload(d.ok)
 		end
 		if d.secOverlay then d.secOverlay:Show() end
+	elseif d.secOverlay then
+		d.secOverlay:Hide()
 	end
 	d:SetHeight(opts.editText ~= nil and 150 or 110)
 	d:Show()

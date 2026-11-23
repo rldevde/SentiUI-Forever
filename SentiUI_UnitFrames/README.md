@@ -11,7 +11,9 @@ class-colored health). Standalone module - requires the SentiUI core.
   with health + power bars, name/level, status text, threat border,
   raid icons and optional castbars (icon, name, time, uninterruptible
   shield) and auras (buffs above, debuffs below, stack counts, timers,
-  dispel-type borders).
+  dispel-type borders). Each frame can show a **portrait tile** on its
+  left edge: a class icon for players (3D fallback for creatures) or the
+  engine's 3D portrait for every unit.
 - **Party** - a fixed five-button block (`player` + `party1-4`) driven
   by `RegisterUnitWatch`, so joins and leaves mid-combat update
   visibility without touching protected attributes. Role marks,
@@ -22,6 +24,17 @@ class-colored health). Standalone module - requires the SentiUI core.
   group/class/role, range fading, dispel-type border, ready check.
 - Blizzard's own unit frames are parked on a hidden container
   (toggleable per group).
+- **External defensive indicators** - small corner icons on party/raid
+  cells fed by an engine `AuraContainer` filtered to
+  `HELPFUL|EXTERNAL_DEFENSIVE` (secret-safe; toggleable per group).
+- **Raid tools** - a slim tab docked to the top screen edge (own mover)
+  that unfolds a tray with target markers, world markers, ready check
+  and a 10s pull timer, shown only while grouped; click the tab to fold
+  the tray away (works in combat, state persists). Markers run through
+  the client's `/tm` and `/wm` slash commands in the secure macro path.
+- **Alt power bar** - replaces the parked `PlayerPowerBarAlt`: watches
+  the encounter power index via `UnitPower`/`UnitPowerMax`
+  (secret-safe), shows name and percent while active. Own mover.
 
 ## Usage
 

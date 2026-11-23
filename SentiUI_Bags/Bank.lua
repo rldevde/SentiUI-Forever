@@ -44,16 +44,9 @@ function Bank.Close()
 end
 
 function Bank.Enable()
-	S.SafeCall("bags:bank", function()
-		ns.Core.MakeWindow("bank", {
-			label = L["Bank"], viewKey = "bank", bagIds = BANK_IDS,
-			slots = BANK_SLOT_IDS,
-			defaultPos = { x = -360, y = -160 },
-			tools = {
-				{ label = L["Sort bags"], fn = SortBank },
-			},
-		})
-	end)
+	-- no own bank window: the Blizzard BankFrame stays visible and
+	-- carries its native slot purchase UI. The bank events below still
+	-- open the carried-bags window alongside it like the game does.
 	for _, ev in ipairs({ "PLAYERBANKSLOTS_CHANGED",
 		"PLAYERREAGENTBANKSLOTS_CHANGED", "BANK_TABS_CHANGED" }) do
 		S.RegisterEvent(ev, ns.Core.Refresh)

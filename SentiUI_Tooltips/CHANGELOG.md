@@ -1,5 +1,25 @@
 # SentiUI Tooltips
 
+## 0.2.14 - 2026-11-23
+
+- Blank icon guard (`Skin.FixBlankIcons`): after each tooltip post-call, ARTWORK textures that use the WHITE8X8 fallback or carry no texture and are icon-sized (≥ 8 px) are alpha'd to 0. Prevents unresolved atlas icons or nil `SetTexture` calls from rendering as bright white square boxes on the dark tooltip panel.
+
+## 0.2.13 - 2026-11-22
+
+- Elite badge box fix: the classification line drew a `◆` glyph that the SentiUI font family does not carry, so it rendered as an empty square — now a safe `•` bullet.
+
+## 0.2.12 - 2026-11-22
+
+- Tooltips ride the generated `TooltipEdge.tga` edgeFile when present — a real border texture replaces the 1px flat edge (probed, falls back when missing).
+
+## 0.2.11 - 2026-11-22
+
+- Secret-value fix in the tooltip skin: a texture's draw layer can be a secret string on this client - comparing it threw 'attempt to compare local layer'. Secret layers are now skipped instead of classified.
+
+## 0.2.10
+
+- Cursor-anchored tooltips stay at the cursor in every anchor mode now: the game deliberately places map POI, minimap-hover and chat-link tooltips at the mouse, and yanking them to the fixed dock is what made minimap hovers pop up far away from the map. Only truly free-floating tooltips (ANCHOR_NONE) go to the fixed dock.
+
 ## 0.2.9
 
 - Interface-dispatch audit: tooltip re-anchoring and the unit status-bar shell no longer run from OnShow/OnHide scripts on GameTooltip and its status bar - secure visibility watchers apply the work outside the client dispatch, which can carry secret unit values.

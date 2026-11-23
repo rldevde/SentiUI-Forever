@@ -1,5 +1,12 @@
 # SentiUI_Character
 
+> **Shelved for now:** `ns.PASSTHROUGH = true` in `Core.lua` disables the
+> custom window — the module builds nothing and installs no hooks, so the
+> Blizzard CharacterFrame is fully in charge. Menu/API callers (panel
+> entries for character/reputation) are forwarded to `ToggleCharacter`
+> with the right tab. Set the flag back to `false` to reactivate the
+> SentiUI window described below.
+
 The Sentinel character window for SentiUI — gear, stats and the 3D model in
 one dark, gold-accented panel. It replaces the Blizzard character sheet when
 you press `C` or use the micro menu; the Blizzard frame stays hidden while
@@ -22,6 +29,10 @@ ours is open and returns when the module is disabled (reload required).
 - **Native tooltips** — hovering a slot shows the game's own item tooltip.
 
 ## Tabs
+
+The tab strip uses the shared Sentinel tab chip: a dark inset body with a
+2px accent blade on the left edge that glows on hover and burns on the
+active tab.
 
 The window takes over every character-sheet tab whose API exists on the
 client: **Character** (gear + stats + model), **Pet**, **Reputation**,
@@ -60,7 +71,7 @@ SentiUI › Character:
 
 ## Notes
 
-- ESC closes the window (registered in `UISpecialFrames`).
+- ESC closes the window (shared `S.EscClosable` helper, no UISpecialFrames entry); the header carries a Sentinel close chip instead of the Blizzard X.
 - The module hooks `ToggleCharacter`; tabs it doesn't cover fall through
   to the Blizzard window untouched.
 - Secret values are guarded; combat-sensitive frame work is deferred

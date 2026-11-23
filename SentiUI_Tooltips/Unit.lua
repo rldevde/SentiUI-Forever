@@ -877,7 +877,7 @@ function Unit.Apply(tip)
 		if label then
 			AddLineOnce(tip, "|cff"
 				.. string.format("%02x%02x%02x", cr * 255, cg * 255, cb * 255)
-				.. "◆ " .. label .. "|r")
+				.. "• " .. label .. "|r")
 		end
 	end
 

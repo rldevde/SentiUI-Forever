@@ -70,6 +70,7 @@ local function ClassToken(unit)
 	local okI, _, ecls = pcall(GetPlayerInfoByGUID, guid)
 	return okI and ns.Plain(ecls) or nil
 end
+ns.ClassToken = ClassToken -- portraits read the class for the icon atlas
 
 -- When the client hides a unit's class behind a secret, the engine still
 -- resolves it: C_ClassColor.GetClassColor accepts the secret token from
@@ -216,7 +217,7 @@ function ns.Bar(parent, w, h)
 	if w then b:SetSize(w, h or 10) end
 	local bg = b:CreateTexture(nil, "BACKGROUND")
 	bg:SetAllPoints()
-	bg:SetColorTexture(0, 0, 0, 0.55)
+	bg:SetColorTexture(0, 0, 0, 0.65)
 	b.bg = bg
 	return b
 end
@@ -261,6 +262,46 @@ function ns.SetBarValues(bar, cur, mx)
 		bar:SetMinMaxValues(0, 1)
 		bar:SetValue(0, interp)
 	end
+end
+
+-- rounded-aware edge border: with the generated ThreatGlow edgeFile the
+-- whole ring (including the anti-aliased corners) is one backdrop edge,
+-- recolored through SetBackdropBorderColor. Without media it falls back
+-- square 1px edge ring for threat/target highlight on unit frames.
+-- Four straight strips corner-to-corner, no arcs — consistent with
+-- the nameplate look and immune to the pointed-chevron geometry bug.
+function ns.EdgeGlow(f, size)
+	local g = CreateFrame("Frame", nil, f)
+	g:SetAllPoints()
+	-- must be above the text-holder frame (f+8) and absorb/heal-pred bars (f+3)
+	-- so the border strips are never covered by internal unit-frame layers
+	g:SetFrameLevel(f:GetFrameLevel() + 10)
+	local s = size or 2
+	g.strips = {}
+	local function mkStrip(p1, p2, horiz)
+		local t = g:CreateTexture(nil, "OVERLAY")
+		t:SetTexture(BLANK)
+		t:SetPoint(p1)
+		t:SetPoint(p2)
+		if horiz then t:SetHeight(s) else t:SetWidth(s) end
+		-- use array index, NOT p1 as key: "TOPLEFT" is shared by the top
+		-- horizontal strip and the left vertical strip, so keying by p1
+		-- silently overwrites the top strip with the left one, leaving only
+		-- three sides colored while the top stays blank/white.
+		g.strips[#g.strips + 1] = t
+	end
+	mkStrip("TOPLEFT",    "TOPRIGHT",    true)
+	mkStrip("BOTTOMLEFT", "BOTTOMRIGHT", true)
+	mkStrip("TOPLEFT",    "BOTTOMLEFT",  false)
+	mkStrip("TOPRIGHT",   "BOTTOMRIGHT", false)
+	function g:SetEdgeColor(cr, cg, cb, ca)
+		self._col = { cr, cg, cb, ca or 1 }
+		for _, t in pairs(self.strips) do
+			t:SetVertexColor(cr, cg, cb, ca or 1)
+		end
+	end
+	g:Hide()
+	return g
 end
 
 -- event bus -----------------------------------------------------------------------

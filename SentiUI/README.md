@@ -16,5 +16,8 @@ Settings core for the SentiUI interface suite (WoW Forever client).
 - First run shows a short installer (`/sui install` any time): a live
   UI-scale slider with a per-resolution *Recommended* button, then
   *Finish & reload* applies everything cleanly.
+- `python make_media.py` (dev tool) regenerates the texture suite in
+  `Media/Textures/` — edge files, fills, bar textures, control glyphs
+  and icons — as 32bpp TGAs with PNG previews and a contact sheet.
 
 Disable other full UI replacements when running this suite.

@@ -21,6 +21,20 @@ local db
 -- fast loot ----------------------------------------------------------------------
 -- every slot the instant LOOT_READY fires, before the window renders;
 -- respects the autoloot modifier/cvar unless "always" is set
+-- IsModifiedClick lies on this client (documented in ActionBars):
+-- AUTOLOOTTOGGLE can answer truthy with nothing held or never at all.
+-- Ask the mapping (GetModifiedClick) which key the game wants, then check
+-- the raw key state; unknown mapping = any modifier means hands-on.
+local function ManualLootHeld()
+	local mod = GetModifiedClick and GetModifiedClick("AUTOLOOTTOGGLE")
+	if mod == "SHIFT" then return IsShiftKeyDown and IsShiftKeyDown() end
+	if mod == "CTRL" then return IsControlKeyDown and IsControlKeyDown() end
+	if mod == "ALT" then return IsAltKeyDown and IsAltKeyDown() end
+	return (IsShiftKeyDown and IsShiftKeyDown())
+		or (IsControlKeyDown and IsControlKeyDown())
+		or (IsAltKeyDown and IsAltKeyDown())
+end
+
 local function OnLootReady(_, autoloot)
 	if not db.fastLoot then return end
 	local loot = db.fastLootAlways or autoloot
@@ -28,9 +42,7 @@ local function OnLootReady(_, autoloot)
 	if not loot then return end
 	-- a held autoloot modifier drops back to the normal window, even in
 	-- "always" mode - the user picks the slots himself then
-	if db.fastLootAlways and IsModifiedClick and IsModifiedClick("AUTOLOOTTOGGLE") then
-		return
-	end
+	if ManualLootHeld() then return end
 	for i = (GetNumLootItems and GetNumLootItems() or 0), 1, -1 do
 		S.SafeCall("loot:slot", LootSlot, i)
 	end
@@ -91,12 +103,10 @@ local function BuildFrame()
 	local line = S.Line(frame, ACCENT)
 	line:SetPoint("TOPLEFT", 10, -26)
 	line:SetPoint("TOPRIGHT", -10, -26)
-	local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
-	close:SetPoint("TOPRIGHT", -4, -4)
-	local clear = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-	clear:SetSize(70, 18)
+	local close = W.Close(frame, function() frame:Hide() end)
+	close:SetPoint("TOPRIGHT", -6, -6)
+	local clear = W.Button(frame, L["Clear"])
 	clear:SetPoint("BOTTOMRIGHT", -10, 8)
-	clear:SetText(L["Clear"])
 	clear:SetScript("OnClick", function()
 		wipe(Entries())
 		frame.offset = 0
@@ -172,28 +182,33 @@ local function OnLootMsg(_, msg)
 end
 
 -- roll frames ----------------------------------------------------------------------
--- Sentinel look on the group loot frames: quality border on the icon and
--- tinted need/greed/pass/disenchant buttons
-local ROLL_TINT = {
-	need = { 0.10, 0.85, 0.40 },
-	greed = { 0.90, 0.68, 0.20 },
-	pass = { 0.90, 0.30, 0.30 },
-	de = { 0.70, 0.40, 1.00 },
+-- the client's roll frames stay alive (they own rollID and the countdown)
+-- but get fully hidden and click-dead; the visible card is ours: item
+-- icon with a quality border, name, an accent countdown line and the
+-- classic dice/coin/disenchant/pass glyphs - a real Sentinel look
+local ROLL_W, ROLL_H, ROLL_GAP, ROLL_VISIBLE = 264, 56, 6, 3
+local ROLL_BTN = 20
+local ROLL_ORDER = { "need", "greed", "de", "pass" }
+local ROLL_ID = { need = 1, greed = 2, de = 3, pass = 0 }
+local ROLL_TEX = {
+	need = "Interface\\Buttons\\UI-GroupLoot-Dice-Up",
+	greed = "Interface\\Buttons\\UI-GroupLoot-Coin-Up",
+	de = { "Interface\\Buttons\\UI-GroupLoot-DE-Up",
+		"Interface\\Icons\\INV_Enchant_Disenchant" },
+	pass = "Interface\\Buttons\\UI-GroupLoot-Pass-Up",
 }
 
-local function TintButton(btn, r, g, b)
-	if not btn then return end
-	if not btn.suiTint then
-		local t = btn:CreateTexture(nil, "BACKGROUND")
-		t:SetAllPoints()
-		t:SetTexture("Interface\\Buttons\\WHITE8X8")
-		btn.suiTint = t
-	end
-	if r then
-		btn.suiTint:SetVertexColor(r, g, b, 0.30)
-		btn.suiTint:Show()
-	else
-		btn.suiTint:Hide()
+-- some group-loot glyph sheets are missing on this client and SetTexture
+-- happily accepts the dead path (renders a grey box). Probe the file data
+-- when possible so a missing glyph falls back to the letter instead
+local function ResolveGlyph(v)
+	local candidates = type(v) == "table" and v or { v }
+	for _, path in ipairs(candidates) do
+		if type(path) == "string" then
+			if not GetFileIDFromPath then return path end
+			local ok, id = pcall(GetFileIDFromPath, path)
+			if ok and id and id ~= 0 then return path end
+		end
 	end
 end
 
@@ -226,107 +241,214 @@ local function EachRollFrame(fn)
 	end
 end
 
--- Blizzard chrome sits on BACKGROUND and BORDER layers plus a few named
--- regions; the quality glow (the green box) is one of those textures.
-local function StripRollChrome(f)
-	for _, region in ipairs({ f:GetRegions() }) do
-		if region:IsObjectType("Texture") then
-			local layer = region:GetDrawLayer()
-			if layer == "BACKGROUND" or layer == "BORDER" then
-				region:SetTexture(nil)
-			end
+-- invisible and click-dead: alpha 0 plus mouse killed recursively so the
+-- game frame's own buttons can't eat a click through our cards. Hide()
+-- is deliberately avoided - the engine may treat it as a dismissed roll.
+local function KillRollFrame(f)
+	f:SetAlpha(0)
+	local function kill(fr)
+		if fr.EnableMouse then pcall(fr.EnableMouse, fr, false) end
+		if fr.EnableMouseWheel then pcall(fr.EnableMouseWheel, fr, false) end
+		for _, c in ipairs({ fr:GetChildren() }) do
+			if type(c) == "table" then kill(c) end
 		end
 	end
-	for _, key in ipairs({ "Background", "Border", "NameFrame" }) do
-		local r = f[key]
-		if r and r.Hide then pcall(r.Hide, r) end
-	end
+	kill(f)
 end
 
--- roll buttons hang on the frame itself on older frames or inside
--- LootButtonContainer on newer ones
-local function RollButtons(f)
-	local box = f.LootButtonContainer
-	local name = f.GetName and f:GetName()
-	local function btn(k)
-		return (type(box) == "table" and box[k]) or f[k] or (name and _G[name .. k])
-	end
-	return {
-		need = btn("NeedButton"), greed = btn("GreedButton"),
-		pass = btn("PassButton"), de = btn("DisenchantButton"),
-		tmog = btn("TransmogButton"),
-	}
+local function RollIDOf(f)
+	local ok, id = pcall(function() return f.rollID end)
+	if ok and id ~= nil and not IsSecret(id) then return id end
 end
 
-local function StyleRollFrame(f)
-	if not f or f.suiStyled then return end
-	f.suiStyled = true
-	StripRollChrome(f)
-	if not f.SetBackdrop and BackdropTemplateMixin then Mixin(f, BackdropTemplateMixin) end
-	S.Template(f, "raised")
-	-- quality border around the item icon (the game's own border region
-	-- on IconFrame stays hidden so only ours shows)
-	local icon = f.IconFrame or _G[(f.GetName and f:GetName() or "") .. "IconFrame"]
-	if icon then
-		for _, key in ipairs({ "Border", "IconBorder" }) do
-			if icon[key] and icon[key].Hide then pcall(icon[key].Hide, icon[key]) end
-		end
-		if not icon.suiBorder then
-			local border = icon:CreateTexture(nil, "OVERLAY")
-			border:SetPoint("TOPLEFT", -1, 1)
-			border:SetPoint("BOTTOMRIGHT", 1, -1)
-			border:SetColorTexture(1, 1, 1, 0.9)
-			icon.suiBorder = border
-		end
-	end
-	-- slim the countdown bar to an accent line at the bottom edge
-	local timer = f.Timer
-	if type(timer) == "table" and timer.SetStatusBarTexture then
-		pcall(timer.SetStatusBarTexture, timer, "Interface\\Buttons\\WHITE8X8")
-		pcall(timer.SetStatusBarColor, timer, ACCENT.r, ACCENT.g, ACCENT.b)
-		pcall(timer.SetHeight, timer, 3)
-	end
-	-- Sentinel font + size on the item name
-	local nameFS = f.Name
-	if type(nameFS) == "table" and nameFS.SetTextColor then
-		pcall(S.ApplyFont, nameFS, S.media.font, 11, "")
-	end
-end
-
-local function UpdateRollFrame(f)
-	if not f or type(f) ~= "table" then return end
-	if f.IsForbidden and f:IsForbidden() then return end
-	if not db.rollSkin then return end
-	StyleRollFrame(f)
-	local name = f.GetName and f:GetName()
-	local icon = f.IconFrame or (name and _G[name .. "IconFrame"])
-	local link = f.rollID and GetLootRollItemLink and GetLootRollItemLink(f.rollID)
-	local quality = link and GetItemInfo and select(3, GetItemInfo(link))
-	if icon and icon.suiBorder then
-		if quality then
-			icon.suiBorder:SetColorTexture(QualityColor(quality))
-			icon.suiBorder:Show()
-		else
-			icon.suiBorder:Hide()
-		end
-	end
-	local nameFS = f.Name
-	if quality and type(nameFS) == "table" and nameFS.SetTextColor then
-		nameFS:SetTextColor(QualityColor(quality))
-	end
-	local btns = RollButtons(f)
-	TintButton(btns.need, unpack(ROLL_TINT.need))
-	TintButton(btns.greed, unpack(ROLL_TINT.greed))
-	TintButton(btns.pass, unpack(ROLL_TINT.pass))
-	TintButton(btns.de, unpack(ROLL_TINT.de))
-end
-
--- roll panel -------------------------------------------------------------------
--- the visible roll frames are re-homed into a Sentinel panel: one
--- deterministic column docked to the side of the loot window (the items),
--- scrollable once more rolls are active than fit
+-- roll panel + cards -----------------------------------------------------------
 local rollPanel, rollScroll, rollChild
-local ROLL_GAP, ROLL_VISIBLE = 6, 3
+local rollCards = {}
+
+local function MakeRollCard()
+	local r = CreateFrame("Frame", nil, rollChild)
+	r:SetSize(ROLL_W, ROLL_H)
+	S.Template(r, "inset")
+	-- the icon is a plain texture and cannot take input: the card frame
+	-- takes the hover instead and shows the item tooltip that
+	-- UpdateRollCard caches on the icon as suiIconLink
+	r:EnableMouse(true)
+	r:SetScript("OnEnter", function(self)
+		S.SetBorderLit(self, true)
+		local link = self.icon and self.icon.suiIconLink
+		if link and not IsSecret(link) then
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			pcall(GameTooltip.SetHyperlink, GameTooltip, link)
+			GameTooltip:Show()
+		end
+	end)
+	r:SetScript("OnLeave", function(self)
+		S.SetBorderLit(self, false)
+		GameTooltip:Hide()
+	end)
+	-- wheel straight to the panel scroll even with the cursor on a card
+	r:EnableMouseWheel(true)
+	r:SetScript("OnMouseWheel", function(_, delta)
+		local w = rollPanel and rollPanel:GetScript("OnMouseWheel")
+		if w then w(rollPanel, delta) end
+	end)
+	r.icon = r:CreateTexture(nil, "ARTWORK")
+	r.icon:SetPoint("TOPLEFT", 6, -7)
+	r.icon:SetSize(30, 30)
+	r.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	-- subtle 2px corner clip keeps the icon's square silhouette
+	S.IconRound(r, 2)
+	-- quality ring sits one layer under the icon: OVERLAY would paint
+	-- the solid square over it and the icon disappears
+	r.border = r:CreateTexture(nil, "BORDER")
+	r.border:SetPoint("TOPLEFT", r.icon, -1, 1)
+	r.border:SetPoint("BOTTOMRIGHT", r.icon, 1, -1)
+	r.name = S.Font(r, 11)
+	r.name:SetPoint("TOPLEFT", r.icon, "TOPRIGHT", 8, -2)
+	r.name:SetWidth(ROLL_W - 32 - 14 - (2 * ROLL_BTN + 10))
+	r.name:SetJustifyH("LEFT")
+	r.name:SetWordWrap(false)
+	-- accent countdown line along the bottom edge
+	r.timer = CreateFrame("StatusBar", nil, r)
+	r.timer:SetPoint("BOTTOMLEFT", 6, 5)
+	r.timer:SetPoint("BOTTOMRIGHT", -6, 5)
+	r.timer:SetHeight(3)
+	r.timer:SetMinMaxValues(0, 1)
+	r.timer:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
+	r.timer:SetStatusBarColor(ACCENT.r, ACCENT.g, ACCENT.b, 0.9)
+	r.timerbg = r.timer:CreateTexture(nil, "BACKGROUND")
+	r.timerbg:SetAllPoints()
+	r.timerbg:SetTexture("Interface\\Buttons\\WHITE8X8")
+	r.timerbg:SetVertexColor(1, 1, 1, 0.08)
+	-- 2x2 glyph grid on the right: need greed / disenchant pass
+	r.btns = {}
+	for i, key in ipairs(ROLL_ORDER) do
+		local b = CreateFrame("Button", nil, r)
+		b:SetSize(ROLL_BTN, ROLL_BTN)
+		local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
+		b:SetPoint("TOPRIGHT", -6 - col * (ROLL_BTN + 3),
+			-7 - row * (ROLL_BTN + 3))
+		b.tex = b:CreateTexture(nil, "ARTWORK")
+		b.tex:SetAllPoints()
+		local glyph = ResolveGlyph(ROLL_TEX[key])
+		if glyph then b.tex:SetTexture(glyph) end
+		if not glyph or not b.tex:GetTexture() then
+			-- the classic glyph sheets are missing on this client:
+			-- fall back to a letter so the button still reads
+			b.tex:Hide()
+			local fs = S.Font(b, 12, ACCENT)
+			fs:SetPoint("CENTER")
+			fs:SetText(({ need = "N", greed = "G", de = "D", pass = "P" })[key])
+		end
+		b.rollType = ROLL_ID[key]
+		b:SetScript("OnClick", function(self)
+			local card = self:GetParent()
+			if card.rollID ~= nil then
+				S.SafeCall("loot:roll", RollOnLoot, card.rollID, self.rollType)
+			end
+		end)
+		b:SetScript("OnEnter", function(self)
+			self.tex:SetVertexColor(ACCENT.r, ACCENT.g, ACCENT.b)
+			local label = ({ need = NEED or "Need", greed = GREED or "Greed",
+				de = ROLL_DISENCHANT or DISENCHANT or "Disenchant",
+				pass = PASS or "Pass" })[key]
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetText(label)
+		end)
+		b:SetScript("OnLeave", function(self)
+			self.tex:SetVertexColor(1, 1, 1)
+			GameTooltip:Hide()
+		end)
+		r.btns[key] = b
+	end
+	return r
+end
+
+-- SetTexture can silently drop a bad or secret value; verify the texture
+-- actually stuck and walk the fallbacks until something draws
+local function IconSticks(tex, v)
+	if v == nil or IsSecret(v) then return false end
+	tex:SetTexture(v)
+	return tex:GetTexture() ~= nil
+end
+
+-- Item data arrives async on this client: the first loot often finds
+-- nothing cached and every icon source comes back empty, leaving the
+-- question-mark fallback. ContinueOnItemLoad re-runs the lookup the
+-- moment the item lands in the cache. tex.suiIconLink guards against
+-- recycled rows: if the row was reused for another item while the load
+-- was pending, the stale callback does nothing.
+local function RetryIcon(tex, link)
+	tex.suiIconLink = link
+	if not (link and Item and Item.CreateFromItemLink) then return end
+	local ok, item = pcall(Item.CreateFromItemLink, Item, link)
+	if not (ok and item and item.ContinueOnItemLoad) then return end
+	item:ContinueOnItemLoad(function()
+		if tex.suiIconLink ~= link then return end
+		if C_Item and C_Item.GetItemIconByID then
+			local ok2, v = pcall(C_Item.GetItemIconByID, link)
+			if ok2 and IconSticks(tex, v) then return end
+		end
+		if item.GetItemIcon then
+			local ok2, v = pcall(item.GetItemIcon, item)
+			if ok2 then IconSticks(tex, v) end
+		end
+	end)
+end
+
+local function RollInfo(rollID)
+	-- texture, name, count, quality, bindOnPickup, canNeed, canGreed,
+	-- canDisenchant, reason*, deSkillRequired, canTransmog
+	local ok, tex, name, count, quality, _, canNeed, canGreed, canDE =
+		pcall(GetLootRollItemInfo, rollID)
+	if not ok then return end
+	if IsSecret(name) then name = nil end
+	if IsSecret(tex) then tex = nil end
+	return tex, name, count, quality, canNeed, canGreed, canDE
+end
+
+local function UpdateRollCard(r, rollID)
+	r.rollID = rollID
+	local tex, name, count, quality, canNeed, canGreed, canDE = RollInfo(rollID)
+	local link = GetLootRollItemLink and GetLootRollItemLink(rollID)
+	if link and GetItemInfo then
+		quality = select(3, GetItemInfo(link)) or quality
+		if not name then name = select(1, GetItemInfo(link)) end
+	end
+	if not tex and link and C_Item and C_Item.GetItemIconByID then
+		local ok, v = pcall(C_Item.GetItemIconByID, link)
+		if ok and not IsSecret(v) then tex = v end
+	end
+	r.icon.suiIconLink = link
+	if not IconSticks(r.icon, tex) then
+		IconSticks(r.icon, "Interface\\Icons\\INV_Misc_QuestionMark")
+		RetryIcon(r.icon, link)
+	end
+	local cr, cg, cb = QualityColor(quality or 1)
+	r.border:SetColorTexture(cr, cg, cb)
+	r.name:SetText(name or (link and link:match("%[(.-)%]")) or "?")
+	r.name:SetTextColor(cr, cg, cb)
+	if type(count) == "number" and count > 1 then
+		r.name:SetText(r.name:GetText() .. " x" .. count)
+	end
+	-- roll buttons exist only for what the item allows; a secret flag
+	-- keeps the fallback (need/greed shown, disenchant hidden)
+	local function Allowed(v, fallback)
+		if v == nil or IsSecret(v) then return fallback end
+		return v == true
+	end
+	if r.btns.need then r.btns.need:SetShown(Allowed(canNeed, true)) end
+	if r.btns.greed then r.btns.greed:SetShown(Allowed(canGreed, true)) end
+	if r.btns.de then r.btns.de:SetShown(Allowed(canDE, false)) end
+	-- countdown: remember the longest time seen, the bar drains to zero
+	local left = GetLootRollTimeLeft and GetLootRollTimeLeft(rollID)
+	if type(left) == "number" and not IsSecret(left) then
+		local total = r.total and math.max(r.total, left) or left
+		r.total = total
+		r.timer:SetMinMaxValues(0, math.max(1, total))
+		r.timer:SetValue(math.max(0, left))
+	end
+end
 
 local function BuildRollPanel()
 	if rollPanel then return end
@@ -343,6 +465,15 @@ local function BuildRollPanel()
 	rollChild = CreateFrame("Frame", nil, rollScroll)
 	rollChild:SetSize(1, 1)
 	rollScroll:SetScrollChild(rollChild)
+	-- the template scrollbar comes unanchored on this client: park it in
+	-- the right gutter the scroll frame leaves (-18) with room for the
+	-- up/down buttons
+	local sb = rollScroll.ScrollBar
+	if sb then
+		sb:ClearAllPoints()
+		sb:SetPoint("TOPRIGHT", rollScroll, "TOPRIGHT", 0, -16)
+		sb:SetPoint("BOTTOMRIGHT", rollScroll, "BOTTOMRIGHT", 0, 16)
+	end
 	rollPanel:EnableMouseWheel(true)
 	rollPanel:SetScript("OnMouseWheel", function(_, delta)
 		local cur = rollScroll:GetVerticalScroll() or 0
@@ -354,88 +485,64 @@ local function BuildRollPanel()
 	rollPanel:Hide()
 end
 
-local function FrameDim(f, getter)
-	local ok, v = pcall(getter, f)
-	if ok and type(v) == "number" and not IsSecret(v) then return v end
-	return 0
-end
+-- live rolls: rollID -> seen-at least once from a client frame (the
+-- countdown source) or from START_LOOT_ROLL itself
+local liveRolls = {}
+local pendingRolls = {}
+local rollIDList = {}
 
--- a docked roll card owns its row offset; any SetPoint from the game's
--- own container layout snaps back into our column
-local function DockRollFrame(f, y)
-	f.suiRow = y
-	if f:GetParent() ~= rollChild then
-		pcall(f.SetParent, f, rollChild)
+local function CollectRolls()
+	wipe(liveRolls)
+	EachRollFrame(function(f)
+		if f.IsForbidden and f:IsForbidden() then return end
+		if f.IsShown and f:IsShown() then
+			-- the client's frame keeps ticking but stays invisible
+			KillRollFrame(f)
+			local id = RollIDOf(f)
+			if id ~= nil then liveRolls[id] = true end
+		end
+	end)
+	for id in pairs(pendingRolls) do
+		liveRolls[id] = true
 	end
-	if not f.suiDocked then
-		f.suiDocked = true
-		hooksecurefunc(f, "SetPoint", function(self)
-			if self.suiFixing then return end
-			self.suiFixing = true
-			self:ClearAllPoints()
-			self:SetPoint("TOPLEFT", rollChild, "TOPLEFT",
-				0, -(self.suiRow or 0))
-			self.suiFixing = nil
-		end)
-		-- wheel over a card scrolls the list too, not just the panel gaps
-		pcall(f.EnableMouseWheel, f, true)
-		f:HookScript("OnMouseWheel", function(_, delta)
-			local wheel = rollPanel and rollPanel:GetScript("OnMouseWheel")
-			if wheel then wheel(rollPanel, delta) end
-		end)
+	wipe(rollIDList)
+	for id in pairs(liveRolls) do
+		rollIDList[#rollIDList + 1] = id
 	end
-	f.suiFixing = true
-	f:ClearAllPoints()
-	f:SetPoint("TOPLEFT", rollChild, "TOPLEFT", 0, -y)
-	f.suiFixing = nil
+	table.sort(rollIDList)
+	return rollIDList
 end
 
-local function RollSortKey(f)
-	local ok, id = pcall(function() return f.rollID end)
-	if ok and not IsSecret(id) then return tonumber(id) or 0 end
-	return 0
-end
-
-local rollList = {}
 local function LayoutRollPanel()
 	if not db.rollSkin then
 		if rollPanel then rollPanel:Hide() end
 		return
 	end
 	BuildRollPanel()
-	wipe(rollList)
-	EachRollFrame(function(f)
-		if (not f.IsForbidden or not f:IsForbidden())
-			and f.IsShown and f:IsShown() then
-			rollList[#rollList + 1] = f
-		end
-	end)
-	if #rollList == 0 then
+	local ids = CollectRolls()
+	local n = 0
+	for i, id in ipairs(ids) do
+		local r = rollCards[i] or MakeRollCard()
+		rollCards[i] = r
+		UpdateRollCard(r, id)
+		r:ClearAllPoints()
+		r:SetPoint("TOPLEFT", rollChild, "TOPLEFT",
+			0, -(i - 1) * (ROLL_H + ROLL_GAP))
+		r:Show()
+		n = i
+	end
+	for i = n + 1, #rollCards do
+		rollCards[i].rollID = nil
+		rollCards[i].total = nil
+		rollCards[i]:Hide()
+	end
+	if n == 0 then
 		rollPanel:Hide()
 		return
 	end
-	-- oldest roll on top so the order never jumps around
-	table.sort(rollList, function(a, b)
-		return RollSortKey(a) < RollSortKey(b)
-	end)
-	local w, h = 0, 0
-	for _, f in ipairs(rollList) do
-		local fw, fh = FrameDim(f, f.GetWidth), FrameDim(f, f.GetHeight)
-		if fw > w then w = fw end
-		if fh > h then h = fh end
-	end
-	if w <= 0 or h <= 0 then
-		rollPanel:Hide()
-		return
-	end
-	local y = 0
-	for _, f in ipairs(rollList) do
-		DockRollFrame(f, y)
-		y = y + h + ROLL_GAP
-	end
-	rollChild:SetSize(w, y)
-	local rows = math.min(#rollList, ROLL_VISIBLE)
-	rollPanel:SetSize(w + 24, rows * (h + ROLL_GAP) - ROLL_GAP + 8)
+	rollChild:SetSize(ROLL_W, n * (ROLL_H + ROLL_GAP))
+	local rows = math.min(n, ROLL_VISIBLE)
+	rollPanel:SetSize(ROLL_W + 24, rows * (ROLL_H + ROLL_GAP) - ROLL_GAP + 8)
 	-- dock beside the items first (our loot window, else the game's);
 	-- with no loot window up the roll mover's position is the fallback
 	rollPanel:ClearAllPoints()
@@ -452,10 +559,37 @@ local function LayoutRollPanel()
 	rollPanel:Show()
 end
 
+-- smooth countdown between the coarse polls
+local function RollTick(dt)
+	if not (rollPanel and rollPanel:IsShown()) then return end
+	local dirty = false
+	for _, r in ipairs(rollCards) do
+		if r:IsShown() and r.rollID ~= nil then
+			local left = GetLootRollTimeLeft
+				and GetLootRollTimeLeft(r.rollID)
+			if type(left) == "number" and not IsSecret(left) and left > 0 then
+				if not r.total or left > r.total then r.total = left end
+				r.timer:SetValue(math.max(0, left))
+			else
+				-- gone when the timer is up or the roll no longer exists
+				local dead = type(left) == "number" and not IsSecret(left)
+					and left <= 0
+				if not dead and GetLootRollItemLink then
+					local ok, l = pcall(GetLootRollItemLink, r.rollID)
+					dead = ok and (l == nil or l == "")
+				end
+				if dead then
+					pendingRolls[r.rollID] = nil
+					r.rollID = nil
+					dirty = true
+				end
+			end
+		end
+	end
+	if dirty then LayoutRollPanel() end
+end
+
 local function UpdateRollFrames()
-	EachRollFrame(function(f)
-		if f.IsShown and f:IsShown() then UpdateRollFrame(f) end
-	end)
 	LayoutRollPanel()
 end
 
@@ -465,9 +599,12 @@ local function StyleLootButton(btn)
 	btn.suiStyled = true
 	local icon = btn.Icon or _G[(btn.GetName and btn:GetName() or "") .. "IconTexture"]
 	if icon and not icon.suiBorder then
-		local border = icon:CreateTexture(nil, "OVERLAY")
-		border:SetPoint("TOPLEFT", -1, 1)
-		border:SetPoint("BOTTOMRIGHT", 1, -1)
+		-- icon can be a plain texture (no CreateTexture); host the ring
+		-- on the button then, always anchored to the icon
+		local host = (type(icon.CreateTexture) == "function") and icon or btn
+		local border = host:CreateTexture(nil, "BORDER")
+		border:SetPoint("TOPLEFT", icon, -1, 1)
+		border:SetPoint("BOTTOMRIGHT", icon, 1, -1)
 		border:SetColorTexture(1, 1, 1, 0.9)
 		icon.suiBorder = border
 	end
@@ -531,20 +668,36 @@ local function SlotData(i)
 		end
 	end
 	local link = GetLootSlotLink and GetLootSlotLink(i)
-	if link then
-		if GetItemInfo then
-			local q = select(3, GetItemInfo(link))
-			if type(q) == "number" then quality = q end
-		end
-		if not icon and C_Item and C_Item.GetItemIconByID then
-			local ok, v = pcall(C_Item.GetItemIconByID, link)
-			if ok and not IsSecret(v) then icon = v end
-		end
-		if not icon and GetItemInfo then
-			icon = select(10, GetItemInfo(link))
-		end
+	if link and GetItemInfo then
+		local q = select(3, GetItemInfo(link))
+		if type(q) == "number" then quality = q end
 	end
 	return icon, name, qty, quality, quest, link
+end
+
+local function SlotIcon(tex, i, icon, link)
+	tex.suiIconLink = link
+	if IconSticks(tex, icon) then return end
+	-- the game's own (hidden) loot button already got the icon engine-side
+	local btn = _G["LootButton" .. i]
+	local bi = (type(btn) == "table" and (btn.Icon or btn.IconTexture))
+		or _G["LootButton" .. i .. "IconTexture"]
+	if bi and bi.GetTexture then
+		local ok, v = pcall(bi.GetTexture, bi)
+		if ok and IconSticks(tex, v) then return end
+	end
+	if link and C_Item and C_Item.GetItemIconByID then
+		local ok, v = pcall(C_Item.GetItemIconByID, link)
+		if ok and IconSticks(tex, v) then return end
+	end
+	if link and GetItemInfo then
+		local ok, v = pcall(function()
+			return select(10, GetItemInfo(link))
+		end)
+		if ok and IconSticks(tex, v) then return end
+	end
+	IconSticks(tex, "Interface\\Icons\\INV_Misc_QuestionMark")
+	RetryIcon(tex, link)
 end
 
 local function LootRow(i)
@@ -557,7 +710,7 @@ local function LootRow(i)
 	r.icon:SetPoint("LEFT", 4, 0)
 	r.icon:SetSize(16, 16)
 	r.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-	r.border = r:CreateTexture(nil, "OVERLAY")
+	r.border = r:CreateTexture(nil, "BORDER")
 	r.border:SetPoint("TOPLEFT", r.icon, -1, 1)
 	r.border:SetPoint("BOTTOMRIGHT", r.icon, 1, -1)
 	r.border:SetColorTexture(1, 1, 1, 0.9)
@@ -599,6 +752,7 @@ local function BuildLootWindow()
 	lootWin:SetPoint("CENTER", 0, -40)
 	lootWin:SetFrameStrata("HIGH")
 	lootWin:SetToplevel(true)
+	S.EscClosable(lootWin)
 	lootWin:EnableMouse(true)
 	lootWin:SetMovable(true)
 	lootWin:RegisterForDrag("LeftButton")
@@ -616,12 +770,11 @@ local function BuildLootWindow()
 	local hairline = S.Line(lootWin, ACCENT)
 	hairline:SetPoint("TOPLEFT", 10, -24)
 	hairline:SetPoint("TOPRIGHT", -10, -24)
-	local close = CreateFrame("Button", nil, lootWin, "UIPanelCloseButton")
-	close:SetPoint("TOPRIGHT", -2, -2)
-	close:SetScript("OnClick", function()
+	local close = W.Close(lootWin, function()
 		pcall(CloseLoot)
 		lootWin:Hide()
 	end)
+	close:SetPoint("TOPRIGHT", -4, -4)
 	-- manual counterpart to fast loot: one click empties the window
 	local all = W.Button(lootWin, L["Loot all"], 76, 18)
 	all:SetPoint("BOTTOMRIGHT", -8, 6)
@@ -639,6 +792,19 @@ local function BuildLootWindow()
 	})
 end
 
+-- the game's loot frame must stay out of the way while ours is enabled
+-- - but NEVER Hide() it: on this client LootFrame's OnHide calls
+-- CloseLoot(), so hiding it ends the loot session instantly (the window
+-- flashes open and dies). Alpha + mouse-kill instead. Called on every
+-- window update: the show watcher alone misses a frame that was created
+-- (and shown) before the watch registered
+local function KillBlizzardLoot()
+	local lf = _G.LootFrame
+	if type(lf) ~= "table" or not (db and db.lootWindow) then return end
+	lf:SetAlpha(0)
+	lf:EnableMouse(false)
+end
+
 local function UpdateLootWindow()
 	if not db.lootWindow then
 		if lootWin then lootWin:Hide() end
@@ -650,6 +816,7 @@ local function UpdateLootWindow()
 		lootWin:Hide()
 		return
 	end
+	KillBlizzardLoot()
 	lootWin:SetHeight(34 + math.min(n, LOOT_ROWS_MAX) * LOOT_ROW_H + 8
 		+ (lootWin.lootAll and 26 or 0))
 	lootWin:Show()
@@ -661,7 +828,7 @@ local function UpdateLootWindow()
 		r:SetPoint("TOPRIGHT", -6, -30 - (i - 1) * LOOT_ROW_H)
 		local icon, name, qty, quality, quest, link = SlotData(i)
 		r.link = link
-		pcall(r.icon.SetTexture, r.icon, icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+		SlotIcon(r.icon, i, icon, link)
 		local r2, g2, b2 = QualityColor(quest and 1 or quality)
 		r.border:SetColorTexture(r2, g2, b2)
 		if name and not IsSecret(name) then
@@ -746,7 +913,7 @@ local function FeedRow(i)
 	r.icon:SetPoint("LEFT", 3, 0)
 	r.icon:SetSize(FEED_ICON, FEED_ICON)
 	r.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-	r.border = r:CreateTexture(nil, "OVERLAY")
+	r.border = r:CreateTexture(nil, "BORDER")
 	r.border:SetPoint("TOPLEFT", r.icon, -1, 1)
 	r.border:SetPoint("BOTTOMRIGHT", r.icon, 1, -1)
 	r.border:SetColorTexture(1, 1, 1, 0.9)
@@ -783,13 +950,18 @@ local function FeedLayout()
 		r:ClearAllPoints()
 		r:SetPoint("TOPLEFT", feed, "TOPLEFT", 0, -(i - 1) * (FEED_ROW_H + 3))
 		if e.money then
+			r.icon.suiIconLink = nil
 			r.icon:SetTexture("Interface\\Icons\\INV_Misc_Coin_01")
 			r.border:SetColorTexture(0.95, 0.80, 0.30)
 			r.text:SetText(e.text or "")
 			r.text:SetTextColor(0.95, 0.80, 0.30)
 			r.qty:SetText("")
 		else
-			pcall(r.icon.SetTexture, r.icon, e.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+			r.icon.suiIconLink = e.link
+			if not IconSticks(r.icon, e.icon) then
+				IconSticks(r.icon, "Interface\\Icons\\INV_Misc_QuestionMark")
+				RetryIcon(r.icon, e.link)
+			end
 			local r2, g2, b2 = QualityColor(e.quality)
 			r.border:SetColorTexture(r2, g2, b2)
 			r.text:SetText(e.name or "")
@@ -906,6 +1078,16 @@ function Core.SettingChanged(mod, path)
 	if path == "rollSkin" then UpdateRollFrames() end
 	if path == "lootWindow" then
 		UpdateLootWindow()
+		if db.lootWindow then
+			KillBlizzardLoot()
+		else
+			-- give the game's frame back when our window turns off
+			local lf = _G.LootFrame
+			if lf then
+				lf:SetAlpha(1)
+				lf:EnableMouse(true)
+			end
+		end
 		-- the mover handle's active gate changed with the setting
 		if S.Movers.unlocked then S.Movers.Recheck() end
 	end
@@ -958,16 +1140,17 @@ function Core.Enable(mod)
 	end)
 
 	-- the game's loot frame must stay out of the way while ours is
-	-- enabled; re-skin and re-hide it whenever it shows.
+	-- enabled - but NEVER Hide() it: on this client LootFrame's OnHide
+	-- calls CloseLoot(), so hiding it ends the loot session instantly
+	-- (the window flashes open and dies). Alpha + mouse-kill instead.
 	-- WatchShown, not OnShow: an insecure script on a client frame runs
 	-- inside its show dispatch and taints the client's follow-up calls.
-	local lf = _G.LootFrame
-	if lf then
-		S.WatchShown(lf, function(f)
-			UpdateLootFrame()
-			if db and db.lootWindow then f:Hide() end
-		end)
-	end
+	-- The resolver form matters: LootFrame can be load-on-demand on this
+	-- client, so a watch on a nil frame would never register.
+	S.WatchShown(function() return _G.LootFrame end, function(f)
+		UpdateLootFrame()
+		KillBlizzardLoot()
+	end)
 
 	-- build the window right away (it stays hidden until loot): the mover
 	-- otherwise only registers on the first loot and the window is missing
@@ -992,8 +1175,21 @@ function Core.Enable(mod)
 	SlashCmdList.SENTILOOTLOG = function() Core.ToggleHistory() end
 
 	-- skins: restyle behind the game's own layout calls
-	S.RegisterEvent("START_LOOT_ROLL", function()
+	S.RegisterEvent("START_LOOT_ROLL", function(_, rollID)
+		if rollID ~= nil and not IsSecret(rollID) then
+			pendingRolls[rollID] = true
+		end
 		C_Timer.After(0.1, UpdateRollFrames)
+	end)
+	S.RegisterEvent("CANCEL_LOOT_ROLL", function(_, rollID)
+		if rollID ~= nil then pendingRolls[rollID] = nil end
+		UpdateRollFrames()
+	end)
+	-- every pending roll resolved at once: drop them all instead of
+	-- waiting for the per-card timeout cleanup
+	S.RegisterEvent("LOOT_ROLLS_COMPLETE", function()
+		wipe(pendingRolls)
+		UpdateRollFrames()
 	end)
 	-- the container owns the visible frames on this client; its own
 	-- add/update calls are the moment to skin them
@@ -1004,10 +1200,11 @@ function Core.Enable(mod)
 	end
 	-- polling fallback while a roll frame is up (buttons appear per
 	-- frame); it also keeps the panel docked and hides it when the
-	-- last roll resolves
+	-- last roll resolves; RollTick drives the countdown lines smoothly
 	local poll = CreateFrame("Frame")
 	poll.elapsed = 0
 	poll:SetScript("OnUpdate", function(self, dt)
+		RollTick(dt)
 		self.elapsed = self.elapsed + (dt or 0)
 		if self.elapsed < 0.5 then return end
 		self.elapsed = 0
@@ -1015,7 +1212,7 @@ function Core.Enable(mod)
 		EachRollFrame(function(f)
 			if f.IsShown and f:IsShown() then any = true end
 		end)
-		if any or (rollPanel and rollPanel:IsShown()) then
+		if any or next(pendingRolls) or (rollPanel and rollPanel:IsShown()) then
 			UpdateRollFrames()
 		end
 	end)
