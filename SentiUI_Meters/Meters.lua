@@ -343,8 +343,38 @@ end
 
 local SetScroll -- forward: UpdateDock clamps the offset, defined below
 
+-- collapsed = a slim strip on the loot-facing edge: the dock's anchor
+-- holds its RIGHT side, so shrinking the width folds the window toward
+-- the loot panel exactly. The strip is one big unfold button.
+local FOLD_W = 16
+local function ApplyFold(d, cfg)
+	local c = cfg.collapsed == true
+	if d.view then d.view:SetShown(not c) end
+	if d.title then d.title:SetShown(not c) end
+	if d.seg then d.seg:SetShown(not c) end
+	if d.hline then d.hline:SetShown(not c) end
+	if d.foldBtn then d.foldBtn:SetShown(not c) end
+	if d.closeBtn then d.closeBtn:SetShown(not c) end
+	if d.hint then d.hint:Hide() end
+	if d.bar then d.bar:Hide() end
+	if d.thumb then d.thumb:Hide() end
+	if c then
+		d:SetSize(FOLD_W, HEADER_H + 4 + db.height + 6)
+		if d.strip then
+			d.strip:ClearAllPoints()
+			d.strip:SetPoint("CENTER", d, "CENTER", 0, 0)
+			d.strip:Show()
+		end
+	else
+		d:SetSize(db.width, HEADER_H + 4 + db.height + 6)
+		if d.strip then d.strip:Hide() end
+	end
+end
+
 local function UpdateDock(d, cfg)
 	local mode = ModeFor(cfg.mode)
+	ApplyFold(d, cfg)
+	if cfg.collapsed then return end
 	d.title:SetText(mode.label)
 	d.seg:SetText(mode.key == "threat" and ""
 		or (cfg.segment == "overall" and L["Overall"] or L["Current fight"]))
@@ -558,6 +588,25 @@ local function BuildMenu()
 	end)
 	menu.resetBtn = rst
 	y = y + 19
+	-- "Close window": same effect as the title x - turns this dock off
+	local cls = CreateFrame("Button", nil, menu)
+	cls:SetHeight(18)
+	cls:SetPoint("TOPLEFT", menu, "TOPLEFT", 6, -y)
+	cls:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -6, -y)
+	local clsHl = cls:CreateTexture(nil, "HIGHLIGHT")
+	clsHl:SetAllPoints()
+	clsHl:SetColorTexture(0.92, 0.68, 0.20, 0.08)
+	cls.fs = S.Font(cls, 10, S.colors.textDim)
+	cls.fs:SetPoint("LEFT", 8, 0)
+	cls.fs:SetText(L["Close window"])
+	cls:SetScript("OnClick", function()
+		if menu.dock and menu.dock.cfg then
+			menu.dock.cfg.enabled = false
+		end
+		menu:Hide()
+		Core.RefreshAll()
+	end)
+	y = y + 19
 	menu.baseH = y + 6
 	menu:SetSize(170, menu.baseH)
 	menu:SetScript("OnHide", function() menu.dock, menu.cfg = nil, nil end)
@@ -598,14 +647,55 @@ local function BuildDock(i)
 
 	d.title = S.Font(d, 10, S.colors.accent)
 	d.title:SetPoint("TOPLEFT", d, "TOPLEFT", 8, -4)
-	d.title:SetPoint("RIGHT", d, "RIGHT", -46, 0)
+	d.title:SetPoint("RIGHT", d, "RIGHT", -66, 0)
 	d.title:SetJustifyH("LEFT")
 	d.seg = S.Font(d, 8, S.colors.textDim)
-	d.seg:SetPoint("TOPRIGHT", d, "TOPRIGHT", -8, -6)
+	d.seg:SetPoint("TOPRIGHT", d, "TOPRIGHT", -38, -6)
 	d.seg:SetJustifyH("RIGHT")
 	local hl = S.Line(d, S.colors.accent)
 	hl:SetPoint("TOPLEFT", d, "TOPLEFT", 6, -HEADER_H + 2)
 	hl:SetPoint("TOPRIGHT", d, "TOPRIGHT", -6, -HEADER_H + 2)
+	d.hline = hl
+
+	-- header buttons: > folds the window into a strip on its loot-side
+	-- edge, x turns the dock off ("+ New window" / options bring it back)
+	local function headBtn(txt, xoff, tip)
+		local b = CreateFrame("Button", nil, d)
+		b:SetSize(14, 14)
+		b:SetPoint("TOPRIGHT", d, "TOPRIGHT", xoff, -3)
+		b.fs = S.Font(b, 10, S.colors.textDim)
+		b.fs:SetPoint("CENTER")
+		b.fs:SetText(txt)
+		b:SetScript("OnEnter", function(s)
+			s.fs:SetTextColor(1, 1, 1)
+			if tip and GameTooltip then
+				GameTooltip:SetOwner(s, "ANCHOR_BOTTOM")
+				GameTooltip:AddLine(tip, 0.8, 0.8, 0.8)
+				GameTooltip:Show()
+			end
+		end)
+		b:SetScript("OnLeave", function(s)
+			s.fs:SetTextColor(S.colors.textDim.r, S.colors.textDim.g,
+				S.colors.textDim.b)
+			if tip and GameTooltip then GameTooltip:Hide() end
+		end)
+		return b
+	end
+	d.foldBtn = headBtn(">", -6, L["Fold toward the loot window"])
+	d.foldBtn:SetScript("OnClick", function()
+		d.cfg.collapsed = true
+		UpdateDock(d, d.cfg)
+	end)
+	d.closeBtn = headBtn("x", -20, L["Close window"])
+	d.closeBtn:SetScript("OnClick", function()
+		d.cfg.enabled = false
+		Core.RefreshAll()
+		S.Print(L["Window closed - '+ New window' in another meter menu or the Meters options brings it back."])
+	end)
+	-- the collapsed strip: one gold caret, the whole stub unfolds on click
+	d.strip = S.Font(d, 11, S.colors.accent)
+	d.strip:SetText("<")
+	d.strip:Hide()
 
 	-- clipped view + content child: the rows live in `content`, the
 	-- wheel slides it inside `view` and a slim bar shows the position
@@ -633,7 +723,10 @@ local function BuildDock(i)
 	d.rows = {}
 
 	d:SetScript("OnMouseUp", function(self, btn)
-		if btn == "RightButton" then
+		if btn == "LeftButton" and self.cfg and self.cfg.collapsed then
+			self.cfg.collapsed = false
+			UpdateDock(self, self.cfg)
+		elseif btn == "RightButton" then
 			ShowMenu(self, self.cfg)
 		end
 	end)

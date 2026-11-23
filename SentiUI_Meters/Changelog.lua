@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.6",
+		date = "2026-11-23",
+		changes = {
+			"Fold + close: every window title now carries a '>' fold button and an 'x' close button (the menu got a 'Close window' row too). Folding shrinks the window to a slim gold-caret strip on its loot-facing edge; clicking the strip unfolds it. Closing disables the dock - '+ New window' or the Meters options brings it back.",
+		},
+		changesDE = {
+			"Einklappen + Schliessen: jeder Fenstertitel traegt jetzt einen '>'-Fold-Button und ein 'x' zum Schliessen (das Menue bekam ebenfalls 'Fenster schliessen'). Einklappen schrumpft das Fenster zu einem schmalen Streifen mit goldener Markierung an der loot-seitigen Kante; Klick auf den Streifen klappt wieder auf. Schliessen deaktiviert das Dock - '+ Neues Fenster' oder die Meters-Optionen holen es zurueck.",
+		},
+	},
+	{
 		version = "0.1.5",
 		date = "2026-11-23",
 		changes = {

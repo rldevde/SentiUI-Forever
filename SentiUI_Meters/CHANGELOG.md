@@ -1,5 +1,9 @@
 # SentiUI Meters
 
+## 0.1.6 - 2026-11-23
+
+- Fold + close: every window title now carries a '>' fold button and an 'x' close button (the menu got a 'Close window' row too). Folding shrinks the window to a slim gold-caret strip on its loot-facing edge; clicking the strip unfolds it. Closing disables the dock - '+ New window' or the Meters options brings it back.
+
 ## 0.1.5 - 2026-11-23
 
 - Row text readability: names and values now render with an outline and full text color instead of dim-on-dark-fill; the inline per-second value was brightened.

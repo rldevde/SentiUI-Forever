@@ -17,7 +17,11 @@ options page (SentiUI > Meters). A `+ New window` entry at the bottom of
 that menu turns on the next free window (up to four); it docks onto the
 left edge of the last shown one, toward the action bars. `Reset data`
 wipes all lists after a confirmation prompt - the same prompt pops up on
-instance entry while stored data exists.
+instance entry while stored data exists. `Close window` turns the dock
+off (same as the title `x`); `+ New window` or the options bring it back.
+
+The title `>` button folds a window into a slim strip on its loot-facing
+edge; clicking the strip unfolds it.
 
 ## Layout
 
