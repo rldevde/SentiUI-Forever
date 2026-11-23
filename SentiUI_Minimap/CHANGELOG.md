@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.20 - 2026-11-23
+
+- Pending mail no longer kills minimap hover: MinimapCluster.IndicatorFrame is a layout container that shows together with the mail icon and - on this client - keeps its own mouse enabled, covering the whole top strip and swallowing every hover below it (zone bar, tracking, menu button, "+" trigger). Mouse is now disabled on the IndicatorFrame/InstanceDifficulty/Tracking containers only (their icon children keep their own mouse), and a width guard disables mouse on any resolved mail element that turns out to be a wide invisible container instead of the ~20px icon.
+
 ## 0.3.19 - 2026-11-23
 
 - Addon button collector catches more buttons: the sweep only looked at Minimap's direct Button children whose name matched a "Minimap" pattern. It now also scans MinimapCluster and MinimapBackdrop children, accepts click-scripted frames (not only IsObjectType("Button")), and adds a loose match for clickable 12-64px frames parked on the ring - buttons that never said "Minimap" in their name (e.g. SentiHealButton-style frames) reach the "+" list now. Blizzard's own ring indicators (tracking, mail, difficulty, queue eye, landing page) are SKIP-listed so the wider net does not eat them.

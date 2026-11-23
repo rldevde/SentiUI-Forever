@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.20",
+		date = "2026-11-23",
+		changes = {
+			"Pending mail no longer kills minimap hover: MinimapCluster.IndicatorFrame shows together with the mail icon and covers the whole top strip with its own mouse. Mouse is now off on the IndicatorFrame/InstanceDifficulty/Tracking containers (icon children keep theirs), plus a width guard on wide invisible mail elements.",
+		},
+		changesDE = {
+			"Anstehende Post blockiert keinen Minimap-Hover mehr: MinimapCluster.IndicatorFrame zeigt sich mit dem Post-Icon und deckt den ganzen oberen Streifen mit eigener Maus ab. Maus jetzt aus auf den IndicatorFrame-/InstanceDifficulty-/Tracking-Containern (Icon-Kinder behalten ihre), plus Breitenwache gegen breite unsichtbare Mail-Elemente.",
+		},
+	},
+	{
 		version = "0.3.19",
 		date = "2026-11-23",
 		changes = {

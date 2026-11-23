@@ -233,7 +233,18 @@ function Core.PositionIndicators()
 			if f and f.Background then pcall(f.Background.SetAlpha, f.Background, 0) end
 		end
 	end
-	-- mail: top-right next to the menu button, only when mail waits
+	-- mail: top-right next to the menu button, only when mail waits.
+	-- MinimapCluster.IndicatorFrame is a pure layout CONTAINER that shows
+	-- together with the mail icon - on this client it keeps its own mouse
+	-- and covers the whole top strip, killing every hover below it (zone
+	-- bar, tracking, menu button). Mouse off on the containers only; the
+	-- real icon buttons keep theirs.
+	for _, s in ipairs({ { "MinimapCluster", "IndicatorFrame" },
+		{ "MinimapCluster", "InstanceDifficulty" },
+		{ "MinimapCluster", "Tracking" } }) do
+		local c = resolve(s)
+		if c and c.EnableMouse then pcall(c.EnableMouse, c, false) end
+	end
 	for _, s in ipairs(ELEMENTS.mail) do
 		local f = resolve(s)
 		if f then
@@ -241,6 +252,12 @@ function Core.PositionIndicators()
 				fade(f)
 			else
 				unfade(f)
+				-- a resolved "mail" element that turns out to be a wide
+				-- invisible container must never swallow hover either
+				local okW, w = pcall(f.GetWidth, f)
+				if okW and type(w) == "number" and not S.IsSecret(w) and w > 64 then
+					pcall(f.EnableMouse, f, false)
+				end
 				dock(f, "TOPRIGHT", "TOPRIGHT", -21, -3, 0.85)
 				keepDocked(f, "TOPRIGHT", "TOPRIGHT", -21, -3, 0.85)
 			end
