@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.24",
+		date = "2026-11-23",
+		changes = {
+			"The '+' addon-button collector now accepts module opt-ins via S.MinimapCollect: SentiUI addons can file their own minimap buttons to be collected like any other addon's (the Admin module's button uses it).",
+		},
+		changesDE = {
+			"Der '+'-Addon-Button-Collector akzeptiert jetzt Modul-Anmeldungen über S.MinimapCollect: SentiUI-Addons können eigene Minimap-Buttons einreichen, die wie alle anderen gesammelt werden (der Admin-Button nutzt es).",
+		},
+	},
+	{
 		version = "0.3.23",
 		date = "2026-11-23",
 		changes = {

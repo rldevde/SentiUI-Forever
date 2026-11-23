@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.24 - 2026-11-23
+
+- The "+" addon-button collector now accepts module opt-ins via `S.MinimapCollect`: SentiUI addons can file their own minimap buttons to be collected like any other addon's (the Admin module's button uses it).
+
 ## 0.3.23 - 2026-11-23
 
 - The SentiUI flyout of the minimap menu is now extensible: modules can file their own rows via `S.MinimapMenuRows` (the new Admin module adds its console entry there, only on admin characters).

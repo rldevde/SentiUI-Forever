@@ -782,9 +782,15 @@ end
 
 local PIN_TOP = "SentiUIMinimapButton" -- our own settings button, always first
 
+-- module opt-in: SentiUI_* addons register their own minimap button name
+-- here to be collected under "+" too (e.g. the admin console's button)
+local EXTRA = S.MinimapCollect or {}
+S.MinimapCollect = EXTRA
+
 local function wanted(name, child)
 	if name == PIN_TOP then return true end
 	if not name or name == "" or SKIP[name] then return false end
+	if EXTRA[name] then return true end
 	if name:find("^SentiUI") or name:find("^SFC") then return false end
 	if name:match("^TomCats-") then return true end
 	if name:match("%d$") then return false end -- pooled frames (QuestieFrame10, ...)
