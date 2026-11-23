@@ -1,5 +1,9 @@
 # SentiUI Tooltips
 
+## 0.2.17 - 2026-11-23
+
+- Tooltip border actually visible now: the shared panel border (#222838) is nearly black and disappeared completely on dark tooltips over dark world areas - it read as "the right edge is missing". Tooltips now use a lifted steel edge (#525C78) that stays visible everywhere; class/quality border tints still override it per-tip.
+
 ## 0.2.16 - 2026-11-23
 
 - Health bar no longer sticks out past the tooltip's right edge: the engine anchors GameTooltipStatusBar to the left with a width that overshoots the frame's right border. It is now pinned inside the tip on every unit pass - left/right inset matching the text columns - so the bar and the border line up on both sides.

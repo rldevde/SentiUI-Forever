@@ -49,9 +49,14 @@ function Skin.SetBorder(tip, r, g, b)
 	end
 end
 
+-- the shared panel border is #222838 - invisible on a dark tooltip over a
+-- dark world, which reads as "the right edge is missing". Tooltips get a
+-- lifted steel edge that stays visible everywhere; class/quality tints
+-- still override it per-tip
+local TIP_BORDER = { r = 0.32, g = 0.36, b = 0.47 }
+
 function Skin.ResetBorder(tip)
-	local c = S.colors.border
-	Skin.SetBorder(tip, c.r, c.g, c.b)
+	Skin.SetBorder(tip, TIP_BORDER.r, TIP_BORDER.g, TIP_BORDER.b)
 end
 
 -- the gold top edge can take the unit/quality color; rgb may be secret
@@ -101,9 +106,8 @@ function Skin.Tip(tip)
 		shell:SetFrameLevel(1)
 		shell:SetBackdrop(BACKDROP)
 		local c = S.colors
-		shell:SetBackdropColor(c.bg.r, c.bg.g, c.bg.b, c.bg.a)
-		c = S.colors.border
-		shell:SetBackdropBorderColor(c.r, c.g, c.b, 1)
+		shell:SetBackdropColor(c.bg.r, c.bg.g, c.b, c.bg.a)
+		shell:SetBackdropBorderColor(TIP_BORDER.r, TIP_BORDER.g, TIP_BORDER.b, 1)
 		tip.__sentiShell = shell
 	end
 

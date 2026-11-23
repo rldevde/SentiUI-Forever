@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.17",
+		date = "2026-11-23",
+		changes = {
+			"Tooltip border actually visible now: the shared panel border (#222838) is nearly black and disappeared on dark tooltips over dark world areas - it read as 'the right edge is missing'. Tooltips get a lifted steel edge (#525C78); class/quality tints still override per-tip.",
+		},
+		changesDE = {
+			"Tooltip-Rand jetzt wirklich sichtbar: der geteilte Panel-Rand (#222838) ist fast schwarz und verschwand auf dunklen Tooltips ueber dunklen Welt-Flaechen komplett - sah aus wie 'die rechte Kante fehlt'. Tooltips bekommen eine angehobene Stahl-Kante (#525C78); Klassen-/Qualitaetsfaerbungen ueberschreiben weiter pro Tooltip.",
+		},
+	},
+	{
 		version = "0.2.16",
 		date = "2026-11-23",
 		changes = {
