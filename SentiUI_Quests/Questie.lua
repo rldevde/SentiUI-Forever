@@ -29,6 +29,60 @@ end
 
 local NONE = "none" -- stands in for a setting the player never set (nil)
 
+-- the profile flag only gates Questie's STARTUP - an already-built
+-- tracker frame stays visible until reload. Suppress the frame itself
+-- so the switch applies live: OnShow re-hide guard while our tracker is
+-- in charge, released when the player picks Questie's tracker back.
+local suppressWatch
+local function SuppressTracker(suppress)
+	local bf = _G.Questie_BaseFrame
+	if type(bf) == "table" and bf.Hide then
+		if suppress then
+			if not bf._sentiSuppressed then
+				bf._sentiSuppressed = true
+				bf:HookScript("OnShow", function(self)
+					if not self._sentiReleased then self:Hide() end
+				end)
+			end
+			bf._sentiReleased = nil
+			bf:Hide()
+		else
+			bf._sentiReleased = true
+		end
+	end
+	-- the base frame can still be unborn: Questie builds its tracker in a
+	-- startup coroutine, possibly after our first run. Poll until it shows
+	-- up (or the mode gets released) so the guard always lands.
+	if suppress and not suppressWatch then
+		local left = 30
+		suppressWatch = C_Timer.NewTicker(0.5, function()
+			left = left - 1
+			-- bail if the mode flipped back while the watch was running
+			if db and db.tracker ~= "sentiui" then
+				suppressWatch:Cancel()
+				suppressWatch = nil
+				return
+			end
+			local b = _G.Questie_BaseFrame
+			local found = type(b) == "table" and b.Hide
+			if found then
+				b._sentiReleased = nil
+				if not b._sentiSuppressed then
+					b._sentiSuppressed = true
+					b:HookScript("OnShow", function(self)
+						if not self._sentiReleased then self:Hide() end
+					end)
+				end
+				b:Hide()
+			end
+			if found or left <= 0 then
+				suppressWatch:Cancel()
+				suppressWatch = nil
+			end
+		end)
+	end
+end
+
 -- ours = SentiUI tracker in charge
 function QA.Run(ours)
 	local prof = profile()
@@ -49,6 +103,7 @@ function QA.Run(ours)
 		end
 		if next(off) == nil then db.questieOff = nil end
 	end
+	SuppressTracker(ours)
 	return true
 end
 

@@ -257,14 +257,14 @@ local function OpenOnMap(questID)
 	end
 end
 
--- pin a quest: super-track it AND drop the client's own waypoint on its
--- spot - the waypoint is what draws the route line on the map and the
--- edge marker on the minimap
+-- pin = mark the way ONLY: track + drop the client's own waypoint on the
+-- spot (route line on the map, edge marker on the minimap). It does NOT
+-- open the map - that is the plain row click's job, so the tracker
+-- stays put when you pin something
 local function PinQuest(questID)
 	Track(questID)
 	local m, x, y = QuestSpot(questID)
 	if m then SetWaypoint(m, x, y) end
-	OpenOnMap(questID)
 end
 
 -- right-click on a pin clears our waypoint and the tracking again
@@ -297,6 +297,14 @@ local function GetRow(i)
 		r.objs:SetPoint("RIGHT", r, "RIGHT", 0, 0)
 		r.objs:SetJustifyH("LEFT")
 		r.objs:SetWordWrap(true)
+		-- gold underline, shown only while the row renders a zone header
+		r.hdr = r:CreateTexture(nil, "ARTWORK")
+		r.hdr:SetTexture("Interface\\Buttons\\WHITE8X8")
+		r.hdr:SetVertexColor(0.92, 0.68, 0.20, 0.45)
+		r.hdr:SetHeight(1)
+		r.hdr:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", SC(14), 0)
+		r.hdr:SetPoint("BOTTOMRIGHT", r, "BOTTOMRIGHT", -SC(4), 0)
+		r.hdr:Hide()
 		r.hl = r:CreateTexture(nil, "BACKGROUND")
 		r.hl:SetAllPoints()
 		r.hl:SetColorTexture(0.92, 0.68, 0.20, 0.06)
@@ -398,7 +406,10 @@ local function GetRow(i)
 				end
 				return
 			end
+			-- plain text click = open the quest on the map (the way gets
+			-- marked along with it); the pin button alone marks only
 			PinQuest(self.questID)
+			OpenOnMap(self.questID)
 		end)
 		pool[i] = r
 	end
@@ -565,6 +576,7 @@ local function Refresh()
 				r.title:SetText(mark .. " |cff8a8040" .. it.header .. "|r")
 				r.objs:SetText("")
 				r.zoneName = it.header
+				r.hdr:Show()
 			else
 				SetFont(r.title, fs, "OUTLINE")
 				if not combat then
@@ -588,6 +600,7 @@ local function Refresh()
 				r.objs:SetText(#lines > 0 and table.concat(lines, "\n") or "")
 				r.questID = it.id
 				r.fullTitle = it.rawTitle
+				r.hdr:Hide()
 				if it.itemID then
 					r.item.icon:SetTexture(it.itemIcon) -- region: allowed
 					r.item.link = it.itemLink
@@ -728,6 +741,10 @@ local function BuildFrame()
 	SetFont(headerFS, SC((db.fontSize or 12) + 1), "OUTLINE")
 	headerFS:SetText(L["Quests"])
 	headerFS:SetTextColor(S.colors.accent.r, S.colors.accent.g, S.colors.accent.b)
+	-- gold hairline under the title, the signature every panel carries
+	local hline = S.Line(frame, S.colors.accent)
+	hline:SetPoint("TOPLEFT", headerFS, "BOTTOMLEFT", 0, -SC(1))
+	hline:SetPoint("RIGHT", frame, "RIGHT", -SC(8), 0)
 
 	-- filter buttons top right: the active one wears the accent color,
 	-- clicking it again returns to the watched list. Built with the frame

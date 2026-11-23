@@ -1128,7 +1128,26 @@ function Core.Enable(mod)
 		QueueLootUpdate()
 	end)
 	for _, ev in ipairs({ "LOOT_OPENED", "LOOT_SLOT_CHANGED", "LOOT_SLOT_CLEARED" }) do
-		S.RegisterEvent(ev, QueueLootUpdate)
+		S.RegisterEvent(ev, function(...)
+			-- kill the Blizzard frame in the SAME dispatch, not a frame
+			-- later: QueueLootUpdate defers via C_Timer and the alpha kill
+			-- landed after the window had already rendered once - the
+			-- occasional visible Blizzard loot flash the user reported
+			KillBlizzardLoot()
+			QueueLootUpdate()
+		end)
+	end
+	-- belt on top of the event path: Blizzard's own show/update routines
+	-- re-show and re-lay-out the frame - alpha + mouse go back to 0
+	-- right inside their call, before the next render pass. Guarded:
+	-- hooksecurefunc is a FrameXML util, not guaranteed on this client.
+	if type(hooksecurefunc) == "function" then
+		if type(_G.LootFrame_Show) == "function" then
+			hooksecurefunc("LootFrame_Show", KillBlizzardLoot)
+		end
+		if type(_G.LootFrame_Update) == "function" then
+			hooksecurefunc("LootFrame_Update", KillBlizzardLoot)
+		end
 	end
 	S.RegisterEvent("LOOT_CLOSED", function()
 		-- a full bag closes the loot session with items still in it; the

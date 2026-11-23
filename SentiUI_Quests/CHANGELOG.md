@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.11 - 2026-11-23
+
+- Pin and quest text are separate targets now: clicking a row's pin only marks the way (track + waypoint) and the tracker stays put - the map no longer pops open. Clicking the quest text still opens the quest on the map.
+- Visual pass on the tracker: gold hairline under the title and a gold underline on zone header rows.
+
+## 0.4.10 - 2026-11-23
+
+- Questie tracker actually turns off now: the profile flag only gates Questie's startup - an already-built Questie_BaseFrame stayed visible until reload. The tracker frame itself is now hidden with an OnShow re-hide guard while our tracker is in charge, plus a poll that installs the guard if the frame is born late (Questie builds it in a startup coroutine).
+
 ## 0.4.9 - 2026-11-22
 
 - Quest share fix: SendChatMessage fired directly inside the UI_INFO_MESSAGE event dispatch - a forbidden call on this client. The party share now defers through C_Timer into its own pass, prefers C_ChatInfo.SendChatMessage, and bails in combat.

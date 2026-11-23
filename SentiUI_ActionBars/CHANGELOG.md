@@ -1,5 +1,13 @@
 # SentiUI Action Bars
 
+## 0.3.62 - 2026-11-23
+
+- Button skin fix, round 2: some button templates keep their themed face on named fields (ButtonTexture, ArtOverlay, Background, ButtonArt) or on chrome child frames instead of plain texture regions - the professions' red "Create"/"Create All" buttons painted over our fill and border. Text buttons now alpha named chrome fields and every child frame plus its textures before our template goes on.
+
+## 0.3.61 - 2026-11-23
+
+- Button skin fix: NineSlice sub-widgets and widget-level state textures (normal/pushed/disabled/highlight) survived the texture fade on some button templates and rendered Blizzard's border/face over ours - the "half-broken" button look (e.g. trainer buttons). Both are alpha-killed before our template is applied.
+
 ## 0.3.60 - 2026-11-23
 
 - Loss-of-control banner (stun/root/silence) gets a dedicated skin: Blizzard blackBg and red line art removed outright, icon docked to the left edge at bar height (was overlapping the ability text), SentiUI panel + gold edge, restyled fonts.

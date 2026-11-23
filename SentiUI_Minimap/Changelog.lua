@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.19",
+		date = "2026-11-23",
+		changes = {
+			"Addon button collector catches more buttons: now scans MinimapCluster and MinimapBackdrop children too, accepts click-scripted frames (not only Button objects), and adds a loose match for clickable 12-64px frames on the ring - buttons that never said Minimap in their name reach the + list now. Blizzard ring indicators are SKIP-listed.",
+		},
+		changesDE = {
+			"Addon-Button-Sammler faengt mehr Buttons: scannt jetzt auch Kinder von MinimapCluster und MinimapBackdrop, akzeptiert Frames mit Click-Skripten (nicht nur Button-Objekte) und hat ein loses Match fuer klickbare 12-64px-Frames am Ring - Buttons, die nie Minimap im Namen trugen, landen jetzt in der +-Liste. Blizzard-Ring-Indikatoren stehen auf der SKIP-Liste.",
+		},
+	},
+	{
 		version = "0.3.18",
 		date = "2026-11-22",
 		changes = {

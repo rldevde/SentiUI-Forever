@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.35 - 2026-11-23
+
+- FBL realm fix: entries added from a unit lost the target's server - GetUnitFullName called GetUnitName without the realm flag and CleanName stripped any "-Realm" suffix, so AddEntry silently stored our own realm. A ported GetUnitNameRealm (name + realm returns) now feeds AddUnit, the window's Target button (name field carries "First Last-Realm") and the tooltip auto-add, matching the standalone ForeverBlackListed.
+
 ## 0.5.34 - 2026-11-22
 
 - Layer channel parking fix: the join/leave timers in the world plugin ran unguarded seconds later, tripping 'forbidden call: UNKNOWN()' when combat started in between. Each timer step now bails under InCombatLockdown.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.19 - 2026-11-23
+
+- Addon button collector catches more buttons: the sweep only looked at Minimap's direct Button children whose name matched a "Minimap" pattern. It now also scans MinimapCluster and MinimapBackdrop children, accepts click-scripted frames (not only IsObjectType("Button")), and adds a loose match for clickable 12-64px frames parked on the ring - buttons that never said "Minimap" in their name (e.g. SentiHealButton-style frames) reach the "+" list now. Blizzard's own ring indicators (tracking, mail, difficulty, queue eye, landing page) are SKIP-listed so the wider net does not eat them.
+
 ## 0.3.18 - 2026-11-22
 
 - Square-minimap corner brackets ride the generated `MinimapBorder.tga` — one authored gold bracket texture replaces the eight rastered strips (kept out of the accent tint so its gold survives accent customization).

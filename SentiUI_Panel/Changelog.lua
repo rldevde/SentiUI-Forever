@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.35",
+		date = "2026-11-23",
+		changes = {
+			"FBL realm fix: entries added from a unit lost the target's server - GetUnitFullName called GetUnitName without the realm flag and CleanName stripped any -Realm suffix, so AddEntry silently stored our own realm. A ported GetUnitNameRealm (name + realm returns) now feeds AddUnit, the window's Target button (name field carries First Last-Realm) and the tooltip auto-add, matching the standalone ForeverBlackListed.",
+		},
+		changesDE = {
+			"FBL-Realm-Fix: Eintraege von Units verloren den Server des Ziels - GetUnitFullName rief GetUnitName ohne Realm-Flag auf und CleanName strippte jeden -Realm-Suffix, sodass AddEntry still unseren eigenen Realm speicherte. Ein portiertes GetUnitNameRealm (Name + Realm als Returns) versorgt jetzt AddUnit, den Target-Button im Fenster (das Namensfeld traegt Vorname Nachname-Realm) und das Tooltip-Auto-Add, identisch zum Standalone ForeverBlackListed.",
+		},
+	},
+	{
 		version = "0.5.34",
 		date = "2026-11-22",
 		changes = {

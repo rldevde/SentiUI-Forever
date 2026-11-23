@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.17",
+		date = "2026-11-23",
+		changes = {
+			"Blizzard loot frame no longer flashes visible: the alpha/mouse kill only ran a frame after the game showed it (deferred via C_Timer + the shown watch). It now fires synchronously inside every loot event dispatch and via hooksecurefunc on LootFrame_Show/LootFrame_Update, so the frame is neutralised inside the same pass it is shown in.",
+		},
+		changesDE = {
+			"Blizzard-Lootfenster blitzt nicht mehr auf: der Alpha-/Maus-Kill lief erst einen Frame nach dem Zeigen (verzoegert via C_Timer + Shown-Watch). Er feuert jetzt synchron in jedem Loot-Event-Dispatch und via hooksecurefunc auf LootFrame_Show/LootFrame_Update - der Frame wird im selben Pass neutralisiert, in dem er gezeigt wird.",
+		},
+	},
+	{
 		version = "0.2.16",
 		date = "2026-11-22",
 		changes = {

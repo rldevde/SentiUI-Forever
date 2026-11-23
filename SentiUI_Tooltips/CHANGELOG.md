@@ -1,5 +1,9 @@
 # SentiUI Tooltips
 
+## 0.2.15 - 2026-11-23
+
+- Other addons' tooltips work again: the skin + blank-icon sweep + unit/item passes ran on EVERY tooltip flowing through TooltipDataProcessor, including third-party addon tips that draw their own art on BACKGROUND or as WHITE8X8 fills - erasing the tip entirely. All passes are now gated to the game's shared tooltip family (GameTooltip*, ItemRef*, ShoppingTooltip*, EmbeddedItemTooltip, BuffFrameTooltip).
+
 ## 0.2.14 - 2026-11-23
 
 - Blank icon guard (`Skin.FixBlankIcons`): after each tooltip post-call, ARTWORK textures that use the WHITE8X8 fallback or carry no texture and are icon-sized (≥ 8 px) are alpha'd to 0. Prevents unresolved atlas icons or nil `SetTexture` calls from rendering as bright white square boxes on the dark tooltip panel.

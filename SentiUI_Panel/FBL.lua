@@ -199,6 +199,32 @@ function F.GetUnitFullName(unit)
 	return F.CleanName(name)
 end
 
+-- clean name + realm of a unit, like the standalone's
+-- GetUnitNameRealm: GetUnitName's second return carries the realm
+-- when asked for it; a "-Realm" suffix on the raw name is the
+-- fallback. Entries keep the server this way instead of silently
+-- adopting our own realm (or none) in AddEntry
+function F.GetUnitNameRealm(unit)
+	local name, realm
+	if GetUnitName then
+		local ok, n, r = pcall(GetUnitName, unit, true)
+		if ok then name, realm = n, r end
+	end
+	if (not name or name == "") and UnitName then
+		local ok, n = pcall(UnitName, unit)
+		if ok then name = n end
+	end
+	if not name or IsSecret(name) then return nil end
+	if IsSecret(realm) then realm = nil end
+	if not realm then
+		local base, suffix = name:match("^(.-)%-([^-]+)$")
+		if suffix and base ~= "" then
+			name, realm = base, strtrim(suffix)
+		end
+	end
+	return F.CleanName(name), (realm and realm ~= "") and realm or nil
+end
+
 local function OwnAuthor()
 	local me = F.GetUnitFullName("player")
 	local author = me and F.CleanName(me)
@@ -496,13 +522,13 @@ function F.AddUnit(unit)
 		S.Print(L["Target is not a player"])
 		return
 	end
-	local name = F.GetUnitFullName(unit)
+	local name, realm = F.GetUnitNameRealm(unit)
 	local guild
 	if GetGuildInfo then
 		local ok, g = pcall(GetGuildInfo, unit)
 		if ok and g and g ~= "" and not IsSecret(g) then guild = g end
 	end
-	F.PromptAdd(name, "player", nil, guild)
+	F.PromptAdd(name, "player", nil, guild, realm)
 end
 
 function F.RemoveUnit(unit)
@@ -578,7 +604,12 @@ local function TipLines(tip)
 				note = format(L["auto: realm %s"], realm)
 			end
 		end
-		if note then F.AddEntry(name, "player", auto.group, note, guild) end
+		if note then
+			-- the unit carries its real realm; without it the entry
+			-- silently adopts our own server in AddEntry
+			local _, realm = F.GetUnitNameRealm(unit)
+			F.AddEntry(name, "player", auto.group, note, guild, nil, realm)
+		end
 	end
 
 	if not db.tooltip.enabled then return end
@@ -1917,8 +1948,12 @@ local function Window()
 	local tgt = ns.Button(formBg, 80, 22, L["Target"])
 	tgt:SetPoint("RIGHT", addBtn, "LEFT", -6, 0)
 	tgt:SetScript("OnClick", function()
-		local name = F.GetUnitFullName("target")
-		if name then f.nameBox:SetText(name) end
+		local name, realm = F.GetUnitNameRealm("target")
+		-- realm-qualified text: SplitNameRealm re-extracts it in
+		-- AddEntry, so the entry stores the target's real server
+		if name then
+			f.nameBox:SetText(realm and (name .. "-" .. realm) or name)
+		end
 	end)
 
 	return f

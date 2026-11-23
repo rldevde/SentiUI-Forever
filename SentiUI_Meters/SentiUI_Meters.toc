@@ -1,0 +1,22 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Meters
+## Notes: Dockable meter panels for SentiUI: up to two small windows next to the loot chat, each showing a different metric (damage, DPS, healing, threat and more) from the client's own damage meter data.
+## Notes-deDE: Andockbare Meter-Panels für SentiUI: bis zu zwei kleine Fenster neben dem Plündern-Chat, jedes zeigt eine eigene Metrik (Schaden, DPS, Heilung, Bedrohung und mehr) aus den Schadensmeter-Daten des Clients.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.1.0
+## Dependencies: SentiUI
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Meters.lua
+Options.lua
+Changelog.lua
+Module.lua

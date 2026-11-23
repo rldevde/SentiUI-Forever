@@ -1,5 +1,9 @@
 # SentiUI Loot
 
+## 0.2.17 - 2026-11-23
+
+- Blizzard loot frame no longer flashes visible: the alpha/mouse kill only ran a frame after the game showed it (deferred via C_Timer + the shown watch). It now fires synchronously inside every loot event dispatch and via hooksecurefunc on LootFrame_Show/LootFrame_Update, so the frame is neutralised inside the same pass it is shown in.
+
 ## 0.2.16 - 2026-11-22
 
 - Fixed the double loot window: the alpha/mouse kill on the game's LootFrame only ran inside a shown-state watch registered at enable time — a lazily created LootFrame (load-on-demand on this client) never got a watcher, so both windows stayed open. The kill now runs on every own-window update and the watch uses the resolver form that catches late-created frames.

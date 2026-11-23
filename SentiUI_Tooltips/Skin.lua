@@ -171,11 +171,26 @@ function Skin.All()
 	end
 end
 
+-- tooltips the skin claims: the game's shared family only. Third-party
+-- addon tooltips draw their own art (often on BACKGROUND layers or as
+-- WHITE8X8 fills) - running the chrome kill / blank-icon sweep on them
+-- erased the tip entirely, which is why other addons' tooltips broke.
+local TIP_PREFIX = { "GameTooltip", "ItemRef", "ShoppingTooltip",
+	"ItemRefShoppingTooltip", "EmbeddedItemTooltip", "BuffFrameTooltip" }
+function Skin.IsOurs(tip)
+	local name = type(tip) == "table" and tip.GetName and tip:GetName()
+	if type(name) ~= "string" then return false end
+	for _, p in ipairs(TIP_PREFIX) do
+		if name:sub(1, #p) == p then return true end
+	end
+	return false
+end
+
 -- a tooltip created later shows up through the post-calls; skin it on
 -- first sight
 function Skin.Ensure(tip)
 	if type(tip) == "table" and tip.GetObjectType
-		and tip:GetObjectType() == "GameTooltip" then
+		and tip:GetObjectType() == "GameTooltip" and Skin.IsOurs(tip) then
 		Skin.Tip(tip)
 	end
 end

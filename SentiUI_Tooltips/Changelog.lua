@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.15",
+		date = "2026-11-23",
+		changes = {
+			"Other addons' tooltips work again: the skin + blank-icon sweep + unit/item passes ran on EVERY tooltip through TooltipDataProcessor, including third-party tips that draw their own art on BACKGROUND or WHITE8X8 fills - erasing them. All passes are now gated to the shared Blizzard tooltip family.",
+		},
+		changesDE = {
+			"Tooltips anderer Addons funktionieren wieder: Skin + Blank-Icon-Sweep + Unit-/Item-Passes liefen auf JEDEM Tooltip durch TooltipDataProcessor, auch auf Fremd-Tooltips, die ihre eigene Art auf BACKGROUND oder als WHITE8X8-Fills zeichnen - und loeschten sie komplett. Alle Passe sind jetzt auf die geteilte Blizzard-Tooltip-Familie beschraenkt.",
+		},
+	},
+	{
 		version = "0.2.14",
 		date = "2026-11-23",
 		changes = {

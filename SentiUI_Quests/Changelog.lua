@@ -4,6 +4,28 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.11",
+		date = "2026-11-23",
+		changes = {
+			"Pin and quest text are separate targets now: clicking a row's pin only marks the way (track + waypoint) and the tracker stays put - the map no longer pops open. Clicking the quest text still opens the quest on the map.",
+			"Visual pass on the tracker: gold hairline under the title and a gold underline on zone header rows.",
+		},
+		changesDE = {
+			"Pin und Quest-Text sind jetzt getrennt: Klick auf den Pin markiert nur den Weg (Tracken + Wegpunkt) und der Tracker bleibt offen - die Karte poppt nicht mehr auf. Klick auf den Quest-Text oeffnet die Quest weiterhin auf der Karte.",
+			"Optik-Pass am Tracker: goldene Haarlinie unter dem Titel und goldene Unterstreichung bei Zonen-Headern.",
+		},
+	},
+	{
+		version = "0.4.10",
+		date = "2026-11-23",
+		changes = {
+			"Questie tracker actually turns off now: the profile flag only gates Questie's startup - an already-built Questie_BaseFrame stayed visible until reload. The frame itself is now hidden with an OnShow re-hide guard while our tracker is in charge, plus a poll for late-born frames (Questie builds it in a startup coroutine).",
+		},
+		changesDE = {
+			"Questie-Tracker geht jetzt wirklich aus: das Profil-Flag greift nur bei Questies Start - ein bereits gebauter Questie_BaseFrame blieb bis zum Reload sichtbar. Der Frame wird jetzt per OnShow-Guard versteckt, solange unser Tracker fuehrt, plus ein Poll falls der Frame spaet entsteht (Questie baut ihn in einer Start-Coroutine).",
+		},
+	},
+	{
 		version = "0.4.9",
 		date = "2026-11-22",
 		changes = {

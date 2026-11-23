@@ -93,6 +93,10 @@ local function InstallHooks()
 	-- skin + font pass on anything that shows, including late-built tips
 	if TDP.AllTypes then
 		TDP.AddTooltipPostCall(TDP.AllTypes, function(tip)
+			-- third-party addon tooltips keep their own art: touching
+			-- them (chrome kill, blank-icon sweep, border reset) erased
+			-- whole tips, which is why other addons' tooltips broke
+			if not ns.Skin.IsOurs(tip) then return end
 			S.SafeCall("tips:skin", function()
 				ns.Skin.Ensure(tip)
 				ns.Skin.Fonts(tip)
@@ -106,6 +110,7 @@ local function InstallHooks()
 	end
 	if types and types.Unit then
 		TDP.AddTooltipPostCall(types.Unit, function(tip)
+			if not ns.Skin.IsOurs(tip) then return end
 			S.SafeCall("tips:unit", function()
 				ns.Skin.Ensure(tip)
 				ns.Unit.Apply(tip)
@@ -114,6 +119,7 @@ local function InstallHooks()
 	end
 	if types and types.Item then
 		TDP.AddTooltipPostCall(types.Item, function(tip, data)
+			if not ns.Skin.IsOurs(tip) then return end
 			S.SafeCall("tips:item", function()
 				ns.Skin.Ensure(tip)
 				ns.Item.Apply(tip, data)
@@ -123,6 +129,7 @@ local function InstallHooks()
 	end
 	if types and types.Spell then
 		TDP.AddTooltipPostCall(types.Spell, function(tip, data)
+			if not ns.Skin.IsOurs(tip) then return end
 			S.SafeCall("tips:spell", function()
 				ns.Skin.Ensure(tip)
 				ns.Item.Spell(tip, data)

@@ -4,6 +4,24 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.62",
+		changes = {
+			"Button skin fix, round 2: some button templates keep their themed face on named fields (ButtonTexture, ArtOverlay, Background, ButtonArt) or on chrome child frames instead of plain texture regions - the professions' red Create/Create All buttons painted over our fill and border. Text buttons now alpha named chrome fields and every child frame plus its textures before our template goes on.",
+		},
+		changesDE = {
+			"Button-Skin-Fix, Runde 2: manche Button-Templates parken ihr Themen-Face in benannten Feldern (ButtonTexture, ArtOverlay, Background, ButtonArt) oder in Chrome-Child-Frames statt in Texture-Regionen - die roten Erstellen/Erstellen-Alle-Buttons der Berufe malten ueber unseren Fill und Rand. Text-Buttons alpha'n jetzt benannte Chrome-Felder und alle Child-Frames samt Texturen, bevor unser Template anliegt.",
+		},
+	},
+	{
+		version = "0.3.61",
+		changes = {
+			"Button skin fix: NineSlice sub-widgets and widget-level state textures (normal/pushed/disabled/highlight) survived the texture fade on some button templates and rendered Blizzard's border/face over ours - the half-broken button look. Both are alpha-killed before our template applies.",
+		},
+		changesDE = {
+			"Button-Skin-Fix: NineSlice-Sub-Widgets und Widget-Zustandstexturen (Normal/Gedrueckt/Deaktiviert/Highlight) ueberlebten den Texture-Fade bei manchen Button-Templates und malten Blizzards Rahmen/Face ueber unseren - der halb-kaputte Button-Look. Beide werden jetzt alpha-gekillt bevor unser Template anliegt.",
+		},
+	},
+	{
 		version = "0.3.60",
 		changes = {
 			"Loss-of-control banner (stun/root/silence) gets a dedicated skin: Blizzard blackBg and red line art removed outright, icon docked to the left edge at bar height (was overlapping the ability text), SentiUI panel + gold edge, restyled fonts.",

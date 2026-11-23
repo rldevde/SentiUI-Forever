@@ -693,10 +693,25 @@ end
 -- Same idea as SentinelMinimapButtonHide / the SFC collector: real minimap
 -- buttons are faded out, our dropdown rows forward the click.
 local SKIP = {
+	Minimap = true, MinimapPing = true, MinimapBackdrop = true,
 	MinimapZoomIn = true, MinimapZoomOut = true, MinimapZoneTextButton = true,
 	MinimapToggleButton = true, MinimapNorthTag = true, MinimapBorderTop = true,
-	MinimapBackdrop = true, MinimapCompassTexture = true, TimeManagerClockButton = true,
+	MinimapCompassTexture = true, TimeManagerClockButton = true,
 	GameTimeFrame = true, AddonCompartmentFrame = true,
+	-- Blizzard's own indicators parked on the map ring: they are clickable
+	-- 20-40px frames and would be swallowed by the loose match below
+	MiniMapTracking = true, MiniMapTrackingFrame = true,
+	MiniMapTrackingButton = true, MiniMapTrackingBorder = true,
+	MiniMapMailFrame = true, MiniMapMailBorder = true,
+	MiniMapInstanceDifficulty = true, MiniMapChallengeMode = true,
+	GuildInstanceDifficulty = true, MiniMapBattlefieldFrame = true,
+	MiniMapBattlefieldBorder = true, MiniMapLFGFrame = true,
+	LFGMinimapFrame = true, QueueStatusMinimapButton = true,
+	QueueStatusMinimapButtonBorder = true, MiniMapWorldMapButton = true,
+	ExpansionLandingPageMinimapButton = true,
+	GarrisonLandingPageMinimapButton = true, MiniMapVoiceChatFrame = true,
+	DurabilityFrame = true, VehicleSeatIndicator = true,
+	MinimapCluster = true, MinimapZoneText = true,
 }
 local BUTTON_PATTERNS = { "^LibDBIcon10_", "MinimapButton", "MinimapFrame", "MinimapIcon", "[-_]Minimap[-_]", "Minimap$" }
 local PIN_PATTERNS = { "^HandyNotes", "^TomTom", "^HereBeDragons", "^Questie", "^GatherMate", "^pin", "^Pin", "^EasyFind" }
@@ -707,18 +722,34 @@ end
 
 local PIN_TOP = "SentiUIMinimapButton" -- our own settings button, always first
 
-local function wanted(name)
+local function wanted(name, child)
 	if name == PIN_TOP then return true end
 	if not name or name == "" or SKIP[name] then return false end
 	if name:find("^SentiUI") or name:find("^SFC") then return false end
 	if name:match("^TomCats-") then return true end
 	if name:match("%d$") then return false end -- pooled frames (QuestieFrame10, ...)
-	return matchesAny(name, BUTTON_PATTERNS) and not matchesAny(name, PIN_PATTERNS)
+	if matchesAny(name, PIN_PATTERNS) then return false end
+	if matchesAny(name, BUTTON_PATTERNS) then return true end
+	-- loose match: a clickable 12-64px frame sitting on the map is an
+	-- addon button even when its name never said "Minimap" - catches the
+	-- frames SentiHeal/DBM-style addons park on the ring that slipped
+	-- through the pattern list
+	if type(child) == "table" then
+		local okW, w = pcall(child.GetWidth, child)
+		local clickable = (child.IsObjectType and child:IsObjectType("Button"))
+			or (child.GetScript and (child:GetScript("OnClick")
+				or child:GetScript("OnMouseUp") or child:GetScript("OnMouseDown")))
+		if clickable and okW and type(w) == "number"
+			and not S.IsSecret(w) and w >= 12 and w <= 64 then
+			return true
+		end
+	end
+	return false
 end
 
 local function takeButton(child)
 	local name = child and child.GetName and child:GetName()
-	if name and wanted(name) and not captured[name] then
+	if name and wanted(name, child) and not captured[name] then
 		captured[name] = { btn = child, name = name }
 	end
 	if name and captured[name] then fade(child) end
@@ -736,9 +767,24 @@ local function capture()
 	if libMap and libMap.buttons then
 		for _, b in pairs(libMap.buttons) do takeButton(b) end
 	end
-	for _, child in ipairs({ Minimap:GetChildren() }) do
-		if child and child.IsObjectType and child:IsObjectType("Button") then takeButton(child) end
+	-- addon buttons hang on three parents depending on the addon:
+	-- Minimap itself, MinimapCluster, or MinimapBackdrop - scan all three
+	-- or the cluster-parented ones never reach the "+" list
+	local function scanKids(parent)
+		if not (parent and parent.GetChildren) then return end
+		for _, child in ipairs({ parent:GetChildren() }) do
+			if type(child) == "table" and child.IsObjectType then
+				local isBtn = child:IsObjectType("Button")
+				local clickable = not isBtn and child.GetScript
+					and (child:GetScript("OnClick") or child:GetScript("OnMouseUp")
+						or child:GetScript("OnMouseDown"))
+				if isBtn or clickable then takeButton(child) end
+			end
+		end
 	end
+	scanKids(Minimap)
+	scanKids(_G.MinimapCluster)
+	scanKids(_G.MinimapBackdrop)
 end
 Core.Capture = capture
 

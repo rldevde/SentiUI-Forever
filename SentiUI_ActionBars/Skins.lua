@@ -366,6 +366,45 @@ local function SkinChildren(f)
 					-- iconish and keep their art
 					if not iconish then
 						FadeTextures(c, 0)
+						-- chrome lives where the region fade cannot
+						-- reach: a NineSlice child frame, named
+						-- texture/frame fields and chrome child frames
+						-- (professions red button face rides one of
+						-- those and painted over our fill + border)
+						for _, k in ipairs({ "NineSlice", "ButtonTexture",
+							"ArtOverlay", "Background", "bg", "Border",
+							"ButtonArt", "ButtonBackground",
+							"NormalTexture", "PushedTexture",
+							"DisabledTexture", "HighlightTexture" }) do
+							local sub = c[k]
+							if type(sub) == "table" and sub.SetAlpha then
+								Call("btn:sub", sub.SetAlpha, sub, 0)
+							end
+						end
+						-- a text button's content is its FontString
+						-- label (a region) - child frames are chrome:
+						-- alpha them and every texture they carry
+						if ot == "Button" then
+							for _, g in ipairs({ c:GetChildren() }) do
+								if type(g) == "table" and g.SetAlpha then
+									Call("btn:kid", g.SetAlpha, g, 0)
+									FadeTextures(g, 0)
+								end
+							end
+						end
+						-- widget-level state textures: some templates keep
+						-- them off GetRegions, so the fade missed them and
+						-- a stale normal/pushed face rendered over our fill
+						for _, m in ipairs({ "GetNormalTexture",
+							"GetPushedTexture", "GetDisabledTexture",
+							"GetHighlightTexture" }) do
+							if c[m] then
+								local okT2, wt = pcall(c[m], c)
+								if okT2 and type(wt) == "table" and wt.SetAlpha then
+									Call("btn:tex", wt.SetAlpha, wt, 0)
+								end
+							end
+						end
 						S.Template(c, ot == "EditBox" and "inset"
 							or "raised")
 						-- raised skinned buttons get our border-lit
