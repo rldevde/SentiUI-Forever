@@ -25,6 +25,16 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.4.2",
+		date = "2026-11-23",
+		changes = {
+			"Comms version exchange is now fully automatic both ways: a query broadcasts every 30 min so peers re-send their manifests (peers who joined before us or whose announce we missed), and a JOINED notice triggers a jittered re-announce so newcomers learn our version even if their own query fails.",
+		},
+		changesDE = {
+			"Der Comms-Versionsaustausch läuft jetzt in beide Richtungen vollautomatisch: alle 30 Min geht eine Abfrage an alle Peers (für Spieler, die vor uns beitraten oder deren Meldung wir verpasst haben), und ein JOINED-Notice löst eine zeitversetzte Neu-Meldung aus, damit Neulinge unsere Version auch ohne eigene erfolgreiche Abfrage erfahren.",
+		},
+	},
+	{
 		version = "0.4.1",
 		date = "2026-11-23",
 		changes = {

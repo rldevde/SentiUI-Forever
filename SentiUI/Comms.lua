@@ -333,6 +333,11 @@ S.RegisterEvent("CHAT_MSG_CHANNEL_NOTICE", function(_, typ, sender, _, cname, ta
 	for _, fn in ipairs(noticeHandlers) do
 		S.SafeCall("comms:notice", fn, typ, sender, target)
 	end
+	-- someone new just arrived: re-announce with jitter so they learn our
+	-- suite version even if their own join query never reaches us
+	if typ == "JOINED" then
+		C_Timer.After(2 + math.random() * 4, function() Comms.Announce() end)
+	end
 end)
 
 local function RegisterPrefix()
@@ -358,5 +363,8 @@ C_Timer.NewTicker(120, function()
 	JoinSync()
 end)
 
--- periodic re-announce so late joiners learn who is around
+-- periodic re-announce so late joiners learn who is around, plus a
+-- periodic query that asks every peer for a fresh manifest - covers
+-- peers that joined before us or whose announce we missed
 C_Timer.NewTicker(900, function() Comms.Announce() end)
+C_Timer.NewTicker(1800, function() Comms.Query() end)
