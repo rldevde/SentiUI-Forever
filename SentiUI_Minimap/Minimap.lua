@@ -159,10 +159,11 @@ end
 -- Indicators are re-anchored onto the map WITHOUT SetParent: the anchor
 -- follows Minimap wherever the panel takes it, and blizzard's own parent
 -- (IndicatorFrame layout etc.) keeps working untouched.
-local function dock(f, point, relPoint, x, y, scale)
+local function dock(f, point, relPoint, x, y, scale, anchor)
 	if type(f) ~= "table" then return end
+	anchor = anchor or Minimap
 	pcall(f.ClearAllPoints, f)
-	pcall(f.SetPoint, f, point, Minimap, relPoint, x, y)
+	pcall(f.SetPoint, f, point, anchor, relPoint, x, y)
 	if scale then pcall(f.SetScale, f, scale) end
 	-- cluster children render in the cluster's low strata - an icon that
 	-- only anchors onto the map still draws UNDER it (the mail button
@@ -182,12 +183,18 @@ end
 -- the pump corrects the anchor a frame later, from a safe dispatch.
 local dockGuards = {}
 local dockPump
-local function keepDocked(f, point, relPoint, x, y, scale)
-	if type(f) ~= "table" or f.__sentiDockGuard then
-		return
+local function keepDocked(f, point, relPoint, x, y, scale, anchor)
+	if type(f) ~= "table" then return end
+	anchor = anchor or Minimap
+	-- the stored entry is rewritable: the mail icon moves between the
+	-- coords bar and the map depending on the bar toggle
+	local e = f.__sentiDockGuard
+	if not e then
+		e = { f = f }
+		f.__sentiDockGuard = e
+		dockGuards[#dockGuards + 1] = e
 	end
-	f.__sentiDockGuard = true
-	dockGuards[#dockGuards + 1] = { f = f, p = point, rp = relPoint, x = x, y = y, s = scale }
+	e.p, e.rp, e.x, e.y, e.s, e.a = point, relPoint, x, y, scale, anchor
 	if not dockPump then
 		dockPump = CreateFrame("Frame")
 		-- pure polling, no SetPoint hook: a post-hook ran inside the
@@ -197,9 +204,9 @@ local function keepDocked(f, point, relPoint, x, y, scale)
 			for _, g in ipairs(dockGuards) do
 				local fr = g.f
 				local ok, _, rel = pcall(fr.GetPoint, fr, 1)
-				if ok and rel and rel ~= Minimap then
+				if ok and rel and rel ~= g.a then
 					pcall(fr.ClearAllPoints, fr)
-					pcall(fr.SetPoint, fr, g.p, Minimap, g.rp, g.x, g.y)
+					pcall(fr.SetPoint, fr, g.p, g.a, g.rp, g.x, g.y)
 					if g.s then pcall(fr.SetScale, fr, g.s) end
 				end
 			end
@@ -245,6 +252,9 @@ function Core.PositionIndicators()
 		local c = resolve(s)
 		if c and c.EnableMouse then pcall(c.EnableMouse, c, false) end
 	end
+	-- the mail icon lives in the coords bar right next to the coordinates;
+	-- while the bar is hidden it falls back to the map's top-right corner
+	local inBar = coordsBar and coordsText and db.coords == true
 	for _, s in ipairs(ELEMENTS.mail) do
 		local f = resolve(s)
 		if f then
@@ -258,8 +268,13 @@ function Core.PositionIndicators()
 				if okW and type(w) == "number" and not S.IsSecret(w) and w > 64 then
 					pcall(f.EnableMouse, f, false)
 				end
-				dock(f, "TOPRIGHT", "TOPRIGHT", -21, -3, 0.85)
-				keepDocked(f, "TOPRIGHT", "TOPRIGHT", -21, -3, 0.85)
+				if inBar then
+					dock(f, "LEFT", "RIGHT", 4, 0, 0.55, coordsText)
+					keepDocked(f, "LEFT", "RIGHT", 4, 0, 0.55, coordsText)
+				else
+					dock(f, "TOPRIGHT", "TOPRIGHT", -21, -3, 0.85)
+					keepDocked(f, "TOPRIGHT", "TOPRIGHT", -21, -3, 0.85)
+				end
 			end
 		end
 	end

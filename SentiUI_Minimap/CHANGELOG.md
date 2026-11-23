@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.21 - 2026-11-23
+
+- The pending-mail icon now sits inside the coords bar right next to the coordinates instead of the map's top-right corner (scaled to fit the 20px strip, falls back to the corner while the bar is hidden). Dock guards are rewritable now so the mail icon can move between the bar and the map when the coords bar is toggled.
+
 ## 0.3.20 - 2026-11-23
 
 - Pending mail no longer kills minimap hover: MinimapCluster.IndicatorFrame is a layout container that shows together with the mail icon and - on this client - keeps its own mouse enabled, covering the whole top strip and swallowing every hover below it (zone bar, tracking, menu button, "+" trigger). Mouse is now disabled on the IndicatorFrame/InstanceDifficulty/Tracking containers only (their icon children keep their own mouse), and a width guard disables mouse on any resolved mail element that turns out to be a wide invisible container instead of the ~20px icon.

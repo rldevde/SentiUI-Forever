@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.21",
+		date = "2026-11-23",
+		changes = {
+			"The pending-mail icon now sits inside the coords bar right next to the coordinates instead of the map's top-right corner (falls back to the corner while the bar is hidden).",
+		},
+		changesDE = {
+			"Das Post-Icon sitzt jetzt in der Koordinatenleiste direkt neben den Koordinaten statt oben rechts auf der Karte (faellt auf die Ecke zurueck, solange die Leiste aus ist).",
+		},
+	},
+	{
 		version = "0.3.20",
 		date = "2026-11-23",
 		changes = {
