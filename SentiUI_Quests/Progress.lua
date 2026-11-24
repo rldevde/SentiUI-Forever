@@ -142,11 +142,32 @@ local function RowAlpha(r, a)
 	r.bar:SetAlpha(a)
 end
 
+-- expired rows can fly off to a screen edge while they fade (feedExit):
+-- the flight is measured once from the row's spot to off-screen and eased
+-- in quadratically, so it accelerates out exactly as its alpha dies. The
+-- slide re-points pooled frames - legal mid-fight, the pool is only ever
+-- built out of combat.
+local function StartExit(e, r)
+	local dir = db and db.feedExit or "right"
+	if dir == "fade" or not r or e.exiting then return end
+	local okC, cx = pcall(r.GetCenter, r)
+	local okW, rw = pcall(r.bg.GetWidth, r.bg)
+	cx = (okC and type(cx) == "number") and cx or ((GetScreenWidth() or 1920) / 2)
+	local half = (okW and type(rw) == "number") and rw / 2 or W / 2
+	e.exiting = true
+	e.exitFrom = e.curX or 0
+	e.exitX = (dir == "left") and -(cx + half + 40)
+		or ((GetScreenWidth() or 1920) - cx + half + 40)
+end
+
 local function Paint()
 	if not holder then return end
 	for i = 1, ROWS do
 		local r, e = GetRow(i), live[i]
 		if not r then return end -- pool creation deferred until out of combat
+		r:ClearAllPoints()
+		r:SetPoint("TOP", holder, "TOP",
+			(e and e.curX) or 0, -(i - 1) * ROW_H)
 		if e then
 			-- guard content, not the call: if SetText itself is broken it
 			-- must surface the error instead of dying inside a pcall. A
@@ -198,6 +219,8 @@ local function Push(e)
 		if x.key == e.key then
 			x.text, x.have, x.need = e.text, e.have, e.need
 			x.t, x.alpha = e.t, 1
+			-- a merged row was mid-flight: put it back in place
+			x.exiting, x.curX = nil, 0
 			Paint()
 			return
 		end
@@ -369,6 +392,7 @@ function Progress.Apply()
 			for i = #live, 1, -1 do
 				local e = live[i]
 				if now - e.t > HOLD then
+					StartExit(e, rows[i])
 					e.alpha = (e.alpha or 1) - (dt or 0.016) * 1.6
 					if e.alpha <= 0 then
 						tremove(live, i)
@@ -378,7 +402,17 @@ function Progress.Apply()
 			end
 			if dirty then Paint() else
 				for i, e in ipairs(live) do
-					if rows[i] then rows[i]:SetAlpha(e.alpha or 1) end
+					local r = rows[i]
+					if r then
+						r:SetAlpha(e.alpha or 1)
+						if e.exiting then
+							local f = e.alpha or 1
+							e.curX = (e.exitFrom or 0)
+								+ e.exitX * (1 - f * f)
+							r:SetPoint("TOP", holder, "TOP",
+								e.curX, -(i - 1) * ROW_H)
+						end
+					end
 				end
 			end
 		end)

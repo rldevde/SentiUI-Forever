@@ -65,8 +65,10 @@ Quests options page.
 - The game's yellow `UI_INFO_MESSAGE` quest lines are claimed via
   `BLACK_LISTED_MESSAGE_TYPES` and restyled: dim text, count in accent,
   a thin bar underneath, a tick for finished objectives, gold for
-  finished quests. Up to three rows, they fade; the holder is the
-  `quests.progress` mover.
+  finished quests. Up to three rows; the holder is the
+  `quests.progress` mover. On expiry a row flies off to a screen edge
+  while it fades — direction via `Row exit` (right / left / fade in
+  place), same setting the loot feed uses.
 - Optional `Share progress in group`: the same lines (plus quest
   accepted / turned-in) are posted to `PARTY` chat with the game's own
   localized text.

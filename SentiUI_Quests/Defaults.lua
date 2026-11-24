@@ -11,6 +11,8 @@ ns.DEFAULTS = {
 	spacing = 2,
 	nav = true,                   -- in-world way marker on the tracked quest
 	progress = true,              -- Sentinel progress lines instead of the game's
+	feedExit = "right",           -- "left"|"right" fly to that screen edge,
+	                              -- "fade" fades in place
 	shareProgress = true,         -- post objective progress to the party chat
 	autoQuest = false,            -- auto accept / turn in at NPCs (shift skips)
 	autoQuestSkipTrivial = true,  -- skip gray/trivial quests on auto-accept

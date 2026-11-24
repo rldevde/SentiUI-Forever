@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.14",
+		date = "2026-11-24",
+		changes = {
+			"Quest progress lines get the loot feed's exit animation: expired rows fly off to a screen edge while they fade - direction is a setting (Row exit: right / left / fade in place, right by default). The flight is measured once from the row's spot to off-screen and eases in quadratically, accelerating as the alpha dies; an in-place update on the same objective recalls a mid-flight row.",
+		},
+		changesDE = {
+			"Quest-Fortschrittszeilen bekommen die Ausgangs-Animation des Loot-Feeds: Abgelaufene Zeilen fliegen zum Bildschirmrand, waehrend sie ausblenden - Richtung per Einstellung (Zeilen-Ausgang: rechts / links / vor Ort ausblenden, Standard rechts). Die Flugstrecke wird einmal von der Zeilenposition bis zum Rand gemessen und quadratisch beschleunigt; ein In-Place-Update desselben Objectives holt eine fliegende Zeile zurueck.",
+		},
+	},
+	{
 		version = "0.4.13",
 		date = "2026-11-24",
 		changes = {

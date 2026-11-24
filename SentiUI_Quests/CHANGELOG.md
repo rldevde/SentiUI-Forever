@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.14 - 2026-11-24
+
+- Quest progress lines get the loot feed's exit animation: expired rows fly off to a screen edge while they fade - direction is a setting (Row exit: right / left / fade in place, right by default). The flight is measured once from the row's spot to off-screen and eases in quadratically, accelerating as the alpha dies; an in-place update on the same objective recalls a mid-flight row.
+
 ## 0.4.13 - 2026-11-24
 
 - Quest progress lines (loot/kill counters mid-screen) now paint live during combat: `Paint` only touches regions, so entries no longer expire unseen inside the queue before the after-combat repaint could run.
