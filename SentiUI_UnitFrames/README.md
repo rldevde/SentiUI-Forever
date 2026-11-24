@@ -46,6 +46,10 @@ class-colored health). Standalone module - requires the SentiUI core.
   ice block, divine shield, ...), driven by `UNIT_SPELLCAST_SUCCEEDED`
   per cell so any group member shows, no addon channel needed. On by
   default for party, opt-in on raid cells.
+- **Screen effects** - a red vignette pulses at the screen edges while
+  your health drops below the chosen threshold (Low health pulse), a
+  gold flash marks level ups (Level-up flash), and optional
+  screenshots fire on level ups and earned achievements.
 
 ## Usage
 

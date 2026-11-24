@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.47",
+		date = "2026-11-25",
+		changes = {
+			"Screen effects: a red vignette pulses at the screen edges while your health drops below the chosen threshold (Low health pulse + threshold slider under Unit Frames > Extras), a one-shot gold flash marks level ups (Level-up flash), and optional screenshots fire on level ups and earned achievements. All strips are pre-built regions, so the animation is combat-safe and nothing is created under lockdown.",
+		},
+		changesDE = {
+			"Bildschirm-Effekte: Eine rote Vignette pulsiert an den Raendern, solange dein Leben unter der gewaehlten Schwelle liegt (Lebenswarnung + Schwellen-Slider unter Unitframes > Extras), ein einmaliger Gold-Blitz markiert Level-Aufstiege (Level-Up-Blitz), und optionale Screenshots feuern bei Level-Ups und Errungenschaften. Alle Streifen sind vorgebaute Regionen - kampfsicher, nichts wird unter Sperre erzeugt.",
+		},
+	},
+	{
 		version = "0.2.46",
 		date = "2026-11-25",
 		changes = {

@@ -588,6 +588,98 @@ end
 -- wiring
 -- ===========================================================================
 -- ===========================================================================
+-- Screen effects: a red vignette pulsing at the edges while health runs
+-- low, a one-shot gold flash on level-ups, optional screenshots. Every
+-- strip is a pre-built region - alpha animation is legal mid-fight and
+-- nothing is ever created under lockdown
+-- ===========================================================================
+local lowGlow, flash
+
+local function Vignette(parent, r, g, b)
+	-- four soft strips, opaque at the screen edge fading inward; the
+	-- gradient is baked once, the pulse only rewrites alpha
+	local function C(a)
+		return CreateColor and CreateColor(r, g, b, a)
+	end
+	local SZ = 90
+	local function edge(p1, p2, dir, a1, a2)
+		local t = parent:CreateTexture(nil, "OVERLAY")
+		t:SetTexture(BLANK)
+		t:SetPoint(p1, 0, 0)
+		t:SetPoint(p2, 0, 0)
+		if dir == "VERTICAL" then t:SetHeight(SZ) else t:SetWidth(SZ) end
+		if C(1) and t.SetGradient then
+			t:SetGradient(dir, C(a1), C(a2))
+		else
+			t:SetColorTexture(r, g, b, math.max(a1, a2) * 0.5)
+		end
+		t:SetAlpha(0)
+		return t
+	end
+	return {
+		edge("TOPLEFT", "TOPRIGHT", "VERTICAL", 0, 0.9),
+		edge("BOTTOMLEFT", "BOTTOMRIGHT", "VERTICAL", 0.9, 0),
+		edge("TOPLEFT", "BOTTOMLEFT", "HORIZONTAL", 0.9, 0),
+		edge("TOPRIGHT", "BOTTOMRIGHT", "HORIZONTAL", 0, 0.9),
+	}
+end
+
+local function BuildScreenFX()
+	if lowGlow then return end
+	lowGlow = CreateFrame("Frame", "SentiUI_UF_LowHP", UIParent)
+	lowGlow:SetAllPoints(UIParent)
+	lowGlow:SetFrameStrata("FULLSCREEN")
+	lowGlow.strips = Vignette(lowGlow, 1, 0.12, 0.12)
+	lowGlow:SetScript("OnUpdate", function(self, dt)
+		if not self.on then return end
+		self.t = (self.t or 0) + (dt or 0.016)
+		local a = 0.30 + 0.25 * math.sin(self.t * 5.5)
+		for _, t in ipairs(self.strips) do t:SetAlpha(a) end
+	end)
+
+	flash = CreateFrame("Frame", "SentiUI_UF_Flash", UIParent)
+	flash:SetAllPoints(UIParent)
+	flash:SetFrameStrata("FULLSCREEN")
+	flash.strips = Vignette(flash, 1, 0.75, 0.20)
+	flash:SetScript("OnUpdate", function(self, dt)
+		if not self.t then return end
+		self.t = self.t + (dt or 0.016)
+		local t, dur = self.t, 1.4
+		if t >= dur then self.t = nil end
+		local a = t < 0.25 and (t / 0.25)
+			or math.max(0, 1 - (t - 0.25) / (dur - 0.25))
+		for _, s in ipairs(self.strips) do s:SetAlpha(a * 0.9) end
+	end)
+end
+
+function X.UpdateLowHP(f)
+	if not lowGlow or f.unit ~= "player" then return end
+	local on = false
+	if ns.db.lowHP ~= false then
+		local cur = Plain(UnitHealth("player"))
+		local mx = Plain(UnitHealthMax("player"))
+		local dead = UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")
+		on = (cur and mx and mx > 0 and not dead
+			and cur / mx <= (ns.db.lowHPPct or 35) / 100) or false
+	end
+	lowGlow.on = on and true or false
+end
+
+ns.RegisterBusEvent("PLAYER_LEVEL_UP", function()
+	if ns.db and ns.db.levelFlash ~= false and flash then
+		flash.t = 0
+	end
+	if ns.db and ns.db.shotLevelUp == true and Screenshot then
+		C_Timer.After(0.5, function() pcall(Screenshot) end)
+	end
+end)
+ns.RegisterBusEvent("ACHIEVEMENT_EARNED", function()
+	if ns.db and ns.db.shotAchieve == true and Screenshot then
+		C_Timer.After(0.5, function() pcall(Screenshot) end)
+	end
+end)
+
+-- ===========================================================================
 -- Cooldown tracker: interrupt + signature defensive icons under a member's
 -- cell, driven by UNIT_SPELLCAST_SUCCEEDED on each cell - the combat log
 -- can't be used: registering COMBAT_LOG_EVENT_UNFILTERED is a protected
@@ -742,6 +834,7 @@ function X.Attach(f)
 	if f.key == "player" then
 		BuildClassPower(f)
 		BuildCombatText(f)
+		BuildScreenFX()
 	end
 	if (f.key == "party" or f.key == "raid") and f.db
 		and f.db.cooldownIcons ~= false then
@@ -753,16 +846,24 @@ function X.Refresh(f)
 	X.UpdatePrediction(f)
 	X.UpdateState(f)
 	X.UpdateThreatPct(f)
-	if f.key == "player" then X.UpdateClassPower(f) end
+	if f.key == "player" then
+		X.UpdateClassPower(f)
+		X.UpdateLowHP(f)
+	end
+end
+
+local function OnHealth(f)
+	X.UpdatePrediction(f)
+	X.UpdateLowHP(f)
 end
 
 local EXTRA_EVENTS = {
 	UNIT_POWER_UPDATE = X.UpdateClassPower, -- class pips ride the same event
 	-- UNIT_HEAL_PREDICTION may never fire on this client - health events
 	-- re-read the amounts instead (same trigger SentiHeal uses)
-	UNIT_HEALTH = X.UpdatePrediction,
-	UNIT_HEALTH_FREQUENT = X.UpdatePrediction,
-	UNIT_MAXHEALTH = X.UpdatePrediction,
+	UNIT_HEALTH = OnHealth,
+	UNIT_HEALTH_FREQUENT = OnHealth,
+	UNIT_MAXHEALTH = OnHealth,
 	UNIT_HEAL_PREDICTION = X.UpdatePrediction,
 	UNIT_ABSORB_AMOUNT_CHANGED = X.UpdatePrediction,
 	UNIT_HEAL_ABSORB_AMOUNT_CHANGED = X.UpdatePrediction,

@@ -38,6 +38,11 @@ ns.DEFAULTS = {
 	},
 	raidTools = { enable = true, collapsed = false }, -- top-edge foldable marker tray
 	altPower = true,               -- replacement for PlayerPowerBarAlt
+	lowHP = true,                  -- red vignette pulse under lowHPPct health
+	lowHPPct = 35,                 -- percent
+	levelFlash = true,             -- gold screen flash on level ups
+	shotLevelUp = false,           -- screenshot on level up
+	shotAchieve = false,           -- screenshot on earned achievements
 	raid = {
 		enable = true, w = 74, h = 26, spacing = 3, power = false,
 		growth = "RIGHT",         -- columns grow to the right, members stack upward
