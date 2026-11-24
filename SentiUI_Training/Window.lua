@@ -97,6 +97,7 @@ end
 function K.Build()
 	if K.frame then return K.frame end
 	local f = CreateFrame("Frame", "SentiUITrainingWindow", UIParent, "BackdropTemplate")
+		S.PopIn(f)
 	S.EscClosable(f)
 	f:SetSize(600, 600)
 	f:SetPoint("CENTER")

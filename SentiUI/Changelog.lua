@@ -25,6 +25,26 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.4.8",
+		date = "2026-11-25",
+		changes = {
+			"Windows now pop open instead of appearing hard: a shared S.PopIn helper gives a ~160ms fade + slight scale-in on every Show, driven by one ticker that sleeps between pops. Applied to the settings, craft, journal, loot, training, bug sack, messenger, character, admin and blacklist windows.",
+		},
+		changesDE = {
+			"Fenster poppen jetzt auf statt hart zu erscheinen: Ein gemeinsamer S.PopIn-Helfer spendiert jedem Show ein ~160ms Einblenden plus leichten Scale-In, ueber einen Ticker, der zwischen Pops schlaeft. Verbaut in Einstellungen, Berufe, Journal, Beute, Training, BugSack, Messenger, Charakter, Admin und Blacklist.",
+		},
+	},
+	{
+		version = "0.4.7",
+		date = "2026-11-24",
+		changes = {
+			"The sync channel no longer sits on chat slot /1: the client restores a saved channel membership before the default channels join and hands it the lowest free number, pushing General/Trade/etc. down. SentiUI now leaves a restored membership at login and rejoins behind the default channels.",
+		},
+		changesDE = {
+			"Der Sync-Channel belegt nicht mehr Chat-Slot /1: Der Client stellt eine gespeicherte Channel-Mitgliedschaft wieder her, bevor die Standard-Kanaele joinen, und vergibt die niedrigste freie Nummer - Allgemein/Handel/etc. rutschen nach hinten. SentiUI verlaesst eine wiederhergestellte Mitgliedschaft beim Login und joint hinter den Standard-Kanaelen neu.",
+		},
+	},
+	{
 		version = "0.4.6",
 		date = "2026-11-23",
 		changes = {

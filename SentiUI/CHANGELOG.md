@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.8 - 2026-11-25
+
+- Windows now pop open instead of appearing hard: a shared S.PopIn helper gives a ~160ms fade + slight scale-in on every Show, driven by one ticker that sleeps between pops. Applied to the settings, craft, journal, loot, training, bug sack, messenger, character, admin and blacklist windows.
+
+## 0.4.7 - 2026-11-24
+
+- The sync channel no longer sits on chat slot /1: the client restores a saved channel membership before the default channels join and hands it the lowest free number, pushing General/Trade/etc. down. SentiUI now leaves a restored membership at login and rejoins behind the default channels.
+
 ## 0.4.6 - 2026-11-23
 
 - The loss-of-control alert ("Stunned 1.3 sec") no longer shows the pixelated stock art: all of the game's textures are hidden and a same-size overlay in SentiUI style covers the frame - dark rounded panel, gold accent line, icon plus our font for the name and the live countdown. The game's frame still decides what to show; the texts are passed through untouched (secret-safe).

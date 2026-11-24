@@ -270,6 +270,7 @@ end
 -----------------------------------------------------------------------
 local function build()
 	win = CreateFrame("Frame", "SentiUIBugSack", UIParent, "BackdropTemplate")
+	S.PopIn(win)
 	if S.CombatDeferWindow then S:CombatDeferWindow(win) end
 	win:SetSize(760, 500)
 	S.Template(win, "panel")

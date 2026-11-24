@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.47 - 2026-11-24
+
+- FBL sync channel no longer sits on chat slot /1: a saved membership restored before the default channels join takes the lowest free number and pushes General/Trade down. The panel now leaves a restored membership at login and rejoins behind the default channels.
+
 ## 0.5.46 - 2026-11-24
 
 - FBL list sorting: a small 'Sort:' strip on top of the blacklist switches between Name, Date added and Reporter - each row now shows the entry's date and reporter directly in the list. The mode is persisted in FBLDB.sortBy and shared with the standalone ForeverBlackListed addon.

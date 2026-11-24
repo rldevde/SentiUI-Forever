@@ -12,6 +12,7 @@ local frame, page
 
 local function Create()
 	local f = CreateFrame("Frame", "SentiUIJournalFrame", UIParent, "BackdropTemplate")
+		S.PopIn(f)
 	if S.CombatDeferWindow then S:CombatDeferWindow(f) end
 	f:SetSize(1060, 620)
 	S.Template(f, "panel")

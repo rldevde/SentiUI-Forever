@@ -396,6 +396,13 @@ end
 
 S.RegisterEvent("PLAYER_LOGIN", function()
 	RegisterPrefix()
+	-- a saved membership is restored early and can sit on slot /1 before the
+	-- default channels claim their numbers; drop it so JoinSync rejoins
+	-- behind them once the channel list is populated
+	if ChanNumOf(CHANNEL) then
+		local leave = LeaveChannelByName or (C_ChatInfo and C_ChatInfo.LeaveChannelByName)
+		if leave then pcall(leave, CHANNEL) end
+	end
 	C_Timer.After(6, JoinSync)
 end)
 

@@ -256,6 +256,48 @@ function S.EscClosable(f)
 	f:HookScript("OnHide", function(self) propagate(self, true) end)
 end
 
+-- open pop animation ----------------------------------------------------------
+-- S.PopIn(f) gives a window a ~160ms fade+scale-in on every Show. One
+-- shared ticker animates all registered windows and sleeps between pops;
+-- SetAlpha/SetScale on the window frame itself is legal mid-fight (any
+-- secure children keep their own scale/alpha untouched), and pcall keeps
+-- a window that was somehow born protected from ever erroring.
+local popQ, popTicker = {}, nil
+local function PopTicker()
+	if popTicker then return end
+	popTicker = CreateFrame("Frame")
+	popTicker:SetScript("OnUpdate", function(_, dt)
+		for f in pairs(popQ) do
+			f._popT = (f._popT or 0) + (dt or 0.016)
+			local t, dur = f._popT, 0.16
+			if t >= dur then
+				popQ[f] = nil
+				pcall(f.SetAlpha, f, f._popAlpha or 1)
+				pcall(f.SetScale, f, f._popScale or 1)
+			else
+				local k = t / dur
+				pcall(f.SetAlpha, f, (f._popAlpha or 1) * k)
+				pcall(f.SetScale, f, (f._popScale or 1) * (0.97 + 0.03 * k))
+			end
+		end
+		if not next(popQ) then popTicker:Hide() end
+	end)
+end
+
+function S.PopIn(f)
+	if not f or f._suiPop then return f end
+	f._suiPop = true
+	f:HookScript("OnShow", function(self)
+		self._popAlpha = self.GetAlpha and self:GetAlpha() or 1
+		self._popScale = self.GetScale and self:GetScale() or 1
+		self._popT = 0
+		popQ[self] = true
+		PopTicker()
+		popTicker:Show()
+	end)
+	return f
+end
+
 -- secure reload overlay -------------------------------------------------------
 -- C_UI.Reload/ReloadUI from addon code is a protected call on this client
 -- (ADDON_ACTION_BLOCKED: Reload()). An invisible SecureActionButton laid over

@@ -589,6 +589,7 @@ end
 function Panel.Build()
 	if frame then return end
 	frame = CreateFrame("Frame", "SentiUISettingsFrame", UIParent, "BackdropTemplate")
+	S.PopIn(frame)
 	if S.CombatDeferWindow then S:CombatDeferWindow(frame) end
 	frame:SetSize(Panel.SIZE[1], Panel.SIZE[2])
 	frame:SetPoint("CENTER")

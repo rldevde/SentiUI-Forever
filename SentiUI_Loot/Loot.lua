@@ -748,6 +748,7 @@ end
 local function BuildLootWindow()
 	if lootWin then return end
 	lootWin = CreateFrame("Frame", "SentiUILootWindow", UIParent, "BackdropTemplate")
+	S.PopIn(lootWin)
 	lootWin:SetSize(240, 60)
 	lootWin:SetPoint("CENTER", 0, -40)
 	lootWin:SetFrameStrata("HIGH")

@@ -880,6 +880,13 @@ local function RegisterPrefix()
 end
 S.RegisterEvent("PLAYER_LOGIN", function()
 	RegisterPrefix()
+	-- a saved membership is restored early and can sit on slot /1 before the
+	-- default channels claim their numbers; drop it so JoinSync rejoins
+	-- behind them once the channel list is populated
+	local leave = LeaveChannelByName or (C_ChatInfo and C_ChatInfo.LeaveChannelByName)
+	for _, n in ipairs({ "ForeverBlackListed", "FBLsync" }) do
+		if leave and ChanNum(n) then pcall(leave, n) end
+	end
 	C_Timer.After(5, JoinSync)
 end)
 
@@ -1852,6 +1859,7 @@ end
 local function Window()
 	if win then return win end
 	local f = CreateFrame("Frame", "SentiUIPanelFBLWindow", UIParent, "BackdropTemplate")
+		S.PopIn(f)
 	if S.CombatDeferWindow then S:CombatDeferWindow(f) end
 	f:SetSize(620, 580)
 	f:SetPoint("CENTER")

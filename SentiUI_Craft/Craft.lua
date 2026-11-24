@@ -645,6 +645,7 @@ end
 local function buildWindow()
 	if win then return win end
 	local f = CreateFrame("Frame", "SentiUICraftWindow", UIParent, "BackdropTemplate")
+	S.PopIn(f)
 	f:SetSize(Core.WIN_W, Core.WIN_H)
 	f:SetPoint("CENTER", 60, 40)
 	f:SetFrameStrata("DIALOG")
