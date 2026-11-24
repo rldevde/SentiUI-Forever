@@ -1,4 +1,9 @@
 # SentiUI Nameplates
+## 0.1.25 - 2026-11-24
+
+- Smooth health bars: plate fills now ease to the new value via the client's status-bar interpolation instead of snapping, same as the unit frames (option: Smooth bars, on by default).
+
+
 ## 0.1.24
 
 - Gold target edge flicker fixed, three causes: (1) `UnitIsUnit` returning secret/nil intermittently flipped the edge back to dark every bad tick — the target state is now sticky (`p._target` keeps the last readable answer, reset on plate release). (2) `EdgeFrame` strips overlapped at all four corners — two same-layer textures sharing corner pixels z-fought visibly; side strips are now inset so every corner pixel belongs to exactly one strip. (3) The aggro ring's 2px strips covered the 1px gold edge (offset -1) — it now sits fully outside the box (offset -2) so both rings can show together. Strips also get `SetSnapToPixelGrid(false)` so the 1px lines stop aliasing away on driver-scaled plates.

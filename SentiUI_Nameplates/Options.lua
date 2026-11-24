@@ -23,6 +23,8 @@ ns.OPTIONS = {
 			{ type = "toggle", key = "tapGrey", label = L["Grey tapped targets"], desc = L["Mobs tapped by another group paint grey - no kill credit for you."] },
 			{ type = "toggle", key = "showLevel", label = L["Show level"] },
 			{ type = "toggle", key = "healthText", label = L["Health text"] },
+			{ type = "toggle", key = "smoothBars", label = L["Smooth bars"],
+				desc = L["Health fills ease to the new value instead of snapping."] },
 		},
 	},
 	{

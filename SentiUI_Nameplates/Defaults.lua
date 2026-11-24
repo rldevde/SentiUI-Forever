@@ -24,4 +24,5 @@ ns.DEFAULTS = {
 	targetHighlight = true,
 	raidIcon = true,
 	eliteMarker = true,
+	smoothBars = true,       -- health fills ease to their new value
 }

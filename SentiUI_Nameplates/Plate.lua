@@ -89,10 +89,16 @@ local function ReactionColor(unit)
 end
 
 -- raw health values (possibly secret) into the StatusBar setters - each
--- call on its own so one rejected secret cannot kill the other
+-- call on its own so one rejected secret cannot kill the other. The
+-- interpolation enum rides SetValue's second arg: the engine eases the
+-- fill instead of snapping it (smoothBars).
 local function hp_apply(p, unit)
 	pcall(p.hp.SetMinMaxValues, p.hp, 0, UnitHealthMax(unit))
-	pcall(p.hp.SetValue, p.hp, UnitHealth(unit))
+	local db = ns.Cfg()
+	local interp = db.smoothBars ~= false
+		and Enum and Enum.StatusBarInterpolation
+		and Enum.StatusBarInterpolation.ExponentialEaseOut or nil
+	pcall(p.hp.SetValue, p.hp, UnitHealth(unit), interp)
 end
 
 -- health %: the engine percent API accepts secret values and still

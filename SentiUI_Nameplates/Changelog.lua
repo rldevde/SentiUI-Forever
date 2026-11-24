@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.25",
+		date = "2026-11-24",
+		changes = {
+			"Smooth health bars: plate fills now ease to the new value via the client's status-bar interpolation instead of snapping, same as the unit frames (option: Smooth bars, on by default).",
+		},
+		changesDE = {
+			"Weiche Lebensleisten: Plates-Fuellungen gleiten jetzt ueber die Status-Bar-Interpolation des Clients zum neuen Wert statt zu springen, wie bei den Unitframes (Option: Weiche Leisten, standardmaessig an).",
+		},
+	},
+	{
 		version = "0.1.24",
 		date = "2026-11-23",
 		changes = {

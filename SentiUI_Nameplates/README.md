@@ -14,7 +14,8 @@ container and soft-target icon moved onto the driver so quest progress
 and soft target still work). `UpdateHitTestArea` keeps unit clicks
 alive - our plate never takes the mouse.
 
-- **Health bar** - flat fill, dark inset, 1px border. Fill color:
+- **Health bar** - flat fill, dark inset, 1px border; fills ease to
+  the new value instead of snapping (`smoothBars` setting). Fill color:
   tap-denied grey (tagged by another group) > threat (attackable, in
   combat) > class color (players) > reaction. Tapped mobs also dim
   their name text so no-credit targets are obvious at a glance.
