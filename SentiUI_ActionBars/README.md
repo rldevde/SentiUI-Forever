@@ -50,7 +50,9 @@ game's own protected writes on it under addon taint — that was the
 ticker. The native `C_ActionBar.*` API drives textures, cooldown sweeps
 (`GetActionCooldown` + `DurationObject`, secret-safe), display counts,
 usable/range coloring, the checked glow, equipped edges and proc alerts —
-all secret-guarded. Drag & drop and tooltips included.
+all secret-guarded. Icons also desaturate while their cooldown runs and
+get the color back the moment the spell is usable (`cooldownDim`
+setting). Drag & drop and tooltips included.
 
 Keybinds keep pressing the game's hidden twin buttons (`ActionButton1..`,
 `MultiBar*Button*`); the secure page driver copies bar 1's page onto the

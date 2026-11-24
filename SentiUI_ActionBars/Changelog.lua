@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.65",
+		date = "2026-11-24",
+		changes = {
+			"Cooldown dim: action icons desaturate while their cooldown sweeps and get the color back the moment the spell is usable again (option: Cooldown dim, on by default). Cooldown end fires no event on this client, so a small watcher re-checks dimmed buttons every 0.1s until the widget stops sweeping; charge abilities keep their color while a charge recharges.",
+		},
+		changesDE = {
+			"Cooldown-Abdunklung: Aktions-Icons werden entsaettigt, solange ihr Cooldown laeuft, und bekommen die Farbe zurueck, sobald der Zauber wieder nutzbar ist (Option: Cooldown-Abdunklung, standardmaessig an). Das Cooldown-Ende feuert auf diesem Client kein Event, deshalb prueft ein kleiner Watcher abgedunkelte Buttons alle 0,1s, bis das Widget aufhoert zu laufen; Charge-Faehigkeiten behalten ihre Farbe, waehrend eine Charge nachlaedt.",
+		},
+	},
+	{
 		version = "0.3.64",
 		changes = {
 			"Level-up during combat no longer flashes the whole Blizzard talent window in: the client auto-opens the talent panel for the new point, and it stayed visible until regen. A talent panel surfacing within 2.5s of PLAYER_LEVEL_UP is now recognized as that auto-open and re-hidden immediately (plain frames hide fine in combat); the unspent-points pill carries the hint instead. Talent windows the user actually opened are untouched.",

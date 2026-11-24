@@ -247,12 +247,49 @@ local function cdClear(cd)
 	elseif CooldownFrame_Clear then pcall(CooldownFrame_Clear, cd) end
 end
 
+-- cooldown desaturation watch: natural cooldown expiry fires no event
+-- on this client, so buttons grayed by an active sweep are re-checked
+-- on a frame ticker and un-grayed when the widget stops sweeping
+local dimmed, dimWatcher = {}, nil
+local function WatchDim(btn)
+	dimmed[btn] = true
+	if dimWatcher then dimWatcher:Show() return end
+	dimWatcher = CreateFrame("Frame")
+	local acc = 0
+	dimWatcher:SetScript("OnUpdate", function(_, dt)
+		acc = acc + (dt or 0.016)
+		if acc < 0.1 then return end
+		acc = 0
+		for b in pairs(dimmed) do
+			local cd = b.cooldown
+			if not (cd and cd.IsShown and cd:IsShown()) then
+				dimmed[b] = nil
+				b._cdDim = nil
+				if b.icon and b.icon.SetDesaturated then
+					pcall(b.icon.SetDesaturated, b.icon, false)
+				end
+			end
+		end
+		if not next(dimmed) then dimWatcher:Hide() end
+	end)
+end
+
 local function PaintCooldown(btn, slot)
 	if not GetActionCooldown then return end
-	if GetActionTexture(slot) == nil then
+	local icon = btn.icon
+	local function setDim(on)
+		if btn._cdDim == on then return end
+		btn._cdDim = on
+		if icon and icon.SetDesaturated then
+			pcall(icon.SetDesaturated, icon, on)
+		end
+	end
+	if GetActionTexture(slot) == nil or db.cooldownDim == false then
 		cdClear(btn.lossOfControlCooldown)
 		cdClear(btn.cooldown)
 		cdClear(btn.chargeCooldown)
+		setDim(false)
+		dimmed[btn] = nil
 		return
 	end
 	local loc = GetActionLossOfControlCooldownInfo
@@ -268,6 +305,15 @@ local function PaintCooldown(btn, slot)
 	sweep(btn.chargeCooldown, charges,
 		GetActionChargeDuration
 			and function() return GetActionChargeDuration(slot) end)
+	-- gray while the main cooldown widget sweeps: the widget's shown
+	-- state is the only engine-readable flag here - every cooldown
+	-- return value can be secret on this client. Charge abilities keep
+	-- their color on the charge sweep (chargeCooldown), they only gray
+	-- when the main cooldown itself runs.
+	local onCD = btn.cooldown and btn.cooldown.IsShown
+		and btn.cooldown:IsShown() or false
+	setDim(onCD == true)
+	if onCD == true then WatchDim(btn) end
 end
 
 local function PaintProc(btn, slot)
@@ -1534,6 +1580,18 @@ function Core.SettingChanged(mod, path)
 	elseif path == "hotkeys" or path == "counts" or path == "macroNames" or path == "rangeColor" then
 		Core.UpdateHotkeys()
 		QueueAll()
+	elseif path == "cooldownDim" then
+		-- turned off: strip the gray from every button still dimmed
+		if db.cooldownDim == false then
+			for b in pairs(dimmed) do
+				b._cdDim = nil
+				if b.icon and b.icon.SetDesaturated then
+					pcall(b.icon.SetDesaturated, b.icon, false)
+				end
+			end
+			wipe(dimmed)
+		end
+		QueuePaint(COOLDOWN)
 	end
 	if ns.Extras then ns.Extras.SettingChanged(mod, path) end
 	if ns.Skins then ns.Skins.SettingChanged(path) end

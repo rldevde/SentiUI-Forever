@@ -1,5 +1,10 @@
 # SentiUI Action Bars
 
+## 0.3.65 - 2026-11-24
+
+- Cooldown dim: action icons desaturate while their cooldown sweeps and get the color back the moment the spell is usable again (option: Cooldown dim, on by default). Cooldown end fires no event on this client, so a small watcher re-checks dimmed buttons every 0.1s until the widget stops sweeping; charge abilities keep their color while a charge recharges.
+
+
 ## 0.3.64 - 2026-11-24
 
 - Level-up during combat no longer flashes the Blizzard talent window in: the client auto-opens the talent panel for the new point and it stayed visible until regen. A talent panel surfacing within 2.5s of `PLAYER_LEVEL_UP` is now recognized as that auto-open and re-hidden immediately; the unspent-points pill carries the hint instead.

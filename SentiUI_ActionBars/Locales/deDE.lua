@@ -16,6 +16,8 @@ L["Macro names"] = "Makronamen"
 L["Show the macro name under the icon."] = "Zeigt den Makronamen unter dem Icon."
 L["Range coloring"] = "Reichweitenfärbung"
 L["Tint buttons red while the target is out of range."] = "Färbt Buttons rot, solange das Ziel außer Reichweite ist."
+L["Cooldown dim"] = "Cooldown-Abdunklung"
+L["Desaturate the icon while its cooldown runs; it gets its color back the moment the spell is usable again."] = "Entsättigt das Icon, solange der Cooldown läuft; die Farbe kommt zurück, sobald der Zauber wieder nutzbar ist."
 
 L["Bar"] = "Leiste"
 L["Action bar 1"] = "Aktionsleiste 1"

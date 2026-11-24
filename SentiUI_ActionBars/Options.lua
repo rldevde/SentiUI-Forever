@@ -52,6 +52,8 @@ ns.OPTIONS = {
 							desc = L["Show the macro name under the icon."] },
 						{ type = "toggle", key = "rangeColor", label = L["Range coloring"],
 							desc = L["Tint buttons red while the target is out of range."] },
+						{ type = "toggle", key = "cooldownDim", label = L["Cooldown dim"],
+							desc = L["Desaturate the icon while its cooldown runs; it gets its color back the moment the spell is usable again."] },
 					},
 				},
 				rowBar("bar1", L["Action bar 1"],
