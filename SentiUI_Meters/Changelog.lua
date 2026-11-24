@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.3",
+		date = "2026-11-24",
+		changes = {
+			"Meter rows get the real contrast fix: the class-colored fill renders as a dark muted tint (38 % brightness, Details-style) instead of a saturated fill - white row text now sits on a dark bar and stays readable. Class color remains recognizable as the bar's tint.",
+		},
+		changesDE = {
+			"Meter-Zeilen bekommen den echten Kontrast-Fix: Die klassenfarbige Fuellung rendert als dunkle, gedaempfte Tönung (38 % Helligkeit, Details-Stil) statt saettig - der weisse Zeilentext liegt jetzt auf einem dunklen Balken und bleibt lesbar. Die Klassenfarbe bleibt als Farbstich erkennbar.",
+		},
+	},
+	{
 		version = "0.3.2",
 		date = "2026-11-24",
 		changes = {

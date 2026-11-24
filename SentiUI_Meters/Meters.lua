@@ -492,7 +492,13 @@ local function UpdateDock(d, cfg)
 			r.name:SetPoint("RIGHT", r, "RIGHT", -64, 0)
 		end
 		local cr, cg, cb = ClassColor(src.cls)
-		r.fillTex:SetVertexColor(cr, cg, cb, 0.85)
+		-- class colour stays as a dark tint (Details-style muted fill):
+		-- bright fills made the white 9pt row text unreadable even with
+		-- outline + shadow
+		if IsN(cr) and IsN(cg) and IsN(cb) then
+			cr, cg, cb = cr * 0.38, cg * 0.38, cb * 0.38
+		end
+		r.fillTex:SetVertexColor(cr, cg, cb, 0.9)
 		r.edge:SetVertexColor(0.92, 0.68, 0.20,
 			(i == 1 or src.tank or src.self_) and 0.9 or 0.0)
 		-- never compare a (possibly secret) guid in Lua: isLocalPlayer is

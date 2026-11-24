@@ -1,5 +1,9 @@
 # SentiUI Meters
 
+## 0.3.3 - 2026-11-24
+
+- Meter rows get the real contrast fix: the class-colored fill renders as a dark muted tint (38 % brightness, Details-style) instead of a saturated fill — white row text now sits on a dark bar and stays readable while the class color remains recognizable.
+
 ## 0.3.2 - 2026-11-24
 
 - Row text readable on bright class fills: meter and spell-breakdown name/value strings move from `OUTLINE` to `THICKOUTLINE` plus a black drop shadow.
