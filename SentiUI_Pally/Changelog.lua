@@ -2,6 +2,20 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.1",
+		date = "2026-11-24",
+		changes = {
+			"Fix casts doing nothing: the secure spell attribute needs the spell NAME on this client, not the id - every cast button (RF/aura/seal chips, greater/single blessing rows) now resolves ids to names like SentinelForeverBlessings does.",
+			"Fix grid changes not reaching the buff bar: the local name key used GetUnitName's realm-suffixed form while the wire tables are keyed by the short name - aura and blessing assignments written in the grid never matched the row the bar reads. All name keys (player, roster, senders) now normalize through Ambiguate short.",
+			"Aura cell cycling in the grid now skips auras the paladin does not know (own row via spellbook, other paladins via their ASELF aura ranks).",
+		},
+		changesDE = {
+			"Wirken ohne Wirkung behoben: Das secure spell-Attribut braucht auf diesem Client den ZauberNAMEN, nicht die ID - alle Cast-Buttons (Zorner-/Aura-/Siegel-Chips, Grosser-/Einzel-Segenszeilen) loesen IDs jetzt zu Namen auf, wie SentinelForeverBlessings.",
+			"Grid-Aenderungen kommen jetzt auf der Buff-Leiste an: Der lokale Namensschluessel nutzte die Realm-Form von GetUnitName, die Wire-Tabellen sind aber mit dem Kurznamen gekeyed - Aura- und Segens-Zuweisungen aus dem Grid trafen nie die Zeile, die die Leiste liest. Alle Namensschluessel (Spieler, Roster, Sender) normalisieren jetzt ueber Ambiguate short.",
+			"Aura-Zellen im Grid ueberspringen jetzt Auren, die der Paladin nicht kennt (eigene Zeile uebers Zauberbuch, fremde ueber die ASELF-Aurenraenge).",
+		},
+	},
+	{
 		version = "0.1.0",
 		date = "2026-11-23",
 		changes = {

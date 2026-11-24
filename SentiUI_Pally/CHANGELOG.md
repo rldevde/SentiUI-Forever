@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.1 - 2026-11-24
+
+- Fix casts doing nothing: the secure spell attribute needs the spell
+  NAME on this client, not the id - every cast button (RF/aura/seal
+  chips, greater/single blessing rows) resolves ids to names now.
+- Fix grid changes not reaching the buff bar: the local name key used
+  GetUnitName's realm-suffixed form while the wire tables are keyed by
+  the short name - assignments written in the grid never matched the
+  row the bar reads. All name keys normalize through Ambiguate short.
+- Aura cell cycling in the grid skips auras the paladin does not know.
+
 ## 0.1.0 - 2026-11-23
 
 - New blessings window for paladins, fully wire-compatible with PallyPower: the PLPWR addon channel carries REQ/SELF/ASELF, ASSIGN/PASSIGN/MASSIGN, NASSIGN, AASSIGN, CLEAR and FREEASSIGN with symbol counts and cooldowns, so assignments sync with every real PallyPower in the group.

@@ -455,6 +455,7 @@ local joined
 function Comm.Enable(mod)
 	db = mod.db
 	player = D.UnitName("player") or UnitName("player")
+	if Ambiguate then player = Ambiguate(player, "short") end
 
 	if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
 		pcall(C_ChatInfo.RegisterAddonMessagePrefix, Comm.PREFIX)

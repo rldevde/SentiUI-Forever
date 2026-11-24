@@ -390,7 +390,9 @@ function Data.Roster()
 		local cid = cls and Data.ClassToID[cls]
 		if not cid then return end
 		local ok2, dead = pcall(UnitIsDeadOrGhost, unit)
-		local tmp = { unit = unit, name = name or Data.UnitName(unit) or "",
+		name = name or Data.UnitName(unit) or ""
+		if Ambiguate then name = Ambiguate(name, "short") end
+		local tmp = { unit = unit, name = name,
 			rank = rank or 0, subgroup = subgroup or 1, class = cls,
 			dead = ok2 and dead == true }
 		classlist[cid] = classlist[cid] + 1

@@ -52,6 +52,7 @@ local function blessingName(b)
 end
 local classNames = LOCALIZED_CLASS_NAMES_MALE or {}
 local function className(c) return classNames[c] or c end
+local function ShortName(n) return n and Ambiguate and Ambiguate(n, "short") or n end
 local function me() return playerName end
 
 -- ---------------------------------------------------------------------------
@@ -68,8 +69,11 @@ end
 -- mouse = 1 left / 2 right button attributes
 local function setCast(b, mouse, spell, unit)
 	if InCombatLockdown() then return end
+	-- the secure "spell" attribute resolves by NAME on this client - a bare
+	-- id silently casts nothing (SentinelForeverBlessings does the same)
 	pcall(b.SetAttribute, b, "type" .. mouse, spell and "spell" or nil)
-	pcall(b.SetAttribute, b, "spell" .. mouse, spell or nil)
+	pcall(b.SetAttribute, b, "spell" .. mouse,
+		spell and D.SpellName(spell) or nil)
 	pcall(b.SetAttribute, b, "unit" .. mouse, unit or nil)
 end
 
@@ -442,9 +446,15 @@ end
 
 local function cycleAuraCell(pname, back)
 	if not Comm.CanControl(pname) then return end
+	local info = Comm.pallies[pname]
 	local cur = Comm.aa[pname] or 0
-	cur = back and (cur - 1) or (cur + 1)
-	if cur < 0 then cur = 8 elseif cur > 8 then cur = 0 end
+	for _ = 1, 8 do
+		cur = back and (cur - 1) or (cur + 1)
+		if cur < 0 then cur = 8 elseif cur > 8 then cur = 0 end
+		local ai = info and info.AuraInfo and info.AuraInfo[cur]
+		if cur == 0 or (ai and (ai.rank or 0) > 0)
+			or (pname == me() and D.IsKnown(D.Auras[cur].id)) then break end
+	end
 	Comm.SetAura(pname, cur)
 end
 
@@ -716,7 +726,7 @@ function UI.Refresh()
 	if InCombatLockdown() then S.RunOutOfCombat(UI.Refresh) return end
 	refreshing = true
 	pcall(function()
-		playerName = D.UnitName("player") or UnitName("player")
+		playerName = ShortName(D.UnitName("player") or UnitName("player"))
 		roster = Comm.roster or D.Roster()
 		Comm.roster = roster
 		Comm.leaders = roster.leaders
