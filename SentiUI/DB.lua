@@ -17,6 +17,7 @@ DB.GENERAL_DEFAULTS = {
 	frameScales = {},   -- [mover key] = one frame's own scale, wheel on its handle
 	testFrame = false,  -- show the sample frame to try move mode with
 	installDone = false, -- the first-run wizard was completed or skipped
+	afkOverlay = true,  -- dim the screen + info card while AFK
 }
 
 local function copyValue(v)

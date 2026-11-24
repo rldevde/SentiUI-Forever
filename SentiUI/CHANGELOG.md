@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.9 - 2026-11-25
+
+- AFK overlay: while the AFK flag is up the screen dims and a card shows name (class-colored), level, class, guild and the elapsed AFK time - the dim swallows clicks so you notice. Toggle under SentiUI > General > Interface (AFK overlay, on by default).
+
 ## 0.4.8 - 2026-11-25
 
 - Windows now pop open instead of appearing hard: a shared S.PopIn helper gives a ~160ms fade + slight scale-in on every Show, driven by one ticker that sleeps between pops. Applied to the settings, craft, journal, loot, training, bug sack, messenger, character, admin and blacklist windows.

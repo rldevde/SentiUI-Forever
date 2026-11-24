@@ -124,6 +124,12 @@ Options.RegisterPage({
 					set = function(v) S.ApplyGameScale(v) end },
 				{ type = "slider", key = "uiScale", label = "Interface scale", min = 0.5, max = 1.5, step = 0.05, unit = "x",
 					desc = "Master scale for SentiUI frames that opted into it." },
+				{ type = "toggle", key = "afkOverlay", label = "AFK overlay",
+					desc = "Dims the screen and shows a card (name, class, guild, elapsed time) while the AFK flag is up.",
+					set = function(v)
+						S.DB.General().afkOverlay = v
+						if S.AfkSync then S.AfkSync() end
+					end },
 			},
 		},
 	},
