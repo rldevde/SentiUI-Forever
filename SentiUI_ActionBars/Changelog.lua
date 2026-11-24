@@ -4,6 +4,15 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.64",
+		changes = {
+			"Level-up during combat no longer flashes the whole Blizzard talent window in: the client auto-opens the talent panel for the new point, and it stayed visible until regen. A talent panel surfacing within 2.5s of PLAYER_LEVEL_UP is now recognized as that auto-open and re-hidden immediately (plain frames hide fine in combat); the unspent-points pill carries the hint instead. Talent windows the user actually opened are untouched.",
+		},
+		changesDE = {
+			"Level-Up im Kampf blendet nicht mehr das ganze Blizzard-Talentfenster ein: Der Client oeffnet das Talent-Panel fuer den neuen Punkt selbst, und es blieb bis nach dem Kampf sichtbar. Ein Talent-Panel, das innerhalb von 2,5s nach PLAYER_LEVEL_UP auftaucht, wird jetzt als dieses Auto-Open erkannt und sofort wieder versteckt (einfache Frames lassen sich im Kampf verstecken); der Hinweis laeuft ueber die Talentpunkte-Pille. Vom Nutzer geoeffnete Talent-Fenster bleiben unangetastet.",
+		},
+	},
+	{
 		version = "0.3.63",
 		changes = {
 			"Loss-of-control banner follow-up: the game re-alphas its red art and re-anchors icon+text on every display tick, undoing the one-shot skin - the style now re-applies every 0.15s while the banner is visible, so the icon stays docked left, the red lines stay dead and the fonts keep the SentiUI look.",

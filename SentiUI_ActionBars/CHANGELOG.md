@@ -1,5 +1,9 @@
 # SentiUI Action Bars
 
+## 0.3.64 - 2026-11-24
+
+- Level-up during combat no longer flashes the Blizzard talent window in: the client auto-opens the talent panel for the new point and it stayed visible until regen. A talent panel surfacing within 2.5s of `PLAYER_LEVEL_UP` is now recognized as that auto-open and re-hidden immediately; the unspent-points pill carries the hint instead.
+
 ## 0.3.63 - 2026-11-23
 
 - Loss-of-control banner follow-up: the game re-alphas its red art and re-anchors icon+text on every display tick, undoing the one-shot skin - the style now re-applies every 0.15s while the banner is visible, so the icon stays docked left, the red lines stay dead and the fonts keep the SentiUI look.

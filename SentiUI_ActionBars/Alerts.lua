@@ -133,9 +133,32 @@ local function HookAlerts()
 	return true
 end
 
+-- the client opens the whole talent panel itself on a level-up (new
+-- point, "Apply changes" button). In combat that full-size Blizzard
+-- window must not flash in: a panel popping up within ~2.5 s of
+-- PLAYER_LEVEL_UP is the auto-open, so it gets re-hidden and the pill
+-- carries the hint until regen. User-driven opens (pill / key / micro
+-- button) never land inside that window - and their Show would be
+-- blocked by combat anyway - so this only eats the client's own.
+local levelUpAt
+local TALENT_PANELS = { "TalentFrame", "PlayerTalentFrame",
+	"ClassTalentFrame", "PlayerSpellsFrame" }
+local function HookTalentPanels()
+	for _, name in ipairs(TALENT_PANELS) do
+		S.WatchShown(function() return _G[name] end, function(f)
+			if not InCombatLockdown() then return end
+			if not (levelUpAt and GetTime() - levelUpAt < 2.5) then return end
+			pcall(f.Hide, f) -- plain frames hide fine in combat
+			alertSeen = true
+			UpdatePill()
+		end)
+	end
+end
+
 ns.TalentAlert = {}
 S.RegisterEvent("PLAYER_ENTERING_WORLD", function()
 	HookAlerts()
+	HookTalentPanels()
 	UpdatePill()
 end)
 for _, ev in ipairs({ "CHARACTER_POINTS_CHANGED", "PLAYER_TALENT_UPDATE",
@@ -149,5 +172,6 @@ for _, ev in ipairs({ "CHARACTER_POINTS_CHANGED", "PLAYER_TALENT_UPDATE",
 	end)
 end
 S.RegisterEvent("PLAYER_LEVEL_UP", function()
+	levelUpAt = GetTime()
 	C_Timer.After(0.5, UpdatePill)
 end)
