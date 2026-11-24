@@ -1,5 +1,9 @@
 # SentiUI Bags
 
+## 0.4.19 - 2026-11-24
+
+- Bag contents update live in combat again AND right-click item use still works: the secure overlay no longer parents to the slot (a protected descendant restricts its whole ancestor chain — that is what froze the layout in 0.4.18). It now lives on `UIParent`, anchored to its slot, and follows every reposition engine-side with zero Lua work. Under lockdown unused slots are parked offscreen instead of hidden so their overlays travel with them; window close still waits for regen so no invisible click-catchers linger.
+
 ## 0.4.18 - 2026-11-24
 
 - Forbidden calls in combat on every bag refresh: the 0.4.17 secure overlay is a protected child, which restricts its whole ancestor chain — slot, grid, window. `Core.Layout` now defers entirely under lockdown and repaints on `PLAYER_REGEN_ENABLED`; window Hide waits for regen too, the bag-slot strip skips its repaint in combat, and junk sell/repair bail early since `UseContainerItem`/`RepairAllItems` are protected anyway.

@@ -128,6 +128,40 @@ end
 -- sell, bank moves, splits and link/dressup; its own OnEnter shows the
 -- bag-item tooltip; the mixin drag path does pickup.
 
+-- right-click overlay: invisible secure button parked on UIParent but
+-- anchored over the slot. Anchor-follow means zero Lua work when the
+-- slot moves - including mid-combat relayouts; hide/show sync lives in
+-- the layout pass since overlay frame ops are forbidden under lockdown.
+local function MakeOverlay(b, bag, slot)
+	local ov = CreateFrame("Button", nil, UIParent,
+		"SecureActionButtonTemplate")
+	ov:SetFrameStrata("DIALOG")
+	ov:SetFrameLevel(200)
+	ov:SetAllPoints(b)
+	ov:RegisterForClicks("RightButtonDown", "RightButtonUp")
+	ov:SetAttribute("type", "macro")
+	ov:SetAttribute("macrotext", "/use " .. bag .. " " .. slot)
+	if ov.SetPassThroughButtons then
+		ov:SetPassThroughButtons("LeftButton", "MiddleButton",
+			"Button4", "Button5")
+		-- hover still belongs to the slot: its own handlers run for the
+		-- item tooltip (insecure calls, but nothing protected)
+		ov:SetScript("OnEnter", function()
+			local h = b:GetScript("OnEnter")
+			if h then pcall(h, b) end
+		end)
+		ov:SetScript("OnLeave", function()
+			local h = b:GetScript("OnLeave")
+			if h then pcall(h, b) end
+			if GameTooltip and GameTooltip.Hide then GameTooltip:Hide() end
+		end)
+	else
+		ov:Hide()
+	end
+	b.useOverlay = ov
+	b.needOverlay = nil
+end
+
 -- slot factory ----------------------------------------------------------------
 function Items.Get(bag, slot, host)
 	local key = bag .. ":" .. slot
@@ -136,6 +170,9 @@ function Items.Get(bag, slot, host)
 		if host then
 			b:SetParent(Holder(host, bag))
 			b.ownerGrid = host
+		end
+		if b.needOverlay and not InCombatLockdown() then
+			MakeOverlay(b, b.bag, b.slot)
 		end
 		return b
 	end
@@ -213,36 +250,22 @@ function Items.Get(bag, slot, host)
 
 	-- combat-safe item use: the template's own UseContainerItem is a
 	-- protected call and stays forbidden under lockdown whenever the
-	-- dispatch ran through addon-created code - our slot button. A small
-	-- secure child covers the slot and sends right clicks through the
+	-- dispatch ran through addon-created code - our slot button. A
+	-- secure overlay covers the slot and sends right clicks through the
 	-- client's own secure path instead: "/use bag slot" works mid-fight.
-	-- Other buttons pass through to the untouched template handler; when
-	-- the client lacks click pass-through the overlay stays hidden and
-	-- right click keeps the template's native behaviour.
+	-- It parents to UIParent, NOT the slot: a protected descendant marks
+	-- its whole ancestor chain restricted and froze every slot, grid and
+	-- window op in combat. Anchored to the slot it still tracks every
+	-- reposition engine-side. Other buttons pass through to the
+	-- untouched template handler; without click pass-through the
+	-- overlay hides itself and right click keeps native behaviour.
 	if bag >= 0 then
-		local ov = CreateFrame("Button", nil, b, "SecureActionButtonTemplate")
-		ov:SetAllPoints()
-		ov:RegisterForClicks("RightButtonDown", "RightButtonUp")
-		ov:SetAttribute("type", "macro")
-		ov:SetAttribute("macrotext", "/use " .. bag .. " " .. slot)
-		if ov.SetPassThroughButtons then
-			ov:SetPassThroughButtons("LeftButton", "MiddleButton",
-				"Button4", "Button5")
-			-- hover still belongs to the slot: its own handlers run for
-			-- the item tooltip (insecure calls, but nothing protected)
-			ov:SetScript("OnEnter", function()
-				local h = b:GetScript("OnEnter")
-				if h then pcall(h, b) end
-			end)
-			ov:SetScript("OnLeave", function()
-				local h = b:GetScript("OnLeave")
-				if h then pcall(h, b) end
-				if GameTooltip and GameTooltip.Hide then
-					GameTooltip:Hide()
-				end
-			end)
+		if InCombatLockdown() then
+			-- attributes can't be written under lockdown; the next
+			-- out-of-combat Get() builds the overlay then
+			b.needOverlay = true
 		else
-			ov:Hide()
+			MakeOverlay(b, bag, slot)
 		end
 	end
 

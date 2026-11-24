@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.19",
+		date = "2026-11-24",
+		changes = {
+			"Bag contents update live in combat again AND right-click item use still works: the secure overlay no longer parents to the slot (a protected descendant restricts its whole ancestor chain - that is what froze the layout in 0.4.18). It now lives on UIParent, anchored to its slot, and follows every reposition engine-side with zero Lua work. Under lockdown unused slots are parked offscreen instead of hidden so their overlays travel with them; window close still waits for regen so no invisible click-catchers linger.",
+		},
+		changesDE = {
+			"Tascheninhalt aktualisiert wieder live im Kampf UND Rechtsklick-Benutzung geht weiter: das Secure-Overlay parented nicht mehr am Slot (ein geschuetzter Nachfahre sperrt die ganze Ahnenkette - das hat 0.4.18 das Layout eingefroren). Es liegt jetzt auf UIParent, am Slot verankert, und folgt jeder Position engine-seitig ohne Lua-Arbeit. Unter Lockdown werden freie Slots offscreen geparkt statt versteckt, damit ihre Overlays mitwandern; das Fenster-Schliessen wartet weiter auf den Regen, damit keine unsichtbaren Klick-Fallen liegen bleiben.",
+		},
+	},
+	{
 		version = "0.4.18",
 		date = "2026-11-24",
 		changes = {
