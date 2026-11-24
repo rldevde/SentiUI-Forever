@@ -587,12 +587,183 @@ end
 -- ===========================================================================
 -- wiring
 -- ===========================================================================
+-- ===========================================================================
+-- Cooldown tracker: interrupt + signature defensive icons under a member's
+-- cell, driven by the combat log - no addon channel needed, any group
+-- member's tracked cast paints until its cooldown ends
+-- ===========================================================================
+local CD_ICON, CD_GAP, CD_MAX = 12, 2, 4
+-- spellID -> cooldown seconds. The interrupt set is complete-ish; the
+-- defensive list keeps to signature buttons - an id the client lacks
+-- simply never fires
+local CD_SPELLS = {
+	[1766]  = 15,  -- Kick
+	[6552]  = 15,  -- Pummel
+	[47528] = 15,  -- Mind Freeze
+	[96231] = 15,  -- Rebuke
+	[2139]  = 24,  -- Counterspell
+	[19647] = 24,  -- Spell Lock (felhunter)
+	[57994] = 12,  -- Wind Shear
+	[106839]= 15,  -- Skull Bash
+	[116705]= 15,  -- Spear Hand Strike
+	[15487] = 45,  -- Silence
+	[183752]= 15,  -- Disrupt
+	[187707]= 15,  -- Muzzle
+	[147362]= 24,  -- Counter Shot
+	[351338]= 20,  -- Quell
+	[78675] = 60,  -- Solar Beam
+	[97547] = 60,  -- Solar Beam (other version)
+	[642]   = 300, -- Divine Shield
+	[1022]  = 300, -- Blessing of Protection
+	[45438] = 240, -- Ice Block
+	[47585] = 120, -- Dispersion
+	[48792] = 180, -- Icebound Fortitude
+	[871]   = 240, -- Shield Wall
+	[118038]= 120, -- Die by the Sword
+	[31224] = 120, -- Cloak of Shadows
+	[5277]  = 120, -- Evasion
+	[104773]= 180, -- Unending Resolve
+	[22812] = 60,  -- Barkskin
+	[61336] = 180, -- Survival Instincts
+	[19236] = 90,  -- Desperate Prayer
+	[109304]= 120, -- Exhilaration
+	[115203]= 360, -- Fortifying Brew
+	[198589]= 60,  -- Blur
+	[196555]= 180, -- Netherwalk
+	[108271]= 90,  -- Astral Shift
+}
+
+local function SpellTex(id)
+	if C_Spell and C_Spell.GetSpellTexture then
+		local ok, t = pcall(C_Spell.GetSpellTexture, id)
+		if ok and t then return t end
+	end
+	if _G.GetSpellTexture then
+		local ok, t = pcall(_G.GetSpellTexture, id)
+		if ok and t then return t end
+	end
+end
+
+local function LayoutCDRow(h)
+	local i = 0
+	for _, slot in pairs(h.slots) do
+		slot:ClearAllPoints()
+		slot:SetPoint("RIGHT", h, "RIGHT", -i * (CD_ICON + CD_GAP), 0)
+		i = i + 1
+	end
+end
+
+local function BuildCDRow(f)
+	local h = CreateFrame("Frame", nil, f)
+	h:SetSize(CD_MAX * (CD_ICON + CD_GAP), CD_ICON)
+	-- under the cell's right edge: the external-defensive row owns the
+	-- left corner below
+	h:SetPoint("BOTTOMRIGHT", f, "TOPRIGHT", -1, -1)
+	h:SetFrameLevel(f:GetFrameLevel() + 4)
+	h.slots = {}
+	-- seconds text is ours (the widget's own countdown may not draw here);
+	-- one throttled sweep hides spent slots
+	h:SetScript("OnUpdate", function(self, dt)
+		self._t = (self._t or 0) + (dt or 0.016)
+		if self._t < 0.2 then return end
+		self._t = 0
+		local now = GetTime()
+		for _, slot in pairs(self.slots) do
+			if slot:IsShown() then
+				local left = (slot.ends or 0) - now
+				if left <= 0 then
+					slot:Hide()
+				else
+					slot.t:SetText(left >= 60
+						and math.ceil(left / 60) .. "m" or math.ceil(left))
+				end
+			end
+		end
+	end)
+	f.CDRow = h
+end
+
+local function ShowCD(b, spellID, secs)
+	local h = b.CDRow
+	if not h then return end
+	local slot = h.slots[spellID]
+	if not slot then
+		local n = 0
+		for _ in pairs(h.slots) do n = n + 1 end
+		if n >= CD_MAX then return end
+		slot = CreateFrame("Frame", nil, h)
+		slot:SetSize(CD_ICON, CD_ICON)
+		local icon = slot:CreateTexture(nil, "ARTWORK")
+		icon:SetAllPoints()
+		icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+		icon:SetTexture(SpellTex(spellID) or BLANK)
+		slot.icon = icon
+		local cd = CreateFrame("Cooldown", nil, slot, "CooldownFrameTemplate")
+		cd:SetAllPoints()
+		cd:SetDrawEdge(false)
+		cd:SetHideCountdownNumbers(true)
+		slot.cd = cd
+		local t = slot:CreateFontString(nil, "OVERLAY")
+		t:SetFont(S.media.font, 8, "OUTLINE")
+		t:SetPoint("CENTER", 0, -1)
+		slot.t = t
+		h.slots[spellID] = slot
+		LayoutCDRow(h)
+	end
+	slot.ends = GetTime() + secs
+	if CooldownFrame_Set then
+		pcall(CooldownFrame_Set, slot.cd, GetTime(), secs)
+	elseif slot.cd.SetCooldown then
+		pcall(slot.cd.SetCooldown, slot.cd, GetTime(), secs)
+	end
+	slot:Show()
+end
+
+local function CDFrameForGUID(guid)
+	if not (ns.Group and guid) then return end
+	for _, b in ipairs(ns.Group.partyButtons or {}) do
+		if b.unit then
+			local ok, same = pcall(function()
+				return UnitGUID(b.unit) == guid
+			end)
+			if ok and same then return b end
+		end
+	end
+	local hdr = ns.Group.raidHeader
+	if hdr then
+		for _, c in ipairs({ hdr:GetChildren() }) do
+			if c.unit then
+				local ok, same = pcall(function()
+					return UnitGUID(c.unit) == guid
+				end)
+				if ok and same then return c end
+			end
+		end
+	end
+end
+
+-- bus registration is file-scope: CombatLogGetCurrentEventInfo reads the
+-- current event's payload, so the handler must run inside the event call
+ns.RegisterBusEvent("COMBAT_LOG_EVENT_UNFILTERED", function()
+	if not CombatLogGetCurrentEventInfo then return end
+	local _, ev, _, guid, _, _, _, _, _, _, _, spellID = CombatLogGetCurrentEventInfo()
+	if ev ~= "SPELL_CAST_SUCCESS" then return end
+	local secs = Plain(spellID) and CD_SPELLS[spellID]
+	if not secs then return end
+	local b = CDFrameForGUID(guid)
+	if b then ShowCD(b, spellID, secs) end
+end)
+
 function X.Attach(f)
 	-- called from UF.Build: extra bars/icons for frames that want them
 	BuildPredOverlays(f)
 	if f.key == "player" then
 		BuildClassPower(f)
 		BuildCombatText(f)
+	end
+	if (f.key == "party" or f.key == "raid") and f.db
+		and f.db.cooldownIcons ~= false then
+		BuildCDRow(f)
 	end
 end
 

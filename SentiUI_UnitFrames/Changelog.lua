@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.44",
+		date = "2026-11-25",
+		changes = {
+			"Party cooldown tracker: when a group member casts an interrupt or a signature defensive, a small icon with cooldown sweep and seconds text appears under their cell until the cooldown ends. Tracked via the combat log (SPELL_CAST_SUCCESS against a curated spell table), so it works for any group member without an addon channel - a secret spell id just never matches. On by default on party cells, opt-in on raid cells (Cooldown tracker / Tracker on raid cells under Unit Frames > Extras).",
+		},
+		changesDE = {
+			"Gruppen-Cooldown-Tracker: Wirkt ein Gruppenmitglied einen Unterbrechungs- oder Defensivzauber, erscheint unter seiner Zelle ein kleines Symbol mit Cooldown-Sweep und Sekundenzahl, bis die Abklingzeit endet. Verfolgt ueber das Kampflog (SPELL_CAST_SUCCESS gegen eine kuratierte Zaubertabelle) - funktioniert ohne Addon-Kanal fuer jedes Gruppenmitglied; eine geheime Spell-ID matcht schlicht nie. Standardmaessig an auf Gruppenzellen, opt-in auf Raidzellen (Cooldown-Tracker / Tracker auf Raidzellen unter Unitframes > Extras).",
+		},
+	},
+	{
 		version = "0.2.43",
 		date = "2026-11-24",
 		changes = {

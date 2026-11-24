@@ -33,6 +33,7 @@ ns.DEFAULTS = {
 		showPlayer = false, power = true, rangeFade = true,
 		showRole = true, auras = false, showPets = true,
 		defensiveIcons = true,    -- external defensive icons on party cells
+		cooldownIcons = true,     -- interrupt/defensive cooldowns under the cell
 		portrait = "class",       -- class icon tile on the left edge
 	},
 	raidTools = { enable = true, collapsed = false }, -- top-edge foldable marker tray
@@ -46,6 +47,7 @@ ns.DEFAULTS = {
 		rangeFade = true, showRole = true, readyCheck = true,
 		auras = false,            -- opt-in: aura icons on the small raid cells
 		defensiveIcons = true,    -- external defensive icons on raid cells
+		cooldownIcons = false,    -- opt-in: interrupt/defensive cooldowns (cramped cells)
 		portrait = "off",         -- opt-in: class icon/3D portrait on raid cells
 	},
 	boss = { enable = true, w = 160, h = 26, power = true },

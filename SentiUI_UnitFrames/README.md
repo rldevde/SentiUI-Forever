@@ -41,6 +41,11 @@ class-colored health). Standalone module - requires the SentiUI core.
   power, chi, soul shards, arcane charges, essence. Death knights get
   six rune pips whose fill climbs per-rune while they recharge
   instead.
+- **Cooldown tracker** - small icons under each party cell when a
+  member casts an interrupt or signature defensive (kick, counterspell,
+  ice block, divine shield, ...), tracked via the combat log so any
+  group member shows, no addon channel needed. On by default for
+  party, opt-in on raid cells.
 
 ## Usage
 
