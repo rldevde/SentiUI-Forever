@@ -1,5 +1,9 @@
 # SentiUI Bags
 
+## 0.4.17 - 2026-11-24
+
+- Using items from the bag window in combat was still blocked: the template's `UseContainerItem` is a protected call and stays forbidden whenever the click dispatch ran through addon-created code. Each slot now carries a small secure overlay child that sends right clicks through the client's own secure path (`/use bag slot`) — works mid-fight. Left click, drag, split and link keep the template's native handler via click pass-through; on a client without that API the overlay hides itself and nothing changes.
+
 ## 0.4.16 - 2026-11-23
 
 - Bags window opening then immediately closing at merchant: `MERCHANT_SHOW` fires `Core.Sync()` (via the `Bags.lua` event handler) AND `ns.Core.Open()` (via `Merchant.lua`). `Sync` calls `IsAnyBagOpen()` which reads the game's own bag frames — not our custom window — and returns `false`, causing `ApplyGameState(false)` to close the window a frame after it opened. Fix: `Core.forceOpen` flag set on `MERCHANT_SHOW` and cleared on `MERCHANT_CLOSED`; `Core.Sync` returns `ApplyGameState(true)` early when the flag is set.

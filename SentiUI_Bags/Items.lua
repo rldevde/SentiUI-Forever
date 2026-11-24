@@ -211,6 +211,41 @@ function Items.Get(bag, slot, host)
 	hl:SetAllPoints(b.icon)
 	hl:SetColorTexture(1, 1, 1, 0.10)
 
+	-- combat-safe item use: the template's own UseContainerItem is a
+	-- protected call and stays forbidden under lockdown whenever the
+	-- dispatch ran through addon-created code - our slot button. A small
+	-- secure child covers the slot and sends right clicks through the
+	-- client's own secure path instead: "/use bag slot" works mid-fight.
+	-- Other buttons pass through to the untouched template handler; when
+	-- the client lacks click pass-through the overlay stays hidden and
+	-- right click keeps the template's native behaviour.
+	if bag >= 0 then
+		local ov = CreateFrame("Button", nil, b, "SecureActionButtonTemplate")
+		ov:SetAllPoints()
+		ov:RegisterForClicks("RightButtonDown", "RightButtonUp")
+		ov:SetAttribute("type", "macro")
+		ov:SetAttribute("macrotext", "/use " .. bag .. " " .. slot)
+		if ov.SetPassThroughButtons then
+			ov:SetPassThroughButtons("LeftButton", "MiddleButton",
+				"Button4", "Button5")
+			-- hover still belongs to the slot: its own handlers run for
+			-- the item tooltip (insecure calls, but nothing protected)
+			ov:SetScript("OnEnter", function()
+				local h = b:GetScript("OnEnter")
+				if h then pcall(h, b) end
+			end)
+			ov:SetScript("OnLeave", function()
+				local h = b:GetScript("OnLeave")
+				if h then pcall(h, b) end
+				if GameTooltip and GameTooltip.Hide then
+					GameTooltip:Hide()
+				end
+			end)
+		else
+			ov:Hide()
+		end
+	end
+
 	b.bag, b.slot = bag, slot
 	-- the modern mixin reads self.BagID/self.SlotID (parent GetID was the
 	-- old path); without them its pickup/drag runs on a nil bag

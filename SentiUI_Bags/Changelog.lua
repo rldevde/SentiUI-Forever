@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.17",
+		date = "2026-11-24",
+		changes = {
+			"Using items from the bag window in combat was still blocked: the template's UseContainerItem is a protected call and stays forbidden whenever the click dispatch ran through addon-created code. Each slot now carries a small secure overlay child that sends right clicks through the client's own secure path (/use bag slot) - works mid-fight. Left click, drag, split and link keep the template's native handler via click pass-through; on a client without that API the overlay hides itself and nothing changes.",
+		},
+		changesDE = {
+			"Items aus dem Taschenfenster im Kampf benutzen war weiter blockiert: das UseContainerItem des Templates ist ein geschuetzter Aufruf und bleibt verboten, sobald der Klick-Dispatch durch Addon-Code lief. Jeder Slot traegt jetzt ein kleines sicheres Overlay, das Rechtsklicks ueber den eigenen Secure-Pfad des Clients schickt (/use Tasche Platz) - geht mitten im Kampf. Linksklick, Drag, Splitten und Verlinken bleiben ueber Click-Pass-Through beim nativen Template-Handler; auf einem Client ohne diese API versteckt sich das Overlay und nichts aendert sich.",
+		},
+	},
+	{
 		version = "0.4.16",
 		date = "2026-11-23",
 		changes = {
