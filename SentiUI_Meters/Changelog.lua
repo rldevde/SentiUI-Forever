@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.2",
+		date = "2026-11-24",
+		changes = {
+			"Row text readable on bright class fills: meter and spell-breakdown name/value strings move from OUTLINE to THICKOUTLINE plus a black drop shadow (offset 1,-1, alpha 0.9).",
+		},
+		changesDE = {
+			"Zeilentext auf hellen Klassenfuellungen lesbar: Name-/Wert-Strings im Meter und im Zauber-Breakdown wechseln von OUTLINE auf THICKOUTLINE plus schwarzem Schlagschatten (Offset 1,-1, Alpha 0.9).",
+		},
+	},
+	{
 		version = "0.3.1",
 		date = "2026-11-24",
 		changes = {

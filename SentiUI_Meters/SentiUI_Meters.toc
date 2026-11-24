@@ -6,7 +6,7 @@
 ## Category: Sentinel
 ## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
 ## Author: xRL-Dev.de
-## Version: 0.3.1
+## Version: 0.3.2
 ## Dependencies: SentiUI
 ## X-Flavor: camelot
 ## X-Website: https://xrl-dev.de
