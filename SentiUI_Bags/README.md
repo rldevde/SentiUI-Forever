@@ -28,8 +28,10 @@ that replaces the Blizzard bag and bank frames entirely.
   falls back to your gold when not allowed
 - **Footer** — free slots, backpack-tracked currencies and your money
   at a glance
-- **Clicks** — left picks the item up, right uses it (secure path),
-  shift links it, ctrl tries it on
+- **Clicks** — left picks the item up, right uses it, shift links
+  it, ctrl tries it on. Right-click item use *inside a fight* is a
+  protected call the client only grants to its own bag buttons — a
+  limitation every addon bag shares.
 - **Movers** — both windows are movable; `/sui` → Bags for settings
 
 ## Settings

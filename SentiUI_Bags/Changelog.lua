@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.20",
+		date = "2026-11-24",
+		changes = {
+			"Secure use overlay removed entirely: neither parenting (restricts the slot's ancestor chain) nor anchoring (restricts the frame it anchors to) lets a protected button follow the grid under lockdown, so the overlay idea cannot work on this client. Item use inside a fight stays a protected call only Blizzard-owned dispatches may run - same limitation every addon bag has. Layout is back to fully live in combat exactly like before 0.4.17; junk sell/repair keep their lockdown early-out.",
+		},
+		changesDE = {
+			"Secure-Use-Overlay komplett entfernt: weder Parenting (sperrt die Ahnenkette des Slots) noch Verankerung (sperrt den Referenz-Frame) laesst einen protected Button dem Grid unter Lockdown folgen - die Idee ist auf diesem Client nicht machbar. Item-Nutzung im Kampf bleibt ein geschuetzter Aufruf, den nur Blizzard-Dispatches ausfuehren duerfen - dieselbe Grenze wie bei jedem Addon-Bag. Das Layout ist wieder komplett live im Kampf wie vor 0.4.17; Schrottverkauf/Reparatur behalten ihr Lockdown-Fruehaussstieg.",
+		},
+	},
+	{
 		version = "0.4.19",
 		date = "2026-11-24",
 		changes = {

@@ -113,19 +113,7 @@ local function LayoutGrid(w)
 		end
 	end
 	for key, b in pairs(ns.Items.slots) do
-		if not used[key] and b.ownerGrid == w.grid then
-			if InCombatLockdown() then
-				-- parked offscreen, not hidden: the secure overlay sits
-				-- on UIParent anchored to the slot - a hidden anchor
-				-- leaves it lingering over the window area eating right
-				-- clicks, while a parked anchor carries it offscreen
-				b:ClearAllPoints()
-				b:SetPoint("TOPLEFT", w.grid, "TOPLEFT", -100000, 0)
-			else
-				b:Hide()
-				if b.useOverlay then b.useOverlay:Hide() end
-			end
-		end
+		if not used[key] and b.ownerGrid == w.grid then b:Hide() end
 	end
 
 	local x, y, col = PAD, 2, 0
@@ -152,12 +140,6 @@ local function LayoutGrid(w)
 					and not (b.searchText or ""):find(query, 1, true)
 				ns.Items.SetDimmed(b, dim == true)
 				b:Show()
-				-- overlay frame ops are forbidden under lockdown; in
-				-- combat every visible slot kept its overlay visible
-				-- anyway (unused slots were parked, not hidden)
-				if b.useOverlay and not InCombatLockdown() then
-					b.useOverlay:Show()
-				end
 				x = x + size + gap
 				col = col + 1
 				if col == cols then col, x = 0, PAD; y = y + size + gap end
@@ -338,13 +320,6 @@ function Core.MakeWindow(key, opts)
 		if C_NewItems and C_NewItems.ClearAll then
 			pcall(C_NewItems.ClearAll)
 		end
-		-- the slot overlays live on UIParent and don't hide with the
-		-- window (Hide only ever runs out of combat, so this is legal)
-		for _, b in pairs(ns.Items.slots) do
-			if b.ownerGrid == w.grid and b.useOverlay then
-				b.useOverlay:Hide()
-			end
-		end
 		if key == "bags" then ns.Blizzard.CloseGame() end
 	end)
 
@@ -391,14 +366,7 @@ function Core.ApplyGameState(open)
 	local w = Core.windows.bags
 	if not w then return end
 	if open == nil then open = not w.frame:IsShown() end
-	-- Hide is legal under lockdown but would strand the UIParent-level
-	-- slot overlays at their last anchors, invisible right-click traps
-	-- over whatever sits behind them - so the close waits for regen.
-	if open then
-		w.frame:Show()
-	else
-		S.RunOutOfCombat(function() w.frame:Hide() end)
-	end
+	w.frame:SetShown(open and true or false)
 	if open then Refresh() end
 end
 
@@ -462,9 +430,7 @@ function Core.Enable(mod)
 		"BAG_SLOT_FLAGS_UPDATED", "ITEM_LOCK_CHANGED", "PLAYER_MONEY" }) do
 		S.RegisterEvent(ev, Refresh)
 	end
-	-- after combat: restore hidden state for slots that were only parked
-	-- during the fight, and build overlays deferred by lockdown
-	S.RegisterEvent("PLAYER_REGEN_ENABLED", function() Core.Layout() end)
+
 	-- the game's bag bookkeeping is the source of truth; the open/close
 	-- events track it, Sync mirrors the result into our window
 	for _, ev in ipairs({ "BAG_OPEN", "BAG_CLOSED", "MERCHANT_SHOW", "MERCHANT_CLOSED" }) do
