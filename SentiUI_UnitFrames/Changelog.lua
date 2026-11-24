@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.45",
+		date = "2026-11-25",
+		changes = {
+			"Fix a forbidden call (UNKNOWN) blamed on this module: the cooldown tracker created its icon slots lazily on the first tracked cast - under combat lockdown a new frame is born protected on this client, so every Show/SetPoint on it was blocked. The row now pools all four slots when the cell is built (out of combat) and runtime only touches regions and pooled-frame Show/Hide - the same combat-safe recipe the loot and quest feeds use.",
+		},
+		changesDE = {
+			"Verbotener Aufruf (UNKNOWN) behoben, der diesem Modul zugeschrieben wurde: Der Cooldown-Tracker erzeugte seine Symbol-Slots lazy beim ersten verfolgten Zauber - unter Kampfsperre wird ein neuer Frame auf diesem Client geschuetzt geboren, jeder Show/SetPoint darauf wurde geblockt. Die Zeile poolt jetzt alle vier Slots beim Zellenbau (ausserhalb des Kampfes), zur Laufzeit werden nur Regions und Show/Hide auf gepoolten Frames angefasst - dasselbe kampffeste Rezept wie im Loot- und Quest-Feed.",
+		},
+	},
+	{
 		version = "0.2.44",
 		date = "2026-11-25",
 		changes = {

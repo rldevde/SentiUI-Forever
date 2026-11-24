@@ -644,15 +644,12 @@ local function SpellTex(id)
 	end
 end
 
-local function LayoutCDRow(h)
-	local i = 0
-	for _, slot in pairs(h.slots) do
-		slot:ClearAllPoints()
-		slot:SetPoint("RIGHT", h, "RIGHT", -i * (CD_ICON + CD_GAP), 0)
-		i = i + 1
-	end
-end
-
+-- the slots are POOLED at build time, never created later: a frame made
+-- under combat lockdown is born protected on this client, so the first
+-- interrupt cast mid-fight would have made every Show/SetPoint on the
+-- slot fire ADDON_ACTION_FORBIDDEN. Runtime only touches regions
+-- (SetTexture, SetText) and Show/Hide on the pooled frames - legal
+-- mid-fight, same recipe the loot and quest feeds use
 local function BuildCDRow(f)
 	local h = CreateFrame("Frame", nil, f)
 	h:SetSize(CD_MAX * (CD_ICON + CD_GAP), CD_ICON)
@@ -661,6 +658,26 @@ local function BuildCDRow(f)
 	h:SetPoint("BOTTOMRIGHT", f, "TOPRIGHT", -1, -1)
 	h:SetFrameLevel(f:GetFrameLevel() + 4)
 	h.slots = {}
+	for i = 1, CD_MAX do
+		local slot = CreateFrame("Frame", nil, h)
+		slot:SetSize(CD_ICON, CD_ICON)
+		slot:SetPoint("RIGHT", h, "RIGHT", -(i - 1) * (CD_ICON + CD_GAP), 0)
+		local icon = slot:CreateTexture(nil, "ARTWORK")
+		icon:SetAllPoints()
+		icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+		slot.icon = icon
+		local cd = CreateFrame("Cooldown", nil, slot, "CooldownFrameTemplate")
+		cd:SetAllPoints()
+		cd:SetDrawEdge(false)
+		cd:SetHideCountdownNumbers(true)
+		slot.cd = cd
+		local t = slot:CreateFontString(nil, "OVERLAY")
+		t:SetFont(S.media.font, 8, "OUTLINE")
+		t:SetPoint("CENTER", 0, -1)
+		slot.t = t
+		slot:Hide()
+		h.slots[i] = slot
+	end
 	-- seconds text is ours (the widget's own countdown may not draw here);
 	-- one throttled sweep hides spent slots
 	h:SetScript("OnUpdate", function(self, dt)
@@ -668,10 +685,12 @@ local function BuildCDRow(f)
 		if self._t < 0.2 then return end
 		self._t = 0
 		local now = GetTime()
-		for _, slot in pairs(self.slots) do
+		for i = 1, #self.slots do
+			local slot = self.slots[i]
 			if slot:IsShown() then
 				local left = (slot.ends or 0) - now
 				if left <= 0 then
+					slot.spell = nil
 					slot:Hide()
 				else
 					slot.t:SetText(left >= 60
@@ -686,30 +705,19 @@ end
 local function ShowCD(b, spellID, secs)
 	local h = b.CDRow
 	if not h then return end
-	local slot = h.slots[spellID]
-	if not slot then
-		local n = 0
-		for _ in pairs(h.slots) do n = n + 1 end
-		if n >= CD_MAX then return end
-		slot = CreateFrame("Frame", nil, h)
-		slot:SetSize(CD_ICON, CD_ICON)
-		local icon = slot:CreateTexture(nil, "ARTWORK")
-		icon:SetAllPoints()
-		icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-		icon:SetTexture(SpellTex(spellID) or BLANK)
-		slot.icon = icon
-		local cd = CreateFrame("Cooldown", nil, slot, "CooldownFrameTemplate")
-		cd:SetAllPoints()
-		cd:SetDrawEdge(false)
-		cd:SetHideCountdownNumbers(true)
-		slot.cd = cd
-		local t = slot:CreateFontString(nil, "OVERLAY")
-		t:SetFont(S.media.font, 8, "OUTLINE")
-		t:SetPoint("CENTER", 0, -1)
-		slot.t = t
-		h.slots[spellID] = slot
-		LayoutCDRow(h)
+	-- a recast restarts its own slot; a new spell takes the first free one
+	local slot
+	for i = 1, #h.slots do
+		if h.slots[i].spell == spellID then slot = h.slots[i] break end
 	end
+	if not slot then
+		for i = 1, #h.slots do
+			if not h.slots[i]:IsShown() then slot = h.slots[i] break end
+		end
+	end
+	if not slot then return end
+	slot.spell = spellID
+	slot.icon:SetTexture(SpellTex(spellID) or BLANK)
 	slot.ends = GetTime() + secs
 	if CooldownFrame_Set then
 		pcall(CooldownFrame_Set, slot.cd, GetTime(), secs)
