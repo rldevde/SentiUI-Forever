@@ -1,0 +1,24 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Blessings
+## Notes: A PallyPower-compatible blessing window in SentiUI style: class rows with per-paladin assignments, missing-buff tracking, one-click blessing casts, aura/seal/righteous fury strip, symbols count and full PLPWR sync with real PallyPower clients.
+## Notes-deDE: Ein PallyPower-kompatibles Segens-Fenster im SentiUI-Stil: Klassenzeilen mit Paladin-Zuweisungen, Fehlende-Segens-Anzeige, Ein-Klick-Segenscasts, Aura-/Siegel-/Zorner-Feld, Symbolzähler und voller PLPWR-Sync mit echten PallyPower-Clients.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.1.0
+## Dependencies: SentiUI
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Data.lua
+Comm.lua
+Pally.lua
+Options.lua
+Changelog.lua
+Module.lua
