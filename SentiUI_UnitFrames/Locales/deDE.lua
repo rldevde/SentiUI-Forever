@@ -95,6 +95,7 @@ L["Lighter fill showing heals landing on the unit."] = "Hellere Füllung für ei
 L["Combat text"] = "Kampftext"
 L["Damage and healing numbers rising out of the player frame."] = "Schadens- und Heilzahlen steigen aus dem Spielerfach auf."
 L["Pips above the player frame: combo points, holy power, chi, shards."] = "Punkte über dem Spielerfach: Combopunkte, Heilige Kraft, Chi, Splitter."
+L["Pips above the player frame: combo points, holy power, chi, shards, arcane, essence - runes as per-pip recharge fills on a death knight."] = "Punkte über dem Spielerfach: Combopunkte, Heilige Kraft, Chi, Splitter, Arkan, Essenz - Runen als Auflade-Füllung pro Punkt beim Todesritter."
 L["Threat percent"] = "Bedrohung in Prozent"
 L["Show your threat percentage on the target."] = "Zeigt deine Bedrohung in Prozent am Ziel."
 L["Portrait"] = "Porträt"

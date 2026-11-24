@@ -124,13 +124,17 @@ end
 
 -- ===========================================================================
 -- Class power pips (combo points, holy power, chi, shards, arcane, essence)
+-- plus death knight runes (recharge fill per pip, not a UnitPower type)
 -- ===========================================================================
 local POWER_TYPES = Enum and Enum.PowerType and {
 	Enum.PowerType.ComboPoints, Enum.PowerType.HolyPower, Enum.PowerType.Chi,
 	Enum.PowerType.SoulShards, Enum.PowerType.ArcaneCharges,
 	Enum.PowerType.Essence,
 } or { 4, 9, 12, 7, 16, 19 }
+local RUNE_COUNT = 6
 local PIP_W, PIP_H, PIP_GAP = 20, 4, 3
+
+local UpdateRunes -- fwd: the pip tick calls it
 
 local function BuildClassPower(f)
 	local h = CreateFrame("Frame", nil, f)
@@ -148,7 +152,48 @@ local function BuildClassPower(f)
 		h.pips[i] = p
 	end
 	h:Hide()
+	-- runes recharge continuously: while any pip is charging a throttled
+	-- tick repaints the fill (the flag is only ever set for death knights)
+	h:SetScript("OnUpdate", function(self, dt)
+		if not self._runes then return end
+		self._t = (self._t or 0) + (dt or 0.016)
+		if self._t < 0.1 then return end
+		self._t = 0
+		UpdateRunes(f, self)
+	end)
 	f.ClassPower = h
+end
+
+-- six pips, one per rune: full + accent when ready, dim fill climbing as
+-- the rune recharges. GetRuneCooldown is pcall'd - values are usually
+-- plain but nothing on this client is guaranteed
+function UpdateRunes(f, h)
+	if not GetRuneCooldown then h._runes = false h:Hide() return end
+	local now, accent = GetTime(), S.colors.accent
+	local total = math.min(RUNE_COUNT, #h.pips)
+	local w = (f:GetWidth() - (total - 1) * PIP_GAP) / total
+	local charging = false
+	for i = 1, total do
+		local p = h.pips[i]
+		p:ClearAllPoints()
+		p:SetPoint("LEFT", h, "LEFT", (i - 1) * (w + PIP_GAP), 0)
+		p:SetSize(w, PIP_H)
+		local frac = 1
+		local ok, start, dur, ready = pcall(GetRuneCooldown, i)
+		if ok and ready ~= true and type(start) == "number"
+			and type(dur) == "number" and dur > 0 then
+			frac = math.max(0, math.min((now - start) / dur, 1))
+			charging = true
+		end
+		p:SetMinMaxValues(0, 1)
+		p:SetValue(frac)
+		local k = frac >= 1 and 1 or 0.45
+		p:SetStatusBarColor(accent.r * k, accent.g * k, accent.b * k)
+		p:Show()
+	end
+	for i = total + 1, #h.pips do h.pips[i]:Hide() end
+	h._runes = charging
+	h:Show()
 end
 
 local function ClassPowerType()
@@ -164,6 +209,11 @@ function X.UpdateClassPower(f)
 	local h = f.ClassPower
 	if not h or f.unit ~= "player" then return end
 	if ns.db.player and ns.db.player.classPower == false then h:Hide() return end
+	-- death knights have no UnitPower resource - their six runes paint
+	-- per-rune recharge fills instead of a count
+	local okC, _, cls = pcall(UnitClass, "player")
+	if okC and cls == "DEATHKNIGHT" then UpdateRunes(f, h) return end
+	h._runes = false
 	local pt, mx = ClassPowerType()
 	if not pt then h:Hide() return end
 	local ok, cur = pcall(UnitPower, "player", pt)
@@ -564,6 +614,8 @@ local EXTRA_EVENTS = {
 	UNIT_ABSORB_AMOUNT_CHANGED = X.UpdatePrediction,
 	UNIT_HEAL_ABSORB_AMOUNT_CHANGED = X.UpdatePrediction,
 	UNIT_POWER_POINT_CHARGE = X.UpdateClassPower,
+	RUNE_POWER_UPDATE = X.UpdateClassPower,
+	RUNE_TYPE_UPDATE = X.UpdateClassPower,
 	UNIT_PHASE = X.UpdateState,
 	INCOMING_RESURRECT_CHANGED = X.UpdateState,
 	INCOMING_SUMMON_CHANGED = X.UpdateState,

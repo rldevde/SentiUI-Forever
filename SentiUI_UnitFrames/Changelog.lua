@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.43",
+		date = "2026-11-24",
+		changes = {
+			"Death knights get their class resource on the player frame now: the class-power pips show six rune slots whose fill climbs per-rune while it recharges (dim while charging, accent when ready). Runes are no UnitPower type, so a throttled tick repaints them while anything recharges - events (RUNE_POWER_UPDATE / RUNE_TYPE_UPDATE) keep it snappy, and UNIT_POWER_UPDATE from the runic-power spend covers the case where those never fire.",
+		},
+		changesDE = {
+			"Todesritter bekommen ihre Klassenressource am Spielerfach: Die Klassen-Punkte zeigen sechs Runen-Felder, deren Fuellung pro Rune klettert, waehrend sie auflaedt (gedimmt ladend, Akzent bereit). Runen sind kein UnitPower-Typ, darum uebernimmt ein gedrosselter Tick das Repaint, solange etwas laedt - Events (RUNE_POWER_UPDATE / RUNE_TYPE_UPDATE) halten es flott, und UNIT_POWER_UPDATE vom Runenmacht-Einsatz deckt ab, falls diese nie feuern.",
+		},
+	},
+	{
 		version = "0.2.42",
 		changes = {
 			"Party pet bars and boss/arena frames actually paint now: UF.Build creates the health/power bars but only UF.Configure anchors and sizes them inside the frame - the party-pet and boss/arena builders called Build + Refresh and skipped Configure, so the boxes showed under a companion or boss yet stayed empty (no bar, no name). Both paths now call Configure, and an OnShow hook repaints when the visibility driver flips a late-spawning pet or boss visible.",

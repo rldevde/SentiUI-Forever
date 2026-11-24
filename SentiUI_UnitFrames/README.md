@@ -37,6 +37,10 @@ class-colored health). Standalone module - requires the SentiUI core.
 - **Alt power bar** - replaces the parked `PlayerPowerBarAlt`: watches
   the encounter power index via `UnitPower`/`UnitPowerMax`
   (secret-safe), shows name and percent while active. Own mover.
+- **Class power** - pips above the player frame: combo points, holy
+  power, chi, soul shards, arcane charges, essence. Death knights get
+  six rune pips whose fill climbs per-rune while they recharge
+  instead.
 
 ## Usage
 

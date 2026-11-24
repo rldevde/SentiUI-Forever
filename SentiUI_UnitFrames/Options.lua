@@ -79,7 +79,8 @@ ns.OPTIONS = { pages = {
 		groups = {
 			UnitGroup("player", L["Player"], {
 				{ type = "toggle", key = "player.castbar", label = L["Show cast bar"], reload = true },
-				{ type = "toggle", key = "player.classPower", label = L["Class power"], reload = true },
+				{ type = "toggle", key = "player.classPower", label = L["Class power"], reload = true,
+					desc = L["Pips above the player frame: combo points, holy power, chi, shards, arcane, essence - runes as per-pip recharge fills on a death knight."] },
 			}),
 			UnitGroup("target", L["Target"], {
 				{ type = "toggle", key = "target.castbar", label = L["Show cast bar"], reload = true },
