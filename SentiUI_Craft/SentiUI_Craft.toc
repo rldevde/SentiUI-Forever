@@ -1,0 +1,23 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Professions
+## Notes: A SentiUI professions window: recipe list with search and filters, difficulty colors, materials with owned counts, a create footer with amounts - the game's own window stays parked under it for NPC and guild lists.
+## Notes-deDE: Ein SentiUI-Berufsfenster: Rezeptliste mit Suche und Filtern, Schwierigkeitsfarben, Materialien mit Bestand, ein Herstellen-Fussbereich mit Mengen - das Spiel-Fenster bleibt darunter geparkt für NPC- und Gilden-Listen.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.1.0
+## Dependencies: SentiUI
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+Data.lua
+Craft.lua
+Options.lua
+Changelog.lua
+Module.lua

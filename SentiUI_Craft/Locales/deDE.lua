@@ -1,0 +1,43 @@
+-- German translations for the Professions module.
+local _, ns = ...
+local L = ns.L
+
+L["Professions"] = "Berufe"
+L["Search..."] = "Suchen..."
+L["Skill-ups"] = "Skill-ups"
+L["Have materials"] = "Mats vorhanden"
+L["Slot"] = "Slot"
+L["All slots"] = "Alle Slots"
+L["Favorites"] = "Favoriten"
+L["Other"] = "Sonstige"
+L["No recipes yet."] = "Noch keine Rezepte."
+L["No recipes match."] = "Keine Rezepte passen."
+L["Pick a profession above."] = "Beruf oben wählen."
+L["Skill %d / %d"] = "Fertigkeit %d / %d"
+L["Unlearn"] = "Verlernen"
+L["Do you really want to unlearn %s?"] = "%s wirklich verlernen?"
+L["Create"] = "Erstellen"
+L["Create all"] = "Alle erstellen"
+L["Enchant"] = "Verzaubern"
+L["Enchant all"] = "Alle verzaubern"
+L["Making %d of %d"] = "Erstelle %d von %d"
+L["Stop"] = "Stopp"
+L["Always a skill point"] = "Immer ein Fertigkeitspunkt"
+L["Usually a skill point"] = "Meist ein Fertigkeitspunkt"
+L["Sometimes a skill point"] = "Manchmal ein Fertigkeitspunkt"
+L["No skill points"] = "Keine Fertigkeitspunkte"
+L["Set Favorite"] = "Favorisieren"
+L["Remove Favorite"] = "Favorit entfernen"
+L["Track Recipe"] = "Rezept verfolgen"
+L["Untrack"] = "Nicht mehr verfolgen"
+L["Enable professions module"] = "Berufs-Modul aktivieren"
+L["Turns the custom professions window off after a reload; the game's own window opens professions again."] =
+	"Schaltet das eigene Berufsfenster nach einem Reload ab; das Spiel-Fenster öffnet Berufe wieder."
+L["The professions key (K) opens the last used profession in this window; press it again to close."] =
+	"Die Berufs-Taste (K) öffnet den zuletzt genutzten Beruf in diesem Fenster; erneutes Drücken schließt es."
+L["Recipe list"] = "Rezeptliste"
+L["Rarity colors"] = "Seltenheitsfarben"
+L["Recipe names take the rarity color of what they make. Off, they show how likely a skill-up is."] =
+	"Rezeptnamen bekommen die Seltenheitsfarbe des hergestellten Gegenstands. Aus: Farbe nach Skill-up-Chance."
+L["A professions window in SentiUI style: recipe list with search and filters, difficulty colors, material counts, and a create footer with amounts. The game's window stays parked under it for NPC and guild lists."] =
+	"Ein Berufsfenster im SentiUI-Stil: Rezeptliste mit Suche und Filtern, Schwierigkeitsfarben, Materialbestand und ein Herstellen-Bereich mit Mengen. Das Spiel-Fenster bleibt darunter geparkt für NPC- und Gilden-Listen."
