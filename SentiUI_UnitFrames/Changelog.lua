@@ -2,6 +2,15 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.42",
+		changes = {
+			"Party pet bars and boss/arena frames actually paint now: UF.Build creates the health/power bars but only UF.Configure anchors and sizes them inside the frame - the party-pet and boss/arena builders called Build + Refresh and skipped Configure, so the boxes showed under a companion or boss yet stayed empty (no bar, no name). Both paths now call Configure, and an OnShow hook repaints when the visibility driver flips a late-spawning pet or boss visible.",
+		},
+		changesDE = {
+			"Pet- und Boss-/Arena-Leisten bemalen jetzt wirklich: UF.Build erzeugt die Health-/Power-Bars, aber nur UF.Configure verankert und groesst sie im Frame - die Pet- und Boss-/Arena-Builder riefen Build + Refresh, Configure wurde uebersprungen, also blieb die Box unter Begleiter oder Boss leer (kein Balken, kein Name). Beide Pfade rufen jetzt Configure, und ein OnShow-Hook repainted, sobald der Visibility-Driver ein spaet erscheinendes Pet oder einen Boss sichtbar schaltet.",
+		},
+	},
+	{
 		version = "0.2.41",
 		changes = {
 			"Members joining mid-combat now appear immediately: party, pet, boss/arena and single frames switch from RegisterUnitWatch - which only flipped shown state after combat on this client - to engine-side [@unit,exists] visibility state drivers, the same mechanism the raid holder already used. Party pet boxes also stop hanging empty under members with no companion out.",

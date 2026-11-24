@@ -1,5 +1,9 @@
 # SentiUI Unit Frames
 
+## 0.2.42 - 2026-11-24
+
+- Party pet bars and boss/arena frames actually paint now: `UF.Build` creates the health/power bars but only `UF.Configure` anchors and sizes them inside the frame - the party-pet and boss/arena builders called Build + Refresh and skipped Configure, so the boxes showed under a companion or boss yet stayed empty. Both paths now call Configure, and an OnShow hook repaints when the visibility driver flips a late-spawning pet or boss visible.
+
 ## 0.2.41 - 2026-11-24
 
 - Members joining mid-combat now appear immediately: party, pet, boss/arena and single frames switch from `RegisterUnitWatch` - which only flipped shown state after combat on this client - to engine-side `[@unit,exists]` visibility state drivers, the same mechanism the raid holder already used. Party pet boxes also stop hanging empty under members with no companion out.

@@ -399,6 +399,10 @@ local function MakeGroupSet(prefix, count, key, title, cfg)
 		X.RegisterFrameEvents(b)
 		RegisterStateDriver(b, "visibility",
 			"[petbattle] hide; [@" .. unit .. ",exists] show; hide")
+		UF.Configure(b) -- anchors/sizes the bars and texts (was never called)
+		b:HookScript("OnShow", function(c)
+			if c.unit then S.SafeCall("uf:show", UF.Refresh, c) end
+		end)
 		UF.Refresh(b)
 		holder.buttons[i] = b
 	end
@@ -445,6 +449,10 @@ function X.CreatePartyPets()
 			-- hanging under members without a companion
 			RegisterStateDriver(pet, "visibility",
 				"[petbattle] hide; [@" .. pet.unit .. ",exists] show; hide")
+			UF.Configure(pet) -- anchors/sizes the bars and texts (was never called)
+			pet:HookScript("OnShow", function(c)
+				if c.unit then S.SafeCall("uf:petshow", UF.Refresh, c) end
+			end)
 			UF.Refresh(pet)
 			b.PetButton = pet
 		end
