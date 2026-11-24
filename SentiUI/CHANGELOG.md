@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.6 - 2026-11-23
+
+- The loss-of-control alert ("Stunned 1.3 sec") no longer shows the pixelated stock art: all of the game's textures are hidden and a same-size overlay in SentiUI style covers the frame - dark rounded panel, gold accent line, icon plus our font for the name and the live countdown. The game's frame still decides what to show; the texts are passed through untouched (secret-safe).
+
 ## 0.4.5 - 2026-11-23
 
 - Fixed "forbidden call" + "Interface action failed" at login: the `useUiScale`/`uiScale` CVars are forbidden to addons on this build, so `S.ApplyGameScale` no longer writes them — the scale now goes straight onto `UIParent` (combat-deferred, clamped 0.5–1.2). Affects the installer's scale step and the Interface settings slider.

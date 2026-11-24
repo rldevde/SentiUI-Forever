@@ -641,12 +641,81 @@ function S.StyleTooltips()
 	end
 end
 
+-- Loss-of-Control alert ("Bewegungsunfaehig 1,3 Sek.") --------------------
+-- The game's frame still decides when/what to show - its values are secret
+-- to addons - so we never read or rebuild the data, only pass the game's
+-- text and icon through onto a same-size overlay in our style: dark rounded
+-- panel, gold accent edge, our font. Every stock texture/fontstring gets
+-- alpha-0; the overlay repaints from the live strings each frame.
+local function SkinLossOfControl()
+	local f = _G.LossOfControlFrame
+	if not f or f.suiSkin then return end
+	f.suiSkin = true
+
+	local o = CreateFrame("Frame", nil, f, "BackdropTemplate")
+	o:SetAllPoints(f)
+	o:SetFrameLevel((f.GetFrameLevel and f:GetFrameLevel() or 1) + 5)
+	S.Template(o, "raised")
+	o.suiOverlay = true
+
+	o.icon = o:CreateTexture(nil, "ARTWORK")
+	o.icon:SetSize(30, 30)
+	o.icon:SetPoint("LEFT", 10, 0)
+	o.icon:SetTexCoord(0.06, 0.94, 0.06, 0.94)
+	o.name = S.Font(o, 13)
+	o.name:SetPoint("TOPLEFT", o.icon, "TOPRIGHT", 8, -3)
+	o.name:SetJustifyH("LEFT")
+	o.name:SetWordWrap(false)
+	o.time = S.Font(o, 10, C.textDim)
+	o.time:SetPoint("TOPLEFT", o.name, "BOTTOMLEFT", 0, -2)
+	local line = o:CreateTexture(nil, "OVERLAY", nil, 1)
+	line:SetHeight(1)
+	line:SetPoint("TOPLEFT", o, "TOPLEFT", 8, -3)
+	line:SetPoint("TOPRIGHT", o, "TOPRIGHT", -8, -3)
+	line:SetTexture(BLANK)
+	line:SetVertexColor(C.accent.r, C.accent.g, C.accent.b, 0.85)
+
+	-- every stock region the frame paints with; re-run on each show since
+	-- the game can rebuild its art between displays
+	local function hideStock()
+		for _, r in ipairs({ f:GetRegions() }) do
+			if r.SetAlpha then r:SetAlpha(0) end
+		end
+		for _, c in ipairs({ f:GetChildren() }) do
+			if c ~= o and c.SetAlpha then c:SetAlpha(0) end
+		end
+	end
+	hideStock()
+
+	-- mirror the live texts: SetText on a secret value is allowed, only
+	-- comparing it would throw - the pcall covers odd client shapes too
+	o:SetScript("OnUpdate", function()
+		if not f:IsShown() then return end
+		hideStock()
+		if f.AbilityName then
+			pcall(o.name.SetText, o.name, f.AbilityName:GetText())
+		end
+		if f.TimeLeft and f.TimeLeft.NumberText then
+			pcall(o.time.SetText, o.time, f.TimeLeft.NumberText:GetText())
+		end
+		if f.Icon then
+			pcall(o.icon.SetTexture, o.icon, f.Icon:GetTexture())
+		end
+	end)
+	f:HookScript("OnShow", hideStock)
+end
+
+function S.StyleLossOfControl()
+	pcall(SkinLossOfControl)
+end
+
 -- fire once after everything is loaded
 do
 	local initF = CreateFrame("Frame")
 	initF:RegisterEvent("PLAYER_LOGIN")
 	initF:SetScript("OnEvent", function(self)
 		S.StyleTooltips()
+		S.StyleLossOfControl()
 		self:UnregisterEvent("PLAYER_LOGIN")
 	end)
 end

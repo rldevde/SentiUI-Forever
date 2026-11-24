@@ -25,6 +25,16 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.4.6",
+		date = "2026-11-23",
+		changes = {
+			"The loss-of-control alert ('Stunned 1.3 sec') no longer shows the pixelated stock art: all of the game's textures are hidden and a same-size overlay in SentiUI style covers the frame - dark rounded panel, gold accent line, icon plus our font for the name and the live countdown. The game's frame still decides what to show; the texts are passed through untouched (secret-safe).",
+		},
+		changesDE = {
+			"Die Kontrollverlust-Anzeige ('Bewegungsunfähig 1,3 Sek.') zeigt nicht mehr die pixelige Stock-Grafik: alle Spiel-Texturen werden ausgeblendet und ein gleich grosses Overlay im SentiUI-Stil deckt den Frame ab - dunkles abgerundetes Panel, Gold-Akzentlinie, Icon plus eigene Schrift für Name und laufenden Countdown. Der Spiel-Frame entscheidet weiterhin, was gezeigt wird; die Texte werden unangetastet durchgereicht (secret-sicher).",
+		},
+	},
+	{
 		version = "0.4.5",
 		date = "2026-11-23",
 		changes = {
