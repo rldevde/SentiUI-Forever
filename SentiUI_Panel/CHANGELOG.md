@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.41 - 2026-11-24
+
+- FBL sync: the receive notice now names the sender's client - 'Blacklist received from X via SentiUI' vs 'via ForeverBlackListed', learned from each peer's FBLver ping (SentiUI announces SentiUI_Panel-x.y, the standalone a bare version).
+
 ## 0.5.40 - 2026-11-24
 
 - FBL sync: receiving a blacklist is now visible in chat, not just sending. A complete incoming list prints 'Blacklist received from <name> (n chunks)' in gold before the trust/accept step - previously only the merge result printed, and only when entries actually changed, so unchanged or echoed lists arrived silently.

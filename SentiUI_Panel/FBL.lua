@@ -1359,6 +1359,17 @@ local function OwnNameLower()
 	return me and me:lower() or nil
 end
 
+-- which client a peer runs, learned from its FBLver ping: SentiUI
+-- announces "SentiUI_Panel-x.y", the standalone a bare "1.3.x"
+local function PeerClient(name)
+	local p = DB().sync and DB().sync.peers
+	local e = type(p) == "table" and name and p[name] or nil
+	local ver = e and e.ver
+	if type(ver) ~= "string" then return nil end
+	if ver:find("SentiUI", 1, true) then return "SentiUI" end
+	return "ForeverBlackListed"
+end
+
 local function FinishReceive(from, transport)
 	if from and from:lower() == OwnNameLower() then return end -- own echo
 	local key = transport .. "|" .. from
@@ -1378,7 +1389,11 @@ local function FinishReceive(from, transport)
 	-- visible receive notice (the counterpart of "Blacklist sent"): the
 	-- merge line below only prints on actual changes, so a complete but
 	-- unchanged list used to arrive silently
-	S.Print("|cffebad33" .. format(L["Blacklist received from %s (%d chunks)"], from, s.total) .. "|r")
+	local client = PeerClient(from)
+	local notice = client
+		and format(L["Blacklist received from %s via %s (%d chunks)"], from, client, s.total)
+		or format(L["Blacklist received from %s (%d chunks)"], from, s.total)
+	S.Print("|cffebad33" .. notice .. "|r")
 	if not (DB().sync and DB().sync.autoAccept) then
 		Log("in", format(L["Sync offer from %s - awaiting your accept"], from))
 		ShowSyncAccept(json, from)

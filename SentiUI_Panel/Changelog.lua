@@ -2,6 +2,15 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.41",
+		changes = {
+			"FBL sync: the receive notice now names the sender's client - 'Blacklist received from X via SentiUI' vs 'via ForeverBlackListed', learned from each peer's FBLver ping (SentiUI announces SentiUI_Panel-x.y, the standalone a bare version).",
+		},
+		changesDE = {
+			"FBL-Sync: Die Empfangs-Meldung nennt jetzt den Client des Senders - 'Blacklist von X via SentiUI empfangen' vs 'via ForeverBlackListed', erkannt am FBLver-Ping des Peers (SentiUI meldet SentiUI_Panel-x.y, der Standalone eine nackte Version).",
+		},
+	},
+	{
 		version = "0.5.40",
 		changes = {
 			"FBL sync: receiving a blacklist is now visible in chat, not just sending. A complete incoming list prints 'Blacklist received from <name> (n chunks)' in gold before the trust/accept step - previously only the merge result printed, and only when entries actually changed, so unchanged or echoed lists arrived silently.",
