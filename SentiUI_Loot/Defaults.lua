@@ -25,6 +25,8 @@ ns.DEFAULTS = {
 	feed = true,
 	feedMax = 6,                   -- rows visible at once
 	feedHold = 4,                  -- seconds a row stays after its last loot
+	feedExit = "right",            -- "left"|"right" fly to that screen edge,
+	                               -- "fade" stays and fades in place
 
 	-- skins: Sentinel look on the loot window and the group roll frames
 	lootSkin = true,

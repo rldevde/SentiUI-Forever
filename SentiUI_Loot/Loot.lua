@@ -920,6 +920,8 @@ local function CopperText(copper)
 	return nil
 end
 
+local StartExit -- defined below FeedLayout; the row click forwards here
+
 local function FeedRow(i)
 	local r = feedRows[i]
 	if r then return r end
@@ -944,7 +946,10 @@ local function FeedRow(i)
 	r:RegisterForClicks("RightButtonUp")
 	r:SetScript("OnClick", function(self)
 		local e = feedEntries[self.i]
-		if e then e.fading, e.alpha = true, math.min(e.alpha or 1, 0.4) end
+		if e then
+			e.fading, e.alpha = true, math.min(e.alpha or 1, 0.4)
+			StartExit(e, self)
+		end
 	end)
 	r:SetScript("OnEnter", function(self)
 		local e = feedEntries[self.i]
@@ -965,7 +970,10 @@ local function FeedLayout()
 		local r = FeedRow(i)
 		r.i = i
 		r:ClearAllPoints()
-		r:SetPoint("TOPLEFT", feed, "TOPLEFT", 0, -(i - 1) * (FEED_ROW_H + 3))
+		-- e.slide: the exit animation's horizontal offset, computed in the
+		-- feed's OnUpdate from the fade progress
+		r:SetPoint("TOPLEFT", feed, "TOPLEFT", e.slide or 0,
+			-(i - 1) * (FEED_ROW_H + 3))
 		if e.money then
 			r.icon.suiIconLink = nil
 			r.icon:SetTexture("Interface\\Icons\\INV_Misc_Coin_01")
@@ -993,6 +1001,21 @@ local function FeedLayout()
 	feed:SetHeight(math.max(1, shown * (FEED_ROW_H + 3)))
 end
 
+-- the exit run's direction + travel distance, measured once from the
+-- row's position to the chosen screen edge (feedExit = "left"|"right")
+function StartExit(e, row)
+	e.slide = nil
+	local dir = db.feedExit == "left" and -1
+		or db.feedExit == "right" and 1 or 0
+	e.exitDir, e.exitDist = nil, nil
+	if not (row and dir ~= 0) then return end
+	e.exitDir = dir
+	local l, rr = row:GetLeft(), row:GetRight()
+	local sw = UIParent:GetWidth() or 1920
+	if dir > 0 and l then e.exitDist = math.max(0, sw - l + 20)
+	elseif dir < 0 and rr then e.exitDist = rr + 20 end
+end
+
 local function FeedPush(e)
 	-- merge: same item stacks, money pools onto a single row
 	for _, x in ipairs(feedEntries) do
@@ -1005,6 +1028,7 @@ local function FeedPush(e)
 			end
 			x.t = GetTime()
 			x.fading, x.alpha = false, 1
+			x.slide, x.exitDir, x.exitDist = nil, nil, nil
 			FeedLayout()
 			return
 		end
@@ -1075,12 +1099,21 @@ local function BuildFeed()
 				if e.alpha <= 0 then
 					tremove(feedEntries, i)
 					dirty = true
+				elseif e.exitDir and e.exitDist then
+					-- fly to the screen edge: progress 0..1 eased in so the
+					-- row accelerates, reaching the edge as the alpha dies
+					local f = 1 - e.alpha
+					e.slide = e.exitDir * (f * f) * e.exitDist
+					dirty = true
 				elseif row then
 					row:SetAlpha(e.alpha)
 				end
 			elseif now - e.t > hold then
 				-- rows under the mouse hold their fade so the tooltip stays
-				if not (row and row:IsMouseOver()) then e.fading = true end
+				if not (row and row:IsMouseOver()) then
+					e.fading = true
+					StartExit(e, row)
+				end
 			end
 		end
 		if dirty then FeedLayout() end

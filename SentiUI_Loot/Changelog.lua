@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.19",
+		date = "2026-11-24",
+		changes = {
+			"Loot feed exit animation: expired rows now fly off to the screen edge while fading - direction is a setting (Row exit: right / left / fade in place). The flight distance is measured once from the row to the chosen edge and eased in, so the row accelerates off-screen exactly as its alpha dies. Merge resets and right-click dismisses use the same run.",
+		},
+		changesDE = {
+			"Loot-Feed Ausgangs-Animation: abgelaufene Zeilen fliegen jetzt zum Bildschirmrand, waehrend sie ausblenden - Richtung ist eine Einstellung (Zeilen-Ausgang: rechts / links / vor Ort ausblenden). Die Flugstrecke wird einmal von der Zeile bis zum gewaehlten Rand gemessen und beschleunigt, sodass die Zeile genau beim Alpha-Ende aus dem Bild laeuft. Merge-Resets und Rechtsklick-Ausblenden nutzen denselben Lauf.",
+		},
+	},
+	{
 		version = "0.2.18",
 		date = "2026-11-23",
 		changes = {

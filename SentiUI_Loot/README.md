@@ -11,11 +11,13 @@ loot and roll windows.
   quality-colored name, a click loots it, hover shows the item
   tooltip. It is a SentiUI mover (`/sui unlock`); the game's window
   stays hidden while the option is on.
-- **Loot feed** - your recent loot as small fading rows. The same
-  item stacks its count, money pools on one row, hover shows the
-  tooltip, right-click dismisses early. Self-loot is matched through
-  the game's own format strings, so it works in every language.
-  Mover, with row-count and hold-time settings.
+- **Loot feed** - your recent loot as small rows that fly off to a
+  screen edge while fading (direction: right / left / fade in place,
+  pickable in settings). The same item stacks its count, money pools
+  on one row, hover shows the tooltip, right-click dismisses early.
+  Self-loot is matched through the game's own format strings, so it
+  works in every language. Mover, with row-count and hold-time
+  settings.
 - **Fast loot** - every loot slot is taken the instant the window opens,
   before it can render. Respects the autoloot modifier/cvar unless
   "always" is enabled.

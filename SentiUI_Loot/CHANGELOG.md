@@ -1,5 +1,10 @@
 # SentiUI Loot
 
+## 0.2.19 - 2026-11-24
+
+- Loot feed exit animation: expired rows now fly off to the screen edge while fading - direction is a setting (Row exit: right / left / fade in place). The flight distance is measured once from the row to the chosen edge and eased in, so the row accelerates off-screen exactly as its alpha dies. Merge resets and right-click dismisses use the same run.
+
+
 ## 0.2.18 - 2026-11-23
 
 - Blizzard loot window gone for good: the alpha/mouse kill could still lose to a Show() path that re-alpha'd the frame. LootFrame now gets its loot events unregistered (LOOT_OPENED/LOOT_READY/LOOT_SLOT_*) so it never learns about loot at all - every loot-replacement UI kills it this way. LOOT_BIND_CONFIRM stays registered so BoP pickups still auto-confirm; turning our window off re-registers the events and restores the frame.

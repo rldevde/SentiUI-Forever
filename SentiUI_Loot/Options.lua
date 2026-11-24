@@ -65,6 +65,11 @@ ns.OPTIONS = {
 							disabled = function(get) return not get("feed") end },
 						{ type = "slider", key = "feedHold", label = L["Hold seconds"], min = 1, max = 15, step = 0.5,
 							disabled = function(get) return not get("feed") end },
+						{ type = "dropdown", key = "feedExit", label = L["Row exit"],
+							desc = L["Expired rows fly off to the chosen screen edge while they fade."],
+							values = { right = L["Fly off right"], left = L["Fly off left"], fade = L["Fade in place"] },
+							order = { "right", "left", "fade" },
+							disabled = function(get) return not get("feed") end },
 					},
 				},
 				{
