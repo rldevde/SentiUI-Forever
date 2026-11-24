@@ -1,0 +1,22 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Combat Text
+## Notes: The combat text module for SentiUI: a scrolling feed of incoming damage, healing, misses and resource gains with a fly-off exit and crit emphasis.
+## Notes-deDE: Das Kampftext-Modul für SentiUI: ein laufender Feed eingehenden Schadens, eingehender Heilung, Fehlschläge und Ressourcengewinne mit Fly-off-Ausgang und Krit-Betonung.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 0.1.0
+## Dependencies: SentiUI
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Defaults.lua
+
+Locales\Locales.lua
+Locales\deDE.lua
+
+CombatText.lua
+Options.lua
+Changelog.lua
+Module.lua
