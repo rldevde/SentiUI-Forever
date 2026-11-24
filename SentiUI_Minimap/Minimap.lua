@@ -1194,12 +1194,12 @@ end
 -- subsets on this client, the standard entries only show up together
 local function trackingList()
 	local out, seen = {}, {}
-	local function add(id, name, active, nested)
+	local function add(id, name, active, nested, legacy)
 		name = Plain(name)
 		if type(name) ~= "string" or name == "" or seen[name] then return end
 		seen[name] = true
 		out[#out + 1] = { id = id, name = name, active = Plain(active) == true,
-			nested = Plain(nested) == true }
+			nested = Plain(nested) == true, legacy = legacy == true }
 	end
 	if C_Minimap and C_Minimap.GetNumTrackingTypes and C_Minimap.GetTrackingInfo then
 		local okN, n = pcall(C_Minimap.GetNumTrackingTypes)
@@ -1217,58 +1217,48 @@ local function trackingList()
 		n = okN and Plain(n) or 0
 		for i = 1, n do
 			local okI, name, _, active, _, nested = pcall(GetTrackingInfo, i)
-			if okI then add(i, name, active, nested) end
+			-- classic ids index the classic list - flag them so toggling
+			-- hits the same API the id came from
+			if okI then add(i, name, active, nested, true) end
 		end
 	end
 	return out
 end
 
-local function setTracking(id, on)
-	if C_Minimap and C_Minimap.SetTracking then
-		pcall(C_Minimap.SetTracking, id, on)
-	elseif _G.SetTracking then
-		pcall(_G.SetTracking, id, on)
+local function setTracking(tt, on)
+	if tt.legacy and type(_G.SetTracking) == "function" then
+		pcall(_G.SetTracking, tt.id, on)
+	elseif C_Minimap and C_Minimap.SetTracking then
+		pcall(C_Minimap.SetTracking, tt.id, on)
+	elseif type(_G.SetTracking) == "function" then
+		pcall(_G.SetTracking, tt.id, on)
 	end
 end
 
 -- auto profession tracking: with Mining or Herbalism the matching
 -- tracking (Find Minerals / Find Herbs) turns itself on when nothing is
--- tracked yet. A tracking the user turned off through our menu stays off.
-local PROFESSION_TRACK = {
-	{ skill = 186, patterns = { "mineral" } },                 -- Bergbau / Mining
-	{ skill = 182, patterns = { "kräuter", "kraeut", "herb" } }, -- Kräuterkunde / Herbalism
-}
+-- tracked yet. The tracking list itself is the authority - it only
+-- carries types the character can actually use, so matching its names
+-- is enough (the old GetProfessions check never fired: that API hands
+-- out list indices, not the 182/186 skill-line ids it was compared to).
+-- A tracking the user turned off through our menu stays off.
+local PROFESSION_TRACK = { "mineral", "kräuter", "kraeut", "herb" }
 
 local function AutoTrack()
 	local db = mod and mod.db
 	if not (db and db.autoTrack) then return end
 	db.autoTrackOff = db.autoTrackOff or {}
-	local have = {}
-	if GetProfessions then
-		local ok, p1, p2, p3, p4 = pcall(GetProfessions)
-		if ok then
-			for _, p in ipairs({ p1, p2, p3, p4 }) do
-				if p then have[Plain(p)] = true end
-			end
-		end
-	end
-	local anyActive = false
 	local list = trackingList()
 	for _, tt in ipairs(list) do
-		if tt.active then anyActive = true break end
+		if tt.active then return end -- the user's current choice wins
 	end
-	if anyActive then return end -- the user's current choice wins
 	for _, tt in ipairs(list) do
 		if not tt.nested and not tt.active and not db.autoTrackOff[tt.name] then
 			local lname = tt.name:lower()
-			for _, pt in ipairs(PROFESSION_TRACK) do
-				if have[pt.skill] then
-					for _, pat in ipairs(pt.patterns) do
-						if lname:find(pat, 1, true) then
-							setTracking(tt.id, true)
-							return
-						end
-					end
+			for _, pat in ipairs(PROFESSION_TRACK) do
+				if lname:find(pat, 1, true) then
+					setTracking(tt, true)
+					return
 				end
 			end
 		end
@@ -1303,7 +1293,7 @@ local function rebuildTrackRows()
 		r:SetPoint("TOPLEFT", trackPop, "TOPLEFT", 4, y)
 		r:SetPoint("TOPRIGHT", trackPop, "TOPRIGHT", -4, y)
 		r:SetScript("OnClick", function()
-			setTracking(tt.id, not tt.active)
+			setTracking(tt, not tt.active)
 			-- remember manual offs so the profession auto-activation
 			-- does not fight the user's choice on the next login
 			local db = mod and mod.db
@@ -1547,6 +1537,16 @@ function Core.Enable(m)
 	S.RegisterEvent("SKILL_LINES_CHANGED", function()
 		C_Timer.After(1, function() S.SafeCall("minimap:autotrack", AutoTrack) end)
 	end)
+	-- dying strips the tracking without a loading screen: re-arm a beat
+	-- after coming back (ALIVE fires on release AND on accept-rez,
+	-- UNGHOST on returning to the body; SPELLS_CHANGED covers a freshly
+	-- learned profession skill mid-session)
+	for _, ev in ipairs({ "PLAYER_ALIVE", "PLAYER_UNGHOST", "SPELLS_CHANGED" }) do
+		S.RegisterEvent(ev, function()
+			C_Timer.After(1.5, function() S.SafeCall("minimap:autotrack", AutoTrack) end)
+			C_Timer.After(5, function() S.SafeCall("minimap:autotrack", AutoTrack) end)
+		end)
+	end
 end
 
 function Core.SettingChanged(m, path)

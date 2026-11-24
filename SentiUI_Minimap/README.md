@@ -22,8 +22,9 @@ Minimap module for the SentiUI suite (WoW Forever client). Requires `SentiUI`.
   our own button at the map's top-left (hover shows the active tracking,
   click opens the tracking menu via the client's C_Minimap API, merged
   with the classic tracking list). With Mining or Herbalism the matching
-  tracking turns itself on at login when nothing is tracked yet; a
-  tracking turned off through the menu stays off.
+  tracking turns itself on when nothing is tracked yet — at login, when
+  the profession is learned and again after resurrecting; a tracking
+  turned off through the menu stays off.
 - Mouse wheel zoom (optional reset-to-out) plus small +/- zoom buttons at
   the map's bottom-right corner; right-click tracking menu, middle-click
   calendar.

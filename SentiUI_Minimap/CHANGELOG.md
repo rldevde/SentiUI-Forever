@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.25 - 2026-11-24
+
+- Auto profession tracking actually fires now: the old check compared `GetProfessions()` (list indices) against skill-line ids 182/186 and never matched. The tracking list itself is the authority — its entries only exist for types the character can use, so the name match is enough.
+- Re-arms after dying: `PLAYER_ALIVE` / `PLAYER_UNGHOST` (plus `SPELLS_CHANGED` for a profession learned mid-session) re-run the auto activation after a beat, since death strips tracking without a loading screen.
+- Menu toggles now call the same API the tracking id came from — entries that only exist in the classic `GetTrackingInfo` list get the legacy `SetTracking`, not a `C_Minimap` index that may point at a different entry.
+
 ## 0.3.24 - 2026-11-23
 
 - The "+" addon-button collector now accepts module opt-ins via `S.MinimapCollect`: SentiUI addons can file their own minimap buttons to be collected like any other addon's (the Admin module's button uses it).

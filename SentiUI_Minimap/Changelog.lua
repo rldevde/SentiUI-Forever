@@ -4,6 +4,20 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.25",
+		date = "2026-11-24",
+		changes = {
+			"Auto profession tracking actually fires now: the old check compared GetProfessions() (list indices) against skill-line ids 182/186 and never matched. The tracking list itself is the authority - its entries only exist for types the character can use, so the name match is enough.",
+			"Re-arms after dying: PLAYER_ALIVE / PLAYER_UNGHOST (plus SPELLS_CHANGED for a profession learned mid-session) re-run the auto activation after a beat, since death strips tracking without a loading screen.",
+			"Menu toggles now call the same API the tracking id came from - entries that only exist in the classic GetTrackingInfo list get the legacy SetTracking, not a C_Minimap index that may point at a different entry.",
+		},
+		changesDE = {
+			"Auto-Berufs-Tracking greift jetzt wirklich: die alte Pruefung verglich GetProfessions() (Listen-Indizes) mit den Skill-Line-IDs 182/186 und matchte nie. Die Tracking-Liste selbst ist die Autoritaet - ihre Eintraege gibt es nur fuer Typen, die der Charakter kann, Namensvergleich genuegt.",
+			"Rueckt nach dem Sterben wieder nach: PLAYER_ALIVE / PLAYER_UNGHOST (plus SPELLS_CHANGED fuer ein mitten in der Sitzung gelerntes Berufs-Skill) starten die Auto-Aktivierung erneut - Tod entfernt das Tracking ohne Ladebildschirm.",
+			"Menue-Schalter rufen jetzt dieselbe API auf, aus der die Tracking-ID stammt - Eintraege, die nur in der klassischen GetTrackingInfo-Liste existieren, bekommen das alte SetTracking statt eines C_Minimap-Index, der evtl. auf einen anderen Eintrag zeigt.",
+		},
+	},
+	{
 		version = "0.3.24",
 		date = "2026-11-23",
 		changes = {
