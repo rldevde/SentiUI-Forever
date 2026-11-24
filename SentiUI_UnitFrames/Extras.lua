@@ -589,8 +589,9 @@ end
 -- ===========================================================================
 -- ===========================================================================
 -- Cooldown tracker: interrupt + signature defensive icons under a member's
--- cell, driven by the combat log - no addon channel needed, any group
--- member's tracked cast paints until its cooldown ends
+-- cell, driven by UNIT_SPELLCAST_SUCCEEDED on each cell - the combat log
+-- can't be used: registering COMBAT_LOG_EVENT_UNFILTERED is a protected
+-- call on this client (it was the UNKNOWN() forbidden call)
 -- ===========================================================================
 local CD_ICON, CD_GAP, CD_MAX = 12, 2, 4
 -- spellID -> cooldown seconds. The interrupt set is complete-ish; the
@@ -727,40 +728,13 @@ local function ShowCD(b, spellID, secs)
 	slot:Show()
 end
 
-local function CDFrameForGUID(guid)
-	if not (ns.Group and guid) then return end
-	for _, b in ipairs(ns.Group.partyButtons or {}) do
-		if b.unit then
-			local ok, same = pcall(function()
-				return UnitGUID(b.unit) == guid
-			end)
-			if ok and same then return b end
-		end
-	end
-	local hdr = ns.Group.raidHeader
-	if hdr then
-		for _, c in ipairs({ hdr:GetChildren() }) do
-			if c.unit then
-				local ok, same = pcall(function()
-					return UnitGUID(c.unit) == guid
-				end)
-				if ok and same then return c end
-			end
-		end
-	end
+-- a tracked cast lands on the cell whose unit cast it - the event is
+-- registered per frame through EXTRA_EVENTS below, no GUID mapping needed
+local function OnCastSucceeded(f, event, unit, castGUID, spellID)
+	local id = Plain(spellID)
+	local secs = id and CD_SPELLS[id]
+	if secs then ShowCD(f, id, secs) end
 end
-
--- bus registration is file-scope: CombatLogGetCurrentEventInfo reads the
--- current event's payload, so the handler must run inside the event call
-ns.RegisterBusEvent("COMBAT_LOG_EVENT_UNFILTERED", function()
-	if not CombatLogGetCurrentEventInfo then return end
-	local _, ev, _, guid, _, _, _, _, _, _, _, spellID = CombatLogGetCurrentEventInfo()
-	if ev ~= "SPELL_CAST_SUCCESS" then return end
-	local secs = Plain(spellID) and CD_SPELLS[spellID]
-	if not secs then return end
-	local b = CDFrameForGUID(guid)
-	if b then ShowCD(b, spellID, secs) end
-end)
 
 function X.Attach(f)
 	-- called from UF.Build: extra bars/icons for frames that want them
@@ -800,11 +774,12 @@ local EXTRA_EVENTS = {
 	INCOMING_SUMMON_CHANGED = X.UpdateState,
 	UNIT_THREAT_SITUATION_UPDATE = X.UpdateThreatPct,
 	UNIT_THREAT_LIST_UPDATE = X.UpdateThreatPct,
+	UNIT_SPELLCAST_SUCCEEDED = OnCastSucceeded,
 }
 
-function X.OnFrameEvent(f, event)
+function X.OnFrameEvent(f, event, ...)
 	local fn = EXTRA_EVENTS[event]
-	if fn then S.SafeCall("ufx:" .. event, fn, f) end
+	if fn then S.SafeCall("ufx:" .. event, fn, f, event, ...) end
 end
 
 function X.RegisterFrameEvents(f)

@@ -77,7 +77,7 @@ local function OnFrameEvent(f, event, unit, ...)
 		UF["Update" .. what](f)
 	end
 	if ns.Extras and ns.Extras.OnFrameEvent then
-		ns.Extras.OnFrameEvent(f, event)
+		ns.Extras.OnFrameEvent(f, event, unit, ...)
 	end
 end
 UF.OnFrameEvent = OnFrameEvent

@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.46",
+		date = "2026-11-25",
+		changes = {
+			"Fix the recurring forbidden call (UNKNOWN) blamed on this module: the cooldown tracker registered COMBAT_LOG_EVENT_UNFILTERED to trace member casts, and registering that event is a protected call on this client - it fired at every login. The tracker now rides UNIT_SPELLCAST_SUCCEEDED per cell (event args are passed through the extras dispatcher), which lands the icon on the caster's own frame with no GUID mapping and no protected API.",
+		},
+		changesDE = {
+			"Wiederkehrender verbotener Aufruf (UNKNOWN) behoben, der diesem Modul zugeschrieben wurde: Der Cooldown-Tracker registrierte COMBAT_LOG_EVENT_UNFILTERED, und genau diese Registrierung ist auf diesem Client ein geschuetzter Aufruf - feuerte bei jedem Login. Der Tracker laeuft jetzt ueber UNIT_SPELLCAST_SUCCEEDED pro Zelle (Event-Args werden durch den Extras-Dispatcher gereicht), das Symbol landet ohne GUID-Mapping und ohne geschuetzte API auf dem Frame des Casters.",
+		},
+	},
+	{
 		version = "0.2.45",
 		date = "2026-11-25",
 		changes = {
