@@ -3,6 +3,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.1",
+		date = "2026-11-23",
+		changes = {
+			"Fix dead clicks: the parked game window was only invisible - alpha 0 keeps every child button hit-testing, so the hidden Blizzard list ate the clicks over our window. The game's frame is now parked off screen (still shown, still running) and re-parked if anything moves it back.",
+		},
+		changesDE = {
+			"Tote Klicks behoben: Das geparkte Spiel-Fenster war nur unsichtbar - Alpha 0 laesst jeden Kind-Button weiter klickbar, die versteckte Blizzard-Liste fraß die Klicks ueber unserem Fenster. Das Spiel-Fenster wird jetzt ausserhalb des Bildschirms geparkt (weiterhin sichtbar aktiv) und neu geparkt, wenn etwas es zurueckschiebt.",
+		},
+	},
+	{
 		version = "0.1.0",
 		date = "2026-11-23",
 		changes = {

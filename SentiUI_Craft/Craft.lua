@@ -1,10 +1,10 @@
 -- The professions window. The game still runs the trade skill: casting a
 -- profession spell opens it (TRADE_SKILL_SHOW), Forever's ProfessionsFrame
 -- shows, and its OnHide closes the trade skill. That frame is held aside
--- (alpha 0, mouse off - it stays "shown" so its scripts keep running) while
--- this window stands in for it. Guild lists, NPC crafting and linked
--- professions are lent back to the game's window. Works in combat: nothing
--- here is protected, and parking is only alpha + mouse.
+-- (alpha 0 + moved off screen: it stays "shown" so its scripts keep
+-- running, and its invisible children can't steal clicks) while this
+-- window stands in for it. Guild lists, NPC crafting and linked
+-- professions are lent back to the game's window.
 --
 -- Tabs switch professions by casting the profession's spell from a secure
 -- button laid over the tab, as the game's own tabs do; OpenTradeSkill is
@@ -47,19 +47,49 @@ local function game()
 	return type(g) == "table" and g or nil
 end
 
+-- alpha alone keeps the game frame "shown" but its children still hit-test:
+-- an invisible Blizzard list would eat every click over our window. So the
+-- frame is parked OFF SCREEN - shown, alive, but nowhere near the pointer.
+local parkTicker
 local function parkGame(g)
-	if parked or not g then return end
+	if not g then return end
 	parked = true
 	g:SetAlpha(0)
 	if g.EnableMouse then g:EnableMouse(false) end
+	pcall(function()
+		g:ClearAllPoints()
+		g:SetPoint("TOPLEFT", UIParent, "TOPRIGHT", 0, 0)
+	end)
+	-- the game (or another addon) can re-anchor it; keep it parked
+	if not parkTicker then
+		parkTicker = C_Timer.NewTicker(0.5, function()
+			if not parked then return end
+			local gg = game()
+			if gg and gg:IsShown() then
+				local l = gg:GetLeft()
+				if l and l < (UIParent:GetRight() or 0) - 10 then
+					pcall(function()
+						gg:ClearAllPoints()
+						gg:SetPoint("TOPLEFT", UIParent, "TOPRIGHT", 0, 0)
+					end)
+				end
+			end
+		end)
+	end
 end
 
 local function unparkGame(g)
 	g = g or game()
 	if not (parked and g) then return end
 	parked = false
+	if parkTicker then parkTicker:Cancel() parkTicker = nil end
 	g:SetAlpha(1)
 	if g.EnableMouse then g:EnableMouse(true) end
+	-- back to the game's own left-panel spot
+	pcall(function()
+		g:ClearAllPoints()
+		g:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 16, -116)
+	end)
 end
 
 -- ---------------------------------------------------------------------------
