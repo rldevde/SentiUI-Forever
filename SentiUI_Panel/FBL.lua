@@ -894,6 +894,10 @@ end
 
 local function OnRemovalRequest(sender, kind, name, reason)
 	PeerSeen(sender)
+	-- the standalone owns the admin queue while it participates in
+	-- sync; without this guard both addons stack the same dialog
+	local x = ext()
+	if x and x.db and x.db.sync and x.db.sync.join ~= false then return end
 	if not F.IsAdmin() then return end
 	if type(name) ~= "string" or name == "" then return end
 	local key = (sender or "?") .. "|" .. kind .. "|" .. name
@@ -1380,6 +1384,10 @@ local function FinishReceive(from, transport)
 	local s = pending[key]
 	if not s then return end
 	pending[key] = nil
+	-- the standalone merges incoming lists while it participates in
+	-- sync; without this guard every list merges (and prints) twice
+	local x = ext()
+	if x and x.db and x.db.sync and x.db.sync.join ~= false then return end
 	local json = table.concat(s.parts)
 	Log("in", format(L["List received from %s via %s (%d chunks)"], from, transport, s.total))
 	-- the same export arriving on a second transport within two

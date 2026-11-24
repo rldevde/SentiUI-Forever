@@ -2,6 +2,15 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.45",
+		changes = {
+			"FBL sync: removal requests (FBLreq) and incoming lists are now left to ForeverBlackListed when it is loaded and channel-joined - previously both addons processed them, stacking two admin dialogs and merging every list twice. If the standalone's sync join is disabled, the panel keeps handling them as before.",
+		},
+		changesDE = {
+			"FBL-Sync: Loeschanfragen (FBLreq) und eingehende Listen bleiben jetzt ForeverBlackListed ueberlassen, wenn es geladen und im Channel ist - vorher verarbeiteten beide Addons, was zwei Admin-Dialoge stapelte und jede Liste doppelt mergte. Ist der Sync-Join des Standalone deaktiviert, uebernimmt das Panel wie bisher.",
+		},
+	},
+	{
 		version = "0.5.44",
 		changes = {
 			"FBL sync: reverted the whisper pull-answer path - offline targets make the client print a system error per chunk. Sends stay on the channel (+ one guild copy), now draining 4 chunks per 0.15s tick (~26 msg/s). Pull-answer jitter stays at the reduced 3-10s.",

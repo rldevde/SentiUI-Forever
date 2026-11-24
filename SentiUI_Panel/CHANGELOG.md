@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.45 - 2026-11-24
+
+- FBL sync: removal requests (FBLreq) and incoming lists are now left to ForeverBlackListed when it is loaded and channel-joined - previously both addons processed them, stacking two admin dialogs and merging every list twice. If the standalone's sync join is disabled, the panel keeps handling them as before.
+
 ## 0.5.44 - 2026-11-24
 
 - FBL sync: reverted the whisper pull-answer path - offline targets make the client print a system error per chunk, and whispers to specific peers are simply not wanted. Sends stay on the channel (+ one guild copy), now draining 4 chunks per 0.15s tick (~26 msg/s). Pull-answer jitter stays at the reduced 3-10s.
