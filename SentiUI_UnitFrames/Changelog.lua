@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.49",
+		date = "2026-11-25",
+		changes = {
+			"Replace the low-health vignette and level-up flash with thin solid border lines (6px) hugging the screen edges. The gradient strips still rendered across the whole display on this client even with explicit point-to-point anchors - solid thin lines cannot stretch past the border by construction.",
+		},
+		changesDE = {
+			"Lebenswarnung und Level-Up-Blitz durch duenne, solide Randlinien (6px) an den Bildschirmkanten ersetzt. Die Gradienten-Streifen haben auf diesem Client trotz expliziter Punkt-zu-Punkt-Anker den ganzen Schirm bedeckt - duenne Linien koennen konstruktionsbedingt nicht ueber den Rand hinausragen.",
+		},
+	},
+	{
 		version = "0.2.48",
 		date = "2026-11-25",
 		changes = {

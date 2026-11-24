@@ -596,34 +596,24 @@ end
 local lowGlow, flash
 
 local function Vignette(parent, r, g, b)
-	-- four soft strips, opaque at the screen edge fading inward; the
-	-- gradient is baked once, the pulse only rewrites alpha. Anchors are
-	-- spelled out in full - the SetPoint(point, x, y) shorthand anchored
-	-- unreliably on this client and stretched the strips across the
-	-- whole screen
-	local function C(a)
-		return CreateColor and CreateColor(r, g, b, a)
-	end
-	local SZ = 64
-	local function edge(p1, p2, dir, a1, a2)
+	-- thin solid alarm lines hugging the screen borders - guaranteed to
+	-- stay at the edge (gradient strips stretched across the whole screen
+	-- on this client no matter how they were anchored)
+	local SZ = 6
+	local function edge(p1, p2, tall)
 		local t = parent:CreateTexture(nil, "OVERLAY")
-		t:SetTexture(BLANK)
+		t:SetColorTexture(r, g, b, 0.7)
 		t:SetPoint(p1, parent, p1, 0, 0)
 		t:SetPoint(p2, parent, p2, 0, 0)
-		if dir == "VERTICAL" then t:SetHeight(SZ) else t:SetWidth(SZ) end
-		if C(1) and t.SetGradient then
-			t:SetGradient(dir, C(a1), C(a2))
-		else
-			t:SetColorTexture(r, g, b, math.max(a1, a2) * 0.5)
-		end
+		if tall then t:SetHeight(SZ) else t:SetWidth(SZ) end
 		t:SetAlpha(0)
 		return t
 	end
 	return {
-		edge("TOPLEFT", "TOPRIGHT", "VERTICAL", 0, 0.55),
-		edge("BOTTOMLEFT", "BOTTOMRIGHT", "VERTICAL", 0.55, 0),
-		edge("TOPLEFT", "BOTTOMLEFT", "HORIZONTAL", 0.55, 0),
-		edge("TOPRIGHT", "BOTTOMRIGHT", "HORIZONTAL", 0, 0.55),
+		edge("TOPLEFT", "TOPRIGHT", true),
+		edge("BOTTOMLEFT", "BOTTOMRIGHT", true),
+		edge("TOPLEFT", "BOTTOMLEFT", false),
+		edge("TOPRIGHT", "BOTTOMRIGHT", false),
 	}
 end
 
@@ -636,7 +626,7 @@ local function BuildScreenFX()
 	lowGlow:SetScript("OnUpdate", function(self, dt)
 		if not self.on then return end
 		self.t = (self.t or 0) + (dt or 0.016)
-		local a = 0.12 + 0.11 * math.sin(self.t * 5.5)
+		local a = 0.22 + 0.20 * math.sin(self.t * 5.5)
 		for _, t in ipairs(self.strips) do t:SetAlpha(a) end
 	end)
 
