@@ -362,9 +362,9 @@ local function onMessage(sender, msg)
 	end
 
 	if string.find(msg, "^NASSIGN") then
-		for pname, class, tname, skill in
+		for rawp, class, rawt, skill in
 			string.gmatch(string.sub(msg, 9), "([^@]*) ([^@]*) ([^@]*) ([^@]*)") do
-			pname, tname = unwire(pname), unwire(tname)
+			local pname, tname = unwire(rawp), unwire(rawt)
 			local name = noRealm(pname)
 			if name and maySet(name, sender, leader) then
 				Comm.na[name] = Comm.na[name] or {}

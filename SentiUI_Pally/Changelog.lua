@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.3",
+		date = "2026-11-24",
+		changes = {
+			"Fix aura switching staying stuck on the first known aura: the skill check behind the aura pick used the rank-1 spell ids - any aura learned at a higher rank failed the check, so the bar chip fell back to the first known aura no matter what the grid assigned and the cycle could never leave the one known entry. Aura and seal picks are no longer skill-gated (same as the reference); with no aura assigned the chip shows a dimmed placeholder instead of hiding.",
+		},
+		changesDE = {
+			"Aura-Wechsel blieb auf der ersten bekannten Aura haengen, behoben: Der Skill-Check hinter der Aura-Auswahl nutzte die Rang-1-Spell-IDs - jede hoeher gelernte Aura schlug fehl, die Bar fiel auf die erste bekannte Aura zurueck, egal was das Grid zuwies, und der Cycle kam nie aus dem einen bekannten Eintrag raus. Aura- und Siegel-Auswahl sind jetzt nicht mehr skill-gated (wie die Referenz); ohne Zuweisung zeigt der Chip ein gedimmtes Platzhalter-Icon statt zu verschwinden.",
+		},
+	},
+	{
 		version = "0.1.2",
 		date = "2026-11-24",
 		changes = {

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.3 - 2026-11-24
+
+- Fix aura switching staying stuck on the first known aura: the
+  skill check behind the aura pick used the rank-1 spell ids - any
+  aura learned at a higher rank failed the check, so the bar chip
+  fell back to the first known aura no matter what the grid
+  assigned. Aura and seal picks are no longer skill-gated (same as
+  the reference); with no aura assigned the chip shows a dimmed
+  placeholder instead of hiding.
+
 ## 0.1.2 - 2026-11-24
 
 - Fix hundreds of ADDON_ACTION_BLOCKED during combat: SPELLS_CHANGED

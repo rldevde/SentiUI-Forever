@@ -175,19 +175,16 @@ local function paintAuraChip()
 	-- combat is FORBIDDEN. Park the whole repaint so icon and attributes
 	-- stay consistent with what the button would cast
 	if InCombatLockdown() then S.RunOutOfCombat(paintAuraChip) return end
-	-- the grid assignment drives the button (PallyPower behavior); fall back
-	-- to my remembered pick when nothing is assigned
+	-- the grid assignment drives the button (PallyPower behavior); the pick
+	-- is NOT skill-gated - SentinelForeverBlessings shows whatever is
+	-- assigned and lets a failed cast speak for itself
 	local a = Comm.aa[me()] or 0
-	if a < 1 or a > #D.Auras or not D.IsKnown(D.Auras[a].id) then
-		local known = D.KnownAuras()
-		a = known[db.aura] or known[1]
-	end
-	if not a then auraChip:Hide() return end
+	if a < 1 or a > #D.Auras or not D.Auras[a] then a = 0 end
 	auraChip:Show()
-	local info = D.Auras[a]
+	local info = D.Auras[a > 0 and a or 1]
 	auraChip.icon:SetTexture(info.icon)
-	auraChip.icon:SetDesaturated(false)
-	setCast(auraChip.cast, 1, info.id, "player")
+	auraChip.icon:SetDesaturated(a == 0)
+	setCast(auraChip.cast, 1, a > 0 and info.id or nil, "player")
 	chipTip(auraChip, (D.SpellName(info.id) or "?") .. "\n" ..
 		L["Left: cast - right on > or wheel: next aura"])
 end
@@ -195,12 +192,12 @@ end
 local function paintSealChip()
 	if not sealChip then return end
 	if InCombatLockdown() then S.RunOutOfCombat(paintSealChip) return end
-	local known = D.KnownSeals()
-	if #known == 0 then sealChip:Hide() return end
 	sealChip:Show()
-	local pick = db.seal
-	if pick < 1 or pick > #known then pick = 1 db.seal = 1 end
-	local id = D.Seals[known[pick]]
+	-- db.seal indexes D.Seals directly (the pick is not skill-gated,
+	-- like the reference) - rank-1 ids miss higher learned ranks anyway
+	local pick = db.seal or 0
+	if pick < 1 or pick > #D.Seals then pick = 1 db.seal = 1 end
+	local id = D.Seals[pick]
 	sealChip.icon:SetTexture(D.SpellIcon(id) or D.Blessings[1].icon)
 	sealChip.icon:SetDesaturated(false)
 	setCast(sealChip.cast, 1, id, "player")
@@ -397,23 +394,21 @@ local function buildBar()
 	sealChip:SetPoint("LEFT", auraChip, "RIGHT", 4, 0)
 	chipEnter(rfChip); chipEnter(auraChip); chipEnter(sealChip)
 	-- cycling the bar aura IS an aura assignment (PallyPower parity):
-	-- it lands in Comm.aa and goes out on the wire as AASSIGN
+	-- it lands in Comm.aa and goes out on the wire as AASSIGN. Blind
+	-- 1..8 like the reference - the pick is a preference, not a cast check
 	local function cycleAuraAssign(step)
 		local cur = Comm.aa[me()] or 0
-		for _ = 1, 8 do
-			cur = step > 0 and (cur % 8 + 1) or (cur - 1)
-			if cur < 0 then cur = 8 end
-			if cur == 0 or D.IsKnown(D.Auras[cur].id) then break end
-		end
+		cur = step > 0 and (cur % 8 + 1) or (cur - 1)
+		if cur < 1 then cur = 8 end
 		Comm.SetAura(me(), cur)
 	end
 	auraChip.cycle:SetScript("OnClick", function() cycleAuraAssign(1) end)
 	auraChip.cycle:SetScript("OnMouseWheel", function(_, d) cycleAuraAssign(d > 0 and 1 or -1) end)
 	sealChip.cycle:SetScript("OnClick", function()
-		cycle(D.KnownSeals(), "seal", paintSealChip, 1)
+		cycle(D.Seals, "seal", paintSealChip, 1)
 	end)
 	sealChip.cycle:SetScript("OnMouseWheel", function(_, d)
-		cycle(D.KnownSeals(), "seal", paintSealChip, d > 0 and 1 or -1)
+		cycle(D.Seals, "seal", paintSealChip, d > 0 and 1 or -1)
 	end)
 
 	S.Movers.Register(f, "blessings.bar", L["Blessings"])
@@ -457,9 +452,11 @@ local function cycleAuraCell(pname, back)
 	for _ = 1, 8 do
 		cur = back and (cur - 1) or (cur + 1)
 		if cur < 0 then cur = 8 elseif cur > 8 then cur = 0 end
+		-- own row cycles freely; other paladins only through auras they
+		-- reported knowing in their ASELF block
 		local ai = info and info.AuraInfo and info.AuraInfo[cur]
-		if cur == 0 or (ai and (ai.rank or 0) > 0)
-			or (pname == me() and D.IsKnown(D.Auras[cur].id)) then break end
+		if cur == 0 or pname == me()
+			or (ai and (ai.rank or 0) > 0) then break end
 	end
 	Comm.SetAura(pname, cur)
 end
