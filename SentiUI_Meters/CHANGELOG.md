@@ -1,5 +1,9 @@
 # SentiUI Meters
 
+## 0.3.6 - 2026-11-24
+
+- Row hover tooltips: hovering a meter row shows a GameTooltip with the source's name, rank #n, the metric value, its per-second rate and the percentage share of the segment (share only computes while numbers are readable — secret combat values render through engine formatting). Ends with the left-click spell-details hint.
+
 ## 0.3.5 - 2026-11-24
 
 - Row text tuning: `THICKOUTLINE` read as a fat black box — back to regular `OUTLINE` with the drop shadow kept. Class fill brightens from 38 % to 58 % so bar colours are recognizable again while text stays readable.

@@ -404,8 +404,58 @@ local function RowAt(dock, i)
 			ShowSpells(dock, self.src)
 		end
 	end)
+	-- hover tooltip: name, rank, the metric's value and rate. Secret
+	-- combat values go to the tooltip raw - AddDoubleLine renders them
+	-- engine-side where Lua cannot even tostring them
+	r:SetScript("OnEnter", function(self)
+		local src = self.src
+		if not (src and GameTooltip) then return end
+		local mode = dock.mode or ModeFor(dock.cfg.mode)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:ClearLines()
+		if not pcall(GameTooltip.AddLine, GameTooltip, src.name or "?") then
+			GameTooltip:AddLine("?") -- a secret name AddLine refused
+		end
+		GameTooltip:AddDoubleLine(mode.label .. "  |cff888888#" ..
+			tostring(self.rank or 0) .. "|r",
+			TipValue(mode.perSec and src.aps or src.total))
+		if not mode.perSec and mode.key ~= "threat" and src.aps ~= nil then
+			GameTooltip:AddDoubleLine(L["per second"], TipValue(src.aps))
+		end
+		-- share of the segment: only computable while nothing is secret
+		if mode.key ~= "threat" and not mode.perSec and IsN(src.total) then
+			local sum, allPlain = 0, true
+			for _, s2 in ipairs(scratch) do
+				if IsN(s2.total) then sum = sum + s2.total
+				else allPlain = false break end
+			end
+			if allPlain and sum > 0 then
+				GameTooltip:AddDoubleLine(L["Share"],
+					format("%.1f%%", src.total / sum * 100))
+			end
+		end
+		GameTooltip:AddLine(L["Left-click a row: spell details"],
+			0.55, 0.57, 0.62)
+		GameTooltip:Show()
+	end)
+	r:SetScript("OnLeave", function()
+		if GameTooltip then GameTooltip:Hide() end
+	end)
 	dock.rows[i] = r
 	return r
+end
+
+-- formats a meter value for tooltips: plain numbers through Abbrev,
+-- secrets through the engine formatter (or raw as a last resort -
+-- AddDoubleLine renders secret strings/numbers itself)
+TipValue = function(v)
+	if v == nil then return "?" end
+	if IsN(v) then return Abbrev(v) end
+	if AbbreviateNumbers then
+		local ok, ab = pcall(AbbreviateNumbers, v)
+		if ok and ab ~= nil then return ab end
+	end
+	return v
 end
 
 local myGUID
@@ -419,6 +469,7 @@ end
 
 local SetScroll -- forward: UpdateDock clamps the offset, defined below
 local ShowSpells -- forward: row clicks open the spell breakdown
+local TipValue -- forward: row tooltips format values, defined below
 
 -- collapsed = a slim strip on the loot-facing edge: the dock's anchor
 -- holds its RIGHT side, so shrinking the width folds the window toward
@@ -474,6 +525,7 @@ local function UpdateDock(d, cfg)
 	for i = 1, show do
 		local src = scratch[i]
 		local r = RowAt(d, i)
+		r.rank = i -- tooltip prints the position
 		r:SetHeight(h)
 		r:ClearAllPoints()
 		r:SetPoint("TOPLEFT", d.content, "TOPLEFT", 0,

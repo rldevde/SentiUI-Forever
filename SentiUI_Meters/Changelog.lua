@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.6",
+		date = "2026-11-24",
+		changes = {
+			"Row hover tooltips: hovering a meter row shows a GameTooltip with the source's name, rank #n, the metric value, its per-second rate and the percentage share of the segment (the share only computes while the client's numbers are readable - secret combat values render through engine formatting instead). Ends with the left-click spell-details hint.",
+		},
+		changesDE = {
+			"Hover-Tooltips auf den Zeilen: Beim Ueberfahren einer Meter-Zeile zeigt ein GameTooltip Name, Rang #n, den Metrikwert, die Rate pro Sekunde und den prozentualen Anteil am Segment (der Anteil rechnet nur solange die Zahlen lesbar sind - Secret-Kampfwerte gehen ueber Engine-Formatierung). Unten der Hinweis auf Linksklick-Zauberdetails.",
+		},
+	},
+	{
 		version = "0.3.5",
 		date = "2026-11-24",
 		changes = {
