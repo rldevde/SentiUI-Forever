@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.9",
+		date = "2026-11-24",
+		changes = {
+			"Data bars animate now: the fill glides to new values (exponential ease, like the nameplate health bars - Smooth bars setting) and \"+N\" gain numbers pop off the fill's leading edge, rising while they fade (Gain flytext setting). Rapid gains pool into one sum; the pop is skipped on level-ups and standing changes where the range itself moves.",
+		},
+		changesDE = {
+			"Datenleisten sind jetzt animiert: Die Fuellung gleitet zu neuen Werten (exponentielles Easing wie die Lebensleisten - Einstellung Weiche Leisten) und \"+N\"-Zugewinn-Zahlen springen von der vorderen Fuellkante ab und steigen ausblendend auf (Zugewinn-Fliessbarkeit). Schnelle Zugewinne sammeln sich in einer Summe; bei Level-Ups und Rangwechseln, wo der Bereich selbst wandert, wird der Pop uebersprungen.",
+		},
+	},
+	{
 		version = "0.1.8",
 		changes = {
 			"Gold hairline now spans the bar's full width (was inset 5px each side - read as a golden section smaller than the bar itself).",

@@ -12,6 +12,9 @@ Experience and reputation bars for SentiUI.
 - Both bars dock onto the chat panels by default (they follow the
   chat movers) and are registered as their own movers so they can
   be detached and placed anywhere.
+- The fill glides to new values (Smooth bars) and `+N` gain numbers
+  pop off the fill's leading edge and rise while they fade (Gain
+  flytext) — both on by default.
 - Settings live under **SentiUI → Data Bars** (`/sui`): size,
   orientation (horizontal/vertical), text mode, mouseover fade,
-  hide at max level and more.
+  smooth fill, gain flytext, hide at max level and more.

@@ -27,6 +27,31 @@ local function IsVert()
 	return db and db.orientation == "VERTICAL"
 end
 
+-- eased fill like the nameplate health bars; snapped when smoothBars is off
+local INTERP = Enum and Enum.StatusBarInterpolation
+	and Enum.StatusBarInterpolation.ExponentialEaseOut or nil
+local function SetSmooth(sb, cur, mx)
+	if INTERP and db.smoothBars ~= false then
+		local ok = pcall(sb.SetMinMaxValues, sb, 0, mx, INTERP)
+		if ok and pcall(sb.SetValue, sb, cur, INTERP) then return end
+	end
+	sb:SetMinMaxValues(0, mx)
+	sb:SetValue(cur)
+end
+
+-- "+N" gain numbers pop off the leading edge of the fill and rise while
+-- they fade; rapid gains pool into one sum instead of a string spam
+local function Gain(bar, amount, color)
+	if not (bar.fly and amount and amount > 0) then return end
+	bar.flySum = (bar.flySum or 0) + amount
+	bar.flyT = 0
+	bar.flyColor = color or XP_COLOR
+	bar.fly:SetText("+" .. Abbrev(bar.flySum))
+	bar.fly:SetTextColor(bar.flyColor.r, bar.flyColor.g, bar.flyColor.b)
+	bar.fly:SetAlpha(1)
+	bar.fly:Show()
+end
+
 local function MaxLevel()
 	return (GetMaxLevelForPlayerExpansion and GetMaxLevelForPlayerExpansion())
 		or (GetMaxPlayerLevel and GetMaxPlayerLevel()) or MAX_PLAYER_LEVEL or 60
@@ -182,6 +207,30 @@ local function MakeBar(key, label)
 	local text = S.Font(main, max(8, min(12, db.height - 2)), nil, "OUTLINE")
 	text:SetPoint("CENTER", f, "CENTER")
 
+	-- the gain flytext rides the fill's leading edge while it rises and
+	-- fades; anchored per tick, so it tracks an easing fill too
+	local fly = S.Font(main, max(8, min(12, db.height)), nil, "OUTLINE")
+	fly:Hide()
+	f.fly = fly
+	f:SetScript("OnUpdate", function(_, dt)
+		if not f.flyT then return end
+		f.flyT = f.flyT + (dt or 0.016)
+		local t, dur = f.flyT, 1.3
+		if t >= dur then
+			fly:Hide()
+			f.flyT, f.flySum = nil, 0
+			return
+		end
+		fly:SetAlpha(t < 0.7 and 1 or max(0, (dur - t) / 0.6))
+		fly:ClearAllPoints()
+		local tex = main:GetStatusBarTexture()
+		if IsVert() then
+			fly:SetPoint("BOTTOM", tex, "TOP", 0, 4 + t * 16)
+		else
+			fly:SetPoint("BOTTOMLEFT", tex, "TOPRIGHT", 4, 4 + t * 16)
+		end
+	end)
+
 	-- SentiUI signature: accent hairline across the top edge + a spark at the
 	-- leading edge of the fill
 	local line = S.Line(f, ACCENT)
@@ -238,10 +287,15 @@ function Core.UpdateXP()
 	if IsSecret(cur) or IsSecret(mx) then return end
 	local rested = (GetXPExhaustion and GetXPExhaustion()) or 0
 	if IsSecret(rested) then rested = 0 end
-	bar.main:SetMinMaxValues(0, mx)
-	bar.main:SetValue(cur)
+	SetSmooth(bar.main, cur, mx)
 	Fill(bar.main, XP_COLOR.r, XP_COLOR.g, XP_COLOR.b)
 	bar.spark:SetShown(cur > 0)
+	-- "+N XP" pop where the fill lands; skipped on level-up (mx changes)
+	local last = bar.lastXP
+	if last and last.mx == mx and cur > last.cur and db.gainText ~= false then
+		Gain(bar, cur - last.cur, XP_COLOR)
+	end
+	bar.lastXP = { cur = cur, mx = mx }
 	if db.xp.showRested and rested > 0 then
 		bar.rested:SetMinMaxValues(0, mx)
 		bar.rested:SetValue(min(mx, cur + rested))
@@ -353,14 +407,18 @@ function Core.UpdateRep()
 	if not db.rep.enable or not name then bar:Hide() return end
 	bar:Show()
 	local cur, mx = (value or 0) - (minV or 0), max(1, (maxV or 1) - (minV or 0))
-	bar.main:SetMinMaxValues(0, mx)
-	bar.main:SetValue(cur)
+	SetSmooth(bar.main, cur, mx)
 	local c = (standing == 9 and { r = 0, g = 0.5, b = 0.9 })
 		or (standing == 10 and { r = 0, g = 0.75, b = 0.95 })
 		or (FACTION_BAR_COLORS and FACTION_BAR_COLORS[standing])
 		or { r = 0, g = 0.6, b = 0.1 }
 	Fill(bar.main, c.r, c.g, c.b)
 	bar.spark:SetShown(cur > 0)
+	local last = bar.lastRep
+	if last and last.mx == mx and cur > last.cur and db.gainText ~= false then
+		Gain(bar, cur - last.cur, c)
+	end
+	bar.lastRep = { cur = cur, mx = mx }
 	bar.quest:Hide()
 	bar.rested:Hide()
 	bar.text:SetText(name .. ": " .. FormatText(db.textMode, cur, mx) .. " [" .. (label or "") .. "]")

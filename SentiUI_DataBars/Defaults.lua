@@ -10,6 +10,8 @@ ns.DEFAULTS = {
 	mouseover = false,    -- hide until hovered
 	textMode = "CURPERC", -- "NONE" | "PERCENT" | "CURMAX" | "CURPERC" | "REMAINING"
 	orientation = "HORIZONTAL",
+	smoothBars = true,    -- eased fill animation
+	gainText = true,      -- "+N" numbers pop off the fill edge on gains
 
 	xp = {
 		enable = true,
