@@ -39,6 +39,18 @@ local function SetSmooth(sb, cur, mx)
 	sb:SetValue(cur)
 end
 
+local function MaxLevel()
+	return (GetMaxLevelForPlayerExpansion and GetMaxLevelForPlayerExpansion())
+		or (GetMaxPlayerLevel and GetMaxPlayerLevel()) or MAX_PLAYER_LEVEL or 60
+end
+
+local function Abbrev(n)
+	if BreakUpLargeNumbers then return BreakUpLargeNumbers(n) end
+	if n >= 1e6 then return format("%.1fM", n / 1e6) end
+	if n >= 1e3 then return format("%.1fk", n / 1e3) end
+	return tostring(floor(n))
+end
+
 -- "+N" gain numbers pop off the leading edge of the fill and rise while
 -- they fade; rapid gains pool into one sum instead of a string spam
 local function Gain(bar, amount, color)
@@ -50,18 +62,6 @@ local function Gain(bar, amount, color)
 	bar.fly:SetTextColor(bar.flyColor.r, bar.flyColor.g, bar.flyColor.b)
 	bar.fly:SetAlpha(1)
 	bar.fly:Show()
-end
-
-local function MaxLevel()
-	return (GetMaxLevelForPlayerExpansion and GetMaxLevelForPlayerExpansion())
-		or (GetMaxPlayerLevel and GetMaxPlayerLevel()) or MAX_PLAYER_LEVEL or 60
-end
-
-local function Abbrev(n)
-	if BreakUpLargeNumbers then return BreakUpLargeNumbers(n) end
-	if n >= 1e6 then return format("%.1fM", n / 1e6) end
-	if n >= 1e3 then return format("%.1fk", n / 1e3) end
-	return tostring(floor(n))
 end
 
 local function FormatText(mode, cur, mx, extra)

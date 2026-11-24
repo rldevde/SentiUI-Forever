@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.10",
+		date = "2026-11-25",
+		changes = {
+			"Fix \"attempt to call a nil value\" on every XP tick: the gain-flytext helper sat above the local Abbrev function it formats numbers with, so the reference resolved to a missing global. Gain is defined below Abbrev now.",
+		},
+		changesDE = {
+			"\"attempt to call a nil value\" bei jedem XP-Tick behoben: Der Zugewinn-Fliessbarkeits-Helfer stand ueber der lokalen Abbrev-Funktion, mit der er Zahlen formatiert - die Referenz lief auf ein fehlendes Global. Gain steht jetzt unter Abbrev.",
+		},
+	},
+	{
 		version = "0.1.9",
 		date = "2026-11-24",
 		changes = {
