@@ -25,6 +25,8 @@ ns.OPTIONS = {
 			{ type = "toggle", key = "healthText", label = L["Health text"] },
 			{ type = "toggle", key = "smoothBars", label = L["Smooth bars"],
 				desc = L["Health fills ease to the new value instead of snapping."] },
+			{ type = "toggle", key = "absorbBar", label = L["Absorb bar"],
+				desc = L["Thin shield sliver across the top of the health fill."] },
 		},
 	},
 	{
@@ -59,6 +61,8 @@ ns.OPTIONS = {
 			{ type = "toggle", key = "targetHighlight", label = L["Target highlight"] },
 			{ type = "toggle", key = "raidIcon", label = L["Raid target icon"] },
 			{ type = "toggle", key = "eliteMarker", label = L["Elite/rare marker"] },
+			{ type = "toggle", key = "questMark", label = L["Quest mob marker"],
+				desc = L["Gold ! beside a plate when the mob is needed for one of your quests."] },
 		},
 	},
 }

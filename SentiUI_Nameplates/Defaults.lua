@@ -25,4 +25,6 @@ ns.DEFAULTS = {
 	raidIcon = true,
 	eliteMarker = true,
 	smoothBars = true,       -- health fills ease to their new value
+	absorbBar = true,        -- thin shield sliver across the top of the fill
+	questMark = true,        -- gold "!" on plates whose mob a quest needs
 }

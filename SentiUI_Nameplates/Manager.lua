@@ -177,7 +177,10 @@ function Manager.Enable()
 	end
 	S.RegisterEvent("UNIT_AURA", function(_, unit)
 		local p = unit and Manager.byUnit[unit]
-		if p then S.SafeCall("plates:auras", ns.Auras.Update, p) end
+		if p then
+			S.SafeCall("plates:auras", ns.Auras.Update, p)
+			if ns.Plate.Absorb then S.SafeCall("plates:abs", ns.Plate.Absorb, p, unit) end
+		end
 	end)
 
 	for _, ev in ipairs({ "PLAYER_TARGET_CHANGED", "RAID_TARGET_UPDATE" }) do
@@ -202,6 +205,7 @@ function Manager.Enable()
 	end)
 
 	ns.Cast.Register()
+	if ns.Quest then ns.Quest.Register() end
 
 	-- threat events are unreliable on this client: a slow ticker is the
 	-- driver, events only make updates feel instant

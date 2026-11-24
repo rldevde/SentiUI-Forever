@@ -2,6 +2,20 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.26",
+		date = "2026-11-25",
+		changes = {
+			"Quest mob marker: gold ! beside a plate when the mob's name appears in an unfinished quest objective line. Rescans on quest log events; plain substring matching works in every locale (on by default).",
+			"Absorb sliver: thin shield bar across the top of the health fill showing UnitGetTotalAbsorbs - secret-safe like the fill itself.",
+			"Cast bar flash: interrupted/failed casts flash red, finished casts flash green - the bar retires with a glow instead of popping out.",
+		},
+		changesDE = {
+			"Quest-Mob-Marker: Ein goldenes ! neben der Plakette, wenn der Mob-Name in einer deiner offenen Questziel-Zeilen auftaucht. Zieltexte werden bei Questlog-Ereignissen neu gelesen; der Abgleich ist ein einfacher Teilstring-Vergleich - funktioniert in jeder Sprache (Quest-Mob-Marker unter Namensplaketten > Extras, standardmäßig an).",
+			"Absorb-Splitter: Eine dünne Schildleiste am oberen Rand der Lebensfüllung zeigt UnitGetTotalAbsorbs - geheimwert-sicher wie die Füllung selbst (Absorb-Leiste unter Namensplaketten > Leben).",
+			"Zauberleisten-Blitz: Ein unterbrochener oder fehlgeschlagener Zauber blinkt rot, ein beendeter grün - die Leiste zieht sich mit einem Glühen zurück statt zu verschwinden (gleiches Rezept wie die Einheiten-Zauberleiste).",
+		},
+	},
+	{
 		version = "0.1.25",
 		date = "2026-11-24",
 		changes = {

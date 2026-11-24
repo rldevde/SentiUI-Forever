@@ -3,7 +3,7 @@
 ## Title: SentiUI Nameplates
 ## Notes: Sentinel-styled nameplates: threat colors, cast bars, debuffs, class colors.|nPart of the SentiUI suite.
 ## Author: SentiUI
-## Version: 0.1.25
+## Version: 0.1.26
 ## SavedVariables: SentiUI_NameplatesDB
 ## LoadSavedVariablesFirst: 1
 ## Dependencies: SentiUI
@@ -12,6 +12,7 @@ Locales\Locales.lua
 Locales\deDE.lua
 Defaults.lua
 Threat.lua
+Quest.lua
 Plate.lua
 Cast.lua
 Auras.lua

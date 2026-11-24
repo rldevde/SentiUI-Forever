@@ -92,6 +92,21 @@ end
 -- call on its own so one rejected secret cannot kill the other. The
 -- interpolation enum rides SetValue's second arg: the engine eases the
 -- fill instead of snapping it (smoothBars).
+-- shield sliver on the health bar: reads go straight into the StatusBar
+-- setters so secret absorb amounts still scale engine-side
+function Plate.Absorb(p, unit)
+	local a = p.absorb
+	if not a then return end
+	local db = ns.Cfg()
+	if db.absorbBar == false then a:Hide() return end
+	local ok = pcall(function()
+		local ab = UnitGetTotalAbsorbs(unit)
+		a:SetMinMaxValues(0, UnitHealthMax(unit))
+		a:SetValue(ab or 0)
+	end)
+	a:SetShown(ok)
+end
+
 local function hp_apply(p, unit)
 	pcall(p.hp.SetMinMaxValues, p.hp, 0, UnitHealthMax(unit))
 	local db = ns.Cfg()
@@ -99,6 +114,7 @@ local function hp_apply(p, unit)
 		and Enum and Enum.StatusBarInterpolation
 		and Enum.StatusBarInterpolation.ExponentialEaseOut or nil
 	pcall(p.hp.SetValue, p.hp, UnitHealth(unit), interp)
+	Plate.Absorb(p, unit)
 end
 
 -- health %: the engine percent API accepts secret values and still
@@ -325,6 +341,19 @@ function Plate.Create(parent)
 	end
 	p.hp = hp
 
+	-- absorb sliver: thin bar across the top of the fill showing the
+	-- shield amount; a StatusBar so secret values scale engine-side
+	local absorb = CreateFrame("StatusBar", nil, hp)
+	absorb:SetPoint("TOPLEFT", 0, 0)
+	absorb:SetPoint("TOPRIGHT", 0, 0)
+	absorb:SetHeight(2)
+	absorb:SetStatusBarTexture(BLANK)
+	absorb:SetStatusBarColor(0.85, 0.80, 0.55, 0.9)
+	absorb:SetMinMaxValues(0, 1)
+	absorb:SetValue(0)
+	absorb:Hide()
+	p.absorb = absorb
+
 	-- parented to the bar so it draws over the gloss overlay, not under it
 	p.hpText = S.Font(hp, 9, nil, "OUTLINE")
 	p.hpText:SetDrawLayer("OVERLAY", 2)
@@ -344,6 +373,12 @@ function Plate.Create(parent)
 	p.elite = S.Font(p, 10, ACC, "OUTLINE")
 	p.elite:SetPoint("RIGHT", p.level, "LEFT", -4, 0)
 	p.elite:SetJustifyH("RIGHT")
+
+	-- quest-mob mark: gold "!" hanging off the box's left edge
+	p.quest = S.Font(p, 12, ACC, "OUTLINE")
+	p.quest:SetPoint("RIGHT", box, "LEFT", -3, 1)
+	p.quest:SetText("!")
+	p.quest:Hide()
 
 	p.raidIcon = p:CreateTexture(nil, "OVERLAY")
 	p.raidIcon:SetSize(14, 14)
@@ -411,6 +446,14 @@ function Plate.Create(parent)
 	p.castTime:SetDrawLayer("OVERLAY", 2)
 	p.castTime:SetJustifyH("RIGHT")
 	cast.timeText = p.castTime -- read by Cast.lua's fill drivers
+
+	-- end-of-cast flash on the cast box: full-bar overlay Cast.lua
+	-- recolors (gold = finished, red = interrupted) and fades out
+	p.castFlash = cast:CreateTexture(nil, "OVERLAY", nil, 3)
+	p.castFlash:SetAllPoints()
+	p.castFlash:SetTexture(BLANK)
+	p.castFlash:SetBlendMode("ADD")
+	p.castFlash:Hide()
 
 	-- uninterruptible badge on the cast icon, like the unit-frame shield
 	p.castShield = cbox:CreateTexture(nil, "OVERLAY", nil, 2)
@@ -565,6 +608,12 @@ function Plate.Update(p)
 			p.elite:SetText(L[key])
 			p.elite:Show()
 		else p.elite:Hide() end
+	end
+
+	-- quest-mob mark: unit name inside an unfinished objective line
+	if p.quest then
+		p.quest:SetShown(db.questMark ~= false and not p.friendly
+			and ns.Quest.IsQuestMob(unit))
 	end
 
 	-- health values may be secret - straight into the setters

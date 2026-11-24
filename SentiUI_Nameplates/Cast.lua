@@ -91,6 +91,7 @@ function Cast.Refresh(p)
 	if not db.castBar or not p.unit or p.friendly then
 		return Cast.Stop(p)
 	end
+	if p.castFlash then p.castFlash:Hide() end
 	-- display text is the 2nd return, like the game's own cast bar; the
 	-- type() check alone decides (a secret name is still non-nil)
 	local okC, _, name, texture, st, et, _, _, ni =
@@ -148,9 +149,40 @@ function Cast.Refresh(p)
 	end
 end
 
-function Cast.Stop(p)
+-- end-of-cast flash: the bar glows once in place, then the box retires
+local function Flash(p, r, g, b)
+	if not p.castFlash then p.castBox:Hide() return end
+	p.cast:SetMinMaxValues(0, 1)
+	p.cast:SetValue(1)
+	p.castFlash:SetVertexColor(r, g, b, 1)
+	p.castFlash:Show()
+	p.castBox:Show()
+	local a = 0.8
+	p.cast:SetScript("OnUpdate", function(self, dt)
+		a = a - (dt or 0.016) * 2.4
+		if a <= 0 then
+			p.castFlash:Hide()
+			self:SetScript("OnUpdate", nil)
+			p.castBox:Hide()
+			return
+		end
+		p.castFlash:SetAlpha(a)
+	end)
+end
+
+function Cast.Stop(p, event)
 	p.cast:SetScript("OnUpdate", nil)
 	p.cast.duration = nil
+	if event and p.castBox:IsShown() and p.castFlash then
+		if event == "UNIT_SPELLCAST_INTERRUPTED"
+			or event == "UNIT_SPELLCAST_FAILED" then
+			return Flash(p, 0.85, 0.15, 0.15)
+		end
+		if event == "UNIT_SPELLCAST_STOP"
+			or event == "UNIT_SPELLCAST_CHANNEL_STOP" then
+			return Flash(p, 0.5, 0.75, 0.3)
+		end
+	end
 	p.castBox:Hide()
 end
 
@@ -159,7 +191,15 @@ function Cast.Register()
 	for _, ev in ipairs(CAST_EVENTS) do
 		S.RegisterEvent(ev, function(_, unit)
 			local p = unit and ns.Manager.byUnit[unit]
-			if p then Cast.Refresh(p) end
+			if not p then return end
+			if ev == "UNIT_SPELLCAST_STOP" or ev == "UNIT_SPELLCAST_FAILED"
+				or ev == "UNIT_SPELLCAST_INTERRUPTED"
+				or ev == "UNIT_SPELLCAST_CHANNEL_STOP"
+				or ev == "UNIT_SPELLCAST_EMPOWER_STOP" then
+				Cast.Stop(p, ev)
+			else
+				Cast.Refresh(p)
+			end
 		end)
 	end
 end
