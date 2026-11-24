@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.26",
+		date = "2026-11-25",
+		changes = {
+			"Who-pinged: a gold label under the map names whoever pinged, plus a soft accent ring flash so the ping is hard to miss (Minimap > Ping info).",
+		},
+		changesDE = {
+			"Wer-gepingt: Eine goldene Zeile unter der Karte nennt den Pinger, und ein sanfter Akzent-Ringblitz macht den Ping unuebersehbar (der Ping-Punkt kommt vom Client selbst; das ergaenzt die Zuordnung). Schalter unter Minimap > Ping-Info.",
+		},
+	},
+	{
 		version = "0.3.25",
 		date = "2026-11-24",
 		changes = {

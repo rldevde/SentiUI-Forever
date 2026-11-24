@@ -25,6 +25,8 @@ ns.OPTIONS = {
 							desc = L["The bar under the map with coordinates, the menu button and the addon button collection."] },
 						{ type = "toggle", key = "menuButton", label = L["Menu button"],
 							desc = L["The hamburger button in the bar under the map opens the game menu."] },
+						{ type = "toggle", key = "pingInfo", label = L["Ping info"],
+							desc = L["Names who pinged and flashes the map ring on minimap pings."] },
 						{ type = "toggle", key = "addonButtons", label = L["Addon buttons"],
 							desc = L["The + button collects every addon minimap button into a dropdown."] },
 						{ type = "toggle", key = "rotate", label = L["Rotate with player"],

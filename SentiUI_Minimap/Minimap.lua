@@ -1576,3 +1576,57 @@ S.RegisterEvent("MINIMAP_UPDATE_TRACKING", function()
 		S.SafeCall("minimap:trackrows", rebuildTrackRows)
 	end
 end)
+
+-- who-pinged: a short gold label under the map names the pinger, plus a
+-- soft accent ring flash so the ping is hard to miss. The engine draws
+-- the map ping itself; this only adds attribution + attention.
+local pingText, pingGlow, pingT
+S.RegisterEvent("MINIMAP_PING", function(_, unit)
+	if not mod or mod.db.pingInfo == false then return end
+	S.SafeCall("minimap:ping", function()
+		local name = type(unit) == "string" and GetUnitName(unit, true) or nil
+		if type(name) ~= "string" or name == "" then return end
+		if not pingText and panel then
+			pingText = S.Font(panel, 10, S.colors.accent, "OUTLINE")
+			pingText:SetPoint("TOP", coordsBar or panel, "BOTTOM", 0, -3)
+			pingText:SetJustifyH("CENTER")
+		end
+		if pingText then
+			pingText:SetText("|cffebad33<|r " .. name .. " |cffebad33>|r")
+			pingText:SetAlpha(1)
+			pingText:Show()
+			pingT = GetTime()
+			pingText:SetScript("OnUpdate", function(self, dt)
+				local a = GetTime() - pingT
+				if a > 4 then
+					self:Hide()
+					self:SetScript("OnUpdate", nil)
+				elseif a > 3 then
+					self:SetAlpha(4 - a)
+				end
+			end)
+		end
+		if panel then
+			if not pingGlow then
+				pingGlow = panel:CreateTexture(nil, "OVERLAY")
+				pingGlow:SetTexture(CIRCLE)
+				pingGlow:SetBlendMode("ADD")
+				pingGlow:SetVertexColor(0.92, 0.68, 0.20, 0.8)
+				pingGlow:SetPoint("TOPLEFT", -4, 4)
+				pingGlow:SetPoint("BOTTOMRIGHT", 4, -4)
+				pingGlow:Hide()
+			end
+			pingGlow:Show()
+			pingGlow._t = 0
+			pingGlow:SetScript("OnUpdate", function(self, dt)
+				self._t = self._t + (dt or 0.016)
+				if self._t > 0.9 then
+					self:Hide()
+					self:SetScript("OnUpdate", nil)
+				else
+					self:SetAlpha(0.8 * (1 - self._t / 0.9))
+				end
+			end)
+		end
+	end)
+end)

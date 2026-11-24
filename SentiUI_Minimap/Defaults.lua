@@ -17,6 +17,7 @@ ns.DEFAULTS = {
 	autoTrackOff = {},             -- trackings the user turned off manually stay off
 	rotate = false,                -- rotateMinimap cvar, the map turns with the player
 	menuButton = true,             -- hamburger button in the bar under the map
+	pingInfo = true,               -- who-pinged label + ring flash on minimap pings
 	coords = true,                 -- coordinates bar below the map
 	addonButtons = true,           -- "+" button collects addon minimap buttons into a dropdown
 	hide = {                       -- optional minimap elements

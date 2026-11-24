@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.26 - 2026-11-25
+
+- Who-pinged: a gold label under the map names whoever pinged, and a soft accent ring flash makes the ping hard to miss (the engine draws the ping blip itself; this adds attribution). Toggle under Minimap > Ping info.
+
 ## 0.3.25 - 2026-11-24
 
 - Auto profession tracking actually fires now: the old check compared `GetProfessions()` (list indices) against skill-line ids 182/186 and never matched. The tracking list itself is the authority — its entries only exist for types the character can use, so the name match is enough.
