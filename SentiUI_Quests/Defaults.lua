@@ -14,6 +14,8 @@ ns.DEFAULTS = {
 	feedExit = "right",           -- "left"|"right" fly to that screen edge,
 	                              -- "fade" fades in place
 	shareProgress = true,         -- post objective progress to the party chat
+	completeToast = true,         -- big card when a quest finishes
+	objectiveToast = true,        -- smaller card per finished objective
 	autoQuest = false,            -- auto accept / turn in at NPCs (shift skips)
 	autoQuestSkipTrivial = true,  -- skip gray/trivial quests on auto-accept
 	questLevels = true,           -- "[15] Title" in the list

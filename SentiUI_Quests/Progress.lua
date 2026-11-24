@@ -230,6 +230,57 @@ local function Push(e)
 	Paint()
 end
 
+-- quest-complete toast: big card that fades in, holds ~3s, lifts out.
+-- Built once next to the feed pool - frames made under lockdown are
+-- born protected on this client
+local toast
+local function BuildToast()
+	toast = CreateFrame("Frame", "SentiUIQuestToast", UIParent)
+	S.Template(toast, "raised")
+	toast:SetSize(320, 64)
+	toast:SetPoint("CENTER", UIParent, "CENTER", 0, 120)
+	toast:SetFrameStrata("HIGH")
+	local icon = toast:CreateTexture(nil, "ARTWORK")
+	icon:SetTexture("Interface\\RaidFrame\\ReadyCheck-Ready")
+	icon:SetSize(26, 26)
+	icon:SetPoint("LEFT", 14, 0)
+	local cap = S.Font(toast, 11, ACC, "OUTLINE")
+	cap:SetPoint("TOPLEFT", icon, "TOPRIGHT", 10, -1)
+	toast.cap = cap
+	local name = S.Font(toast, 12)
+	name:SetPoint("TOPLEFT", cap, "BOTTOMLEFT", 0, -3)
+	name:SetPoint("RIGHT", toast, "RIGHT", -12, 0)
+	name:SetJustifyH("LEFT")
+	name:SetWordWrap(false)
+	toast.name = name
+	toast:SetAlpha(0)
+	toast:Hide()
+end
+
+local function ShowToast(caption, title)
+	if not toast then return end
+	pcall(toast.cap.SetText, toast.cap, caption)
+	pcall(toast.name.SetText, toast.name, title)
+	toast.t = 0
+	toast:Show()
+	toast:SetScript("OnUpdate", function(self, dt)
+		self.t = self.t + (dt or 0.016)
+		local a
+		if self.t < 0.25 then a = self.t / 0.25
+		elseif self.t < 2.8 then a = 1
+		elseif self.t < 3.4 then a = 1 - (self.t - 2.8) / 0.6
+		else
+			self:SetScript("OnUpdate", nil)
+			self:Hide()
+			return
+		end
+		self:SetAlpha(a)
+		self:ClearAllPoints()
+		self:SetPoint("CENTER", UIParent, "CENTER", 0,
+			120 + math.min(self.t, 3.4) * 8)
+	end)
+end
+
 local function Show(text, kind)
 	-- a secret message text (combat lockdown can mark it) cannot be
 	-- parsed or wrapped - Lua would throw - so it goes to the row raw:
@@ -241,6 +292,11 @@ local function Show(text, kind)
 	end
 	local words, have, need = Parse(text)
 	local key = words
+	if kind == "complete" and db.completeToast ~= false then
+		ShowToast(L["Quest complete!"], words)
+	elseif kind == "done" and db.objectiveToast ~= false then
+		ShowToast(L["Objective complete!"], words)
+	end
 	if kind == "done" then
 		words = "|TInterface\\RaidFrame\\ReadyCheck-Ready:11|t "
 			.. "|cff" .. S.Hex(S.colors.green) .. words .. "|r"
@@ -387,6 +443,7 @@ function Progress.Apply()
 		holder:EnableMouse(false)
 		S.Movers.Register(holder, "quests.progress", L["Quest progress"])
 		for i = 1, ROWS do GetRow(i) end
+		BuildToast()
 		holder:SetScript("OnUpdate", function(_, dt)
 			local now, dirty = GetTime(), false
 			for i = #live, 1, -1 do

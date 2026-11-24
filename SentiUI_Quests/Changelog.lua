@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.15",
+		date = "2026-11-25",
+		changes = {
+			"Completion toasts: a big card pops mid-screen when a quest is finished, plus a matching card per finished objective - fades in, holds ~3s, lifts out. Separate toggles (Completion toast / Objective toast).",
+		},
+		changesDE = {
+			"Abschluss-Toasts: Eine grosse Karte poppt mittig auf, wenn eine Quest abgeschlossen ist (plus eine passende Karte pro beendetem Ziel) - blendet ein, haelt ~3s, steigt aus. Beide sind eigene Schalter (Abschluss-Toast / Ziel-Toast unter Quests) und teilen die Fortschritts-Pipeline - sie laufen also mit aktiven Fortschrittszeilen.",
+		},
+	},
+	{
 		version = "0.4.14",
 		date = "2026-11-24",
 		changes = {
