@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.43 - 2026-11-24
+
+- FBL sync: whispering a pull answer to an offline peer spammed 'no player named X online' once per chunk (~80 system lines). Those system lines are now filtered for our own whisper targets, the rest of that peer's copy is aborted, and the peer is skipped for 30 minutes.
+
 ## 0.5.42 - 2026-11-24
 
 - FBL sync speed: a full list now travels in seconds instead of half a minute. Chunks grew to 236 bytes (still under the 255-byte message cap), the addon drain sends 3 chunks per 0.15s tick (~20 msg/s, was 1 per 0.3s), and every broadcast additionally pushes one guild copy - reaching guildmates who never joined the sync channel.
