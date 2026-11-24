@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2 - 2026-11-24
+
+- Fix hundreds of ADDON_ACTION_BLOCKED during combat: SPELLS_CHANGED
+  repainted the RF/aura/seal chips directly, and the chips are
+  protected (they contain secure buttons) - every aura tick hit a
+  forbidden Show(). The chip paints now defer the whole repaint
+  through RunOutOfCombat, so icon and cast attributes stay in sync
+  with what a click would fire.
+
 ## 0.1.1 - 2026-11-24
 
 - Fix casts doing nothing: the secure spell attribute needs the spell

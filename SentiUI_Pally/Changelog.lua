@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.2",
+		date = "2026-11-24",
+		changes = {
+			"Fix hundreds of ADDON_ACTION_BLOCKED during combat: SPELLS_CHANGED repainted the RF/aura/seal chips directly, and the chips are protected (they contain secure buttons) - every aura tick hit a forbidden Show(). The three chip paints now defer the whole repaint through RunOutOfCombat, so icon and cast attributes always stay in sync with what a click would fire.",
+		},
+		changesDE = {
+			"Hunderte ADDON_ACTION_BLOCKED im Kampf behoben: SPELLS_CHANGED malte die Zorner-/Aura-/Siegel-Chips direkt, und die Chips sind protected (sie enthalten Secure-Buttons) - jeder Aura-Tick traf ein verbotenes Show(). Die drei Chip-Paints deferieren den ganzen Repaint jetzt ueber RunOutOfCombat, Icon und Cast-Attribute bleiben so immer synchron mit dem, was ein Klick wirken wuerde.",
+		},
+	},
+	{
 		version = "0.1.1",
 		date = "2026-11-24",
 		changes = {

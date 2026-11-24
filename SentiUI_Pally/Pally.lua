@@ -171,6 +171,10 @@ end
 
 local function paintAuraChip()
 	if not auraChip then return end
+	-- the chips contain secure buttons = protected frames: Show/Hide in
+	-- combat is FORBIDDEN. Park the whole repaint so icon and attributes
+	-- stay consistent with what the button would cast
+	if InCombatLockdown() then S.RunOutOfCombat(paintAuraChip) return end
 	-- the grid assignment drives the button (PallyPower behavior); fall back
 	-- to my remembered pick when nothing is assigned
 	local a = Comm.aa[me()] or 0
@@ -190,6 +194,7 @@ end
 
 local function paintSealChip()
 	if not sealChip then return end
+	if InCombatLockdown() then S.RunOutOfCombat(paintSealChip) return end
 	local known = D.KnownSeals()
 	if #known == 0 then sealChip:Hide() return end
 	sealChip:Show()
@@ -205,6 +210,7 @@ end
 
 local function paintRFChip()
 	if not rfChip then return end
+	if InCombatLockdown() then S.RunOutOfCombat(paintRFChip) return end
 	if not D.IsKnown(D.RFID) then rfChip:Hide() return end
 	rfChip:Show()
 	rfChip.icon:SetTexture(D.SpellIcon(D.RFID) or D.Blessings[2].icon)
