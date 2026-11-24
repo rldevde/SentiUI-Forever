@@ -12,6 +12,7 @@ local function view(iconSize)
 		qualityBorder = true,      -- border takes the item's quality color
 		showIlvl = true,           -- gear shows its item level, bottom left
 		showJunkIcon = true,       -- grey items get a coin mark
+		newGlow = true,            -- gold sheen + corner tag on fresh loot
 	}
 end
 

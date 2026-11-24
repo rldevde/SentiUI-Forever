@@ -17,6 +17,8 @@ local function viewItems(key)
 			desc = L["Gear shows its item level, bottom left."] },
 		{ type = "toggle", key = key .. ".showJunkIcon", label = L["Junk mark"],
 			desc = L["Grey items get a small coin mark."] },
+		{ type = "toggle", key = key .. ".newGlow", label = L["New item glow"],
+			desc = L["Freshly looted slots carry a gold sheen and corner tag until the bag closes."] },
 	}
 end
 

@@ -102,6 +102,16 @@ function Items.Paint(b, info)
 	-- junk mark
 	b.junk:SetShown(db.showJunkIcon and q == 0)
 
+	-- fresh-loot markers: gold sheen + corner tag while the client still
+	-- flags the slot new (flags clear on bag close / when the item moves)
+	local isNew = false
+	if db.newGlow ~= false and C_NewItems and C_NewItems.IsNewItem then
+		local okN, v = pcall(C_NewItems.IsNewItem, b.bag, b.slot)
+		isNew = okN and v == true
+	end
+	if b.newGlow then b.newGlow:SetShown(isNew) end
+	if b.newTag then b.newTag:SetShown(isNew) end
+
 	-- cooldown wheel: raw values (possibly secret) into the C helper
 	if b.cd and C_Container and C_Container.GetContainerItemCooldown
 		and CooldownFrame_Set then
@@ -211,6 +221,21 @@ function Items.Get(bag, slot, host)
 	b.junk:SetPoint("TOPLEFT", raised, "TOPLEFT", 2, -2)
 	b.junk:SetTexture("Interface\\MoneyFrame\\UI-GoldIcon")
 	b.junk:Hide()
+
+	-- fresh-loot markers: soft gold sheen over the icon + a corner tag,
+	-- driven by C_NewItems.IsNewItem in Paint
+	b.newGlow = raised:CreateTexture(nil, "OVERLAY", nil, 1)
+	b.newGlow:SetAllPoints(b.icon)
+	b.newGlow:SetTexture(BLANK)
+	b.newGlow:SetBlendMode("ADD")
+	b.newGlow:SetVertexColor(0.92, 0.68, 0.20, 0.35)
+	b.newGlow:Hide()
+	b.newTag = raised:CreateTexture(nil, "OVERLAY", nil, 2)
+	b.newTag:SetColorTexture(0.92, 0.68, 0.20, 0.95)
+	b.newTag:SetSize(6, 6)
+	b.newTag:SetPoint("TOPRIGHT", raised, "TOPRIGHT", -2, -2)
+	b.newTag:SetRotation(math.pi / 4)
+	b.newTag:Hide()
 
 	-- hover sheen
 	local hl = b:CreateTexture(nil, "HIGHLIGHT")

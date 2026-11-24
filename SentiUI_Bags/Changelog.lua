@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.21",
+		date = "2026-11-25",
+		changes = {
+			"New-item markers: freshly looted slots carry a soft gold sheen plus a small gold corner tag via C_NewItems.IsNewItem - the flags clear on bag close or when the item moves (New item glow option).",
+		},
+		changesDE = {
+			"Neu-Marker: Frisch gelootete Felder tragen einen sanften Goldschimmer ueber dem Icon plus eine kleine goldene Eckmarkierung, gesteuert ueber C_NewItems.IsNewItem - die Flags loesen sich beim Schliessen der Tasche oder beim Bewegen des Items selbst (Neu-Glühen in den Ansichtsoptionen, standardmaessig an).",
+		},
+	},
+	{
 		version = "0.4.20",
 		date = "2026-11-24",
 		changes = {
