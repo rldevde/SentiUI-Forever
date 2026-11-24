@@ -3,6 +3,18 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.2",
+		date = "2026-11-23",
+		changes = {
+			"Fix dead profession tabs and the craft Stop button: their secure overlays set spell attributes inside an insecure PreClick handler, which taints the click dispatch so the cast dies silently. The overlays now carry their type/spell/macrotext attributes statically (refreshed when the tabs rebuild, never in combat), register both click phases and honor useOnKeyDown=false - the same proven shape as the secure reload overlay. The open profession's tab casts nothing, so clicking it can never toggle the window shut.",
+			"Fix the close X and the Unlearn link not clicking: the full-width drag strip across the title bar won hit-testing over them on this client (same bug the messenger had). The window now registers for drag itself and only starts moving when the title band is grabbed - no click-eating overlay frame at all.",
+		},
+		changesDE = {
+			"Tote Berufs-Tabs und toter Stop-Button behoben: Ihre Secure-Overlays setzten die Zauber-Attribute in einem unsicheren PreClick-Handler, wodurch der Klick-Dispatch kontaminiert wurde und der Cast still starb. Die Overlays tragen ihre type/spell/macrotext-Attribute jetzt statisch (beim Tab-Aufbau erneuert, nie im Kampf), registrieren beide Klick-Phasen und nutzen useOnKeyDown=false - dieselbe bewaehrte Form wie das Secure-Reload-Overlay. Der Tab des offenen Berufs wirkt nichts, ein Klick darauf kann das Fenster also nie zuklappen.",
+			"Schliess-X und Verlernen-Link klickten nicht: Der Drag-Streifen ueber der Titelzeile gewann auf diesem Client das Hit-Testing gegen sie (derselbe Bug wie im Messenger). Das Fenster registriert Drag jetzt selbst und bewegt sich nur beim Greifen des Titelbands - ganz ohne klickfressenden Overlay-Frame.",
+		},
+	},
+	{
 		version = "0.1.1",
 		date = "2026-11-23",
 		changes = {

@@ -588,34 +588,22 @@ local function makeTab(i)
 	if t then return t end
 	t = S.TabChip(tabsRow, 20)
 	t.autoWidth = true
+	-- fallback when the secure overlay is missing: a click is the
+	-- hardware event OpenTradeSkill needs, out of combat and in a fight
 	t:SetScript("OnClick", function(self)
-		if InCombatLockdown() and self.skillLine then
-			D.Call("OpenTradeSkill", self.skillLine)
-		end
+		if self.skillLine then D.Call("OpenTradeSkill", self.skillLine) end
 	end)
 	if not InCombatLockdown() then
 		local b = CreateFrame("Button", "SentiUICraftTab" .. i, t, "SecureActionButtonTemplate")
 		b:SetAllPoints(t)
-		b:RegisterForClicks("AnyUp")
+		-- both phases: whether the client honors useOnKeyDown or follows the
+		-- key-down CVar, the spell fires on press or on release
+		b:RegisterForClicks("AnyDown", "AnyUp")
+		pcall(b.SetAttribute, b, "useOnKeyDown", false)
 		b:SetFrameLevel(t:GetFrameLevel() + 2)
-		b:SetScript("PreClick", function(self)
-			local open = D.Profession()
-			if InCombatLockdown() then
-				-- spells can't be cast in a fight; the click itself is the
-				-- hardware event OpenTradeSkill needs
-				self:SetAttribute("type", nil)
-				if not (open and open.id == t.skillLine) then
-					D.Call("OpenTradeSkill", t.skillLine)
-				end
-				return
-			end
-			if open and open.id == t.skillLine then
-				self:SetAttribute("type", nil)
-			else
-				self:SetAttribute("type", "spell")
-				self:SetAttribute("spell", t.spellID)
-			end
-		end)
+		-- attributes only, set at build - NO SetScript on a secure button:
+		-- an insecurely stored handler taints the click dispatch and the
+		-- cast is flagged FORBIDDEN (same lesson as S.SecureReload)
 		t.secure = b
 	end
 	tabs[i] = t
@@ -631,7 +619,16 @@ local function buildTabs()
 		b.skillLine, b.spellID = tt.skillLine, tt.spellID
 		b:SetLabel(tt.name)
 		local open = data and data.prof
-		b:SetSelected(open ~= nil and open.id == tt.skillLine)
+		local isOpen = open ~= nil and open.id == tt.skillLine
+		b:SetSelected(isOpen)
+		if b.secure and not InCombatLockdown() then
+			-- every tab casts its profession spell; the open one's does
+			-- nothing, so a click there can never toggle the window shut
+			local cast = (not isOpen) and tt.spellID or nil
+			pcall(b.secure.SetAttribute, b.secure, "type", cast and "spell" or nil)
+			pcall(b.secure.SetAttribute, b.secure, "type1", cast and "spell" or nil)
+			pcall(b.secure.SetAttribute, b.secure, "spell", cast)
+		end
 		b:ClearAllPoints()
 		b:SetPoint("LEFT", tabsRow, "LEFT", x, 0)
 		b:Show()
@@ -657,16 +654,16 @@ local function buildWindow()
 	S.Template(f, "panel")
 	S.EscClosable(f)
 
-	-- drag on the title area
-	local drag = CreateFrame("Frame", nil, f)
-	drag:SetPoint("TOPLEFT")
-	drag:SetPoint("TOPRIGHT")
-	drag:SetHeight(34)
-	drag:EnableMouse(true)
-	drag:RegisterForDrag("LeftButton")
-	drag:SetScript("OnDragStart", function() f:StartMoving() end)
-	drag:SetScript("OnDragStop", function()
-		f:StopMovingOrSizing()
+	-- drag by the title band - on the window itself, like the options
+	-- panel: a full-width EnableMouse strip would win hit-testing and
+	-- sit on the close X and the unlearn link (proven in the messenger)
+	f:RegisterForDrag("LeftButton")
+	f:SetScript("OnDragStart", function(self)
+		local y = select(2, GetCursorPosition()) / self:GetEffectiveScale()
+		if y > self:GetTop() - 40 then self:StartMoving() end
+	end)
+	f:SetScript("OnDragStop", function(self)
+		self:StopMovingOrSizing()
 		S.Movers.Save("professions.window")
 	end)
 
@@ -872,9 +869,12 @@ local function buildWindow()
 		local sb = CreateFrame("Button", "SentiUICraftStop", stopLabel, "SecureActionButtonTemplate")
 		sb:SetAllPoints(stopLabel)
 		sb:SetFrameLevel(stopLabel:GetFrameLevel() + 2)
-		sb:RegisterForClicks("AnyUp")
-		sb:SetAttribute("type", "macro")
-		sb:SetAttribute("macrotext", "/stopcasting")
+		sb:RegisterForClicks("AnyDown", "AnyUp")
+		pcall(sb.SetAttribute, sb, "useOnKeyDown", false)
+		pcall(sb.SetAttribute, sb, "type", "macro")
+		pcall(sb.SetAttribute, sb, "type1", "macro")
+		pcall(sb.SetAttribute, sb, "macrotext", "/stopcasting")
+		pcall(sb.SetAttribute, sb, "macrotext1", "/stopcasting")
 	end
 
 	-- cast events for the player's own crafts

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 - 2026-11-23
+
+- Fix dead profession tabs and the craft Stop button: their secure overlays set spell attributes inside an insecure PreClick handler, which taints the click dispatch so the cast dies silently. The overlays now carry their `type`/`spell`/`macrotext` attributes statically (refreshed when the tabs rebuild, never in combat), register both click phases and honor `useOnKeyDown=false` - the same proven shape as the secure reload overlay. The open profession's tab casts nothing, so clicking it can never toggle the window shut.
+- Fix the close X and the Unlearn link not clicking: the full-width drag strip across the title bar won hit-testing over them on this client (same bug the messenger had). The window now registers for drag itself and only starts moving when the title band is grabbed - no clickable-eating overlay frame at all.
+
 ## 0.1.1 - 2026-11-23
 
 - Fix dead clicks: the parked game window was only invisible - alpha 0 keeps every child button hit-testing, so the hidden Blizzard list ate the clicks over our window. The game's frame is now parked off screen (still shown, still running) and re-parked if anything moves it back.
