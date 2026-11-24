@@ -21,7 +21,7 @@ that replaces the Blizzard bag and bank frames entirely.
 - **Overlays** — stack counts, item level on gear, junk mark on grey items
 - **Search** — live filter box that dims non-matching slots
 - **Sort** — toolbar button runs the client's bag / bank sort
-- **Sell junk** — sells every grey item (toolbar button, or automatically
+- **Sell junk (right-click the coin on a grey item to exempt it)** — sells every grey item (toolbar button, or automatically
   when a vendor opens)
 - **Auto repair** — repairs gear at repair-capable vendors, paid from
   your own gold by default; "Guild repair first" tries guild funds and

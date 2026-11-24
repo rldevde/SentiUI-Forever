@@ -37,7 +37,12 @@ function Merchant.SellJunk()
 				-- hasNoValue can be secret: the comparison is pcall'd
 				local worthless = false
 				pcall(function() worthless = info.hasNoValue == true end)
-				if type(q) == "number" and not S.IsSecret(q) and q == 0
+				-- user-exempt items (right-click the junk coin) never sell
+				local okI, iid = pcall(function() return info.itemID end)
+				if okI and type(iid) == "number" and db.junkKeep
+					and db.junkKeep[iid] == true then
+					-- keep
+				elseif type(q) == "number" and not S.IsSecret(q) and q == 0
 					and not S.IsSecret(link) and not worthless then
 					UseItem(bag, slot)
 					sold = sold + (info.stackCount or 1)

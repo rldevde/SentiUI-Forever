@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.22",
+		date = "2026-11-25",
+		changes = {
+			"Junk-sell exemptions: right-click the gold coin on a grey item's slot to keep it out of auto-sell and the Sell junk button - the coin turns green while exempt. Exemptions persist in saved variables.",
+		},
+		changesDE = {
+			"Muellverkauf-Ausnahmen: Rechtsklick auf die Goldmuenze eines grauen Gegenstands nimmt ihn aus Auto-Verkauf und 'Muell verkaufen' heraus - die Muenze faerbt sich gruen, solange die Ausnahme gilt. Ausnahmen bleiben gespeichert.",
+		},
+	},
+	{
 		version = "0.4.21",
 		date = "2026-11-25",
 		changes = {

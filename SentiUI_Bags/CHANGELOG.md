@@ -1,5 +1,9 @@
 # SentiUI Bags
 
+## 0.4.22 - 2026-11-25
+
+- Junk-sell exemptions: right-click the gold coin on a grey item's slot to exempt it from auto-sell and "Sell junk"; the coin turns green while exempt. Persisted per item id.
+
 ## 0.4.20 - 2026-11-24
 
 - Secure use overlay removed entirely: neither parenting (restricts the slot's ancestor chain) nor anchoring (restricts the frame it anchors to) lets a protected button follow the grid under lockdown, so the overlay idea cannot work on this client. Item use inside a fight stays a protected call only Blizzard-owned dispatches may run — same limitation every addon bag has. Layout is back to fully live in combat exactly like before 0.4.17; junk sell/repair keep their lockdown early-out.

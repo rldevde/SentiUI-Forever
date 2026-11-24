@@ -99,8 +99,17 @@ function Items.Paint(b, info)
 	end
 	b.ilvl:SetText(ilvl)
 
-	-- junk mark
+	-- junk mark (green tint = exempt from auto-sell, right-click the coin)
+	local okI, iid = pcall(function()
+		return type(info) == "table" and info.itemID or nil end)
+	b.itemID = (okI and type(iid) == "number") and iid or nil
+	local kept = b.itemID and db.junkKeep and db.junkKeep[b.itemID] == true
 	b.junk:SetShown(db.showJunkIcon and q == 0)
+	if b.junk:IsShown() then
+		b.junk:SetVertexColor(kept and 0.35 or 1, kept and 0.95 or 1,
+			kept and 0.35 or 1)
+	end
+	if b.junkBtn then b.junkBtn:SetShown(b.junk:IsShown()) end
 
 	-- fresh-loot markers: gold sheen + corner tag while the client still
 	-- flags the slot new (flags clear on bag close / when the item moves)
@@ -221,6 +230,40 @@ function Items.Get(bag, slot, host)
 	b.junk:SetPoint("TOPLEFT", raised, "TOPLEFT", 2, -2)
 	b.junk:SetTexture("Interface\\MoneyFrame\\UI-GoldIcon")
 	b.junk:Hide()
+
+	-- junk-keep toggle: a 12px button over the coin, right-clicks only.
+	-- It lives on the raised overlay, not the slot button - the template
+	-- keeps its native click dispatch untouched (see the script-taint
+	-- note above). Its OnClick writes a DB flag, no protected call.
+	b.junkBtn = CreateFrame("Button", nil, raised)
+	b.junkBtn:SetSize(12, 12)
+	b.junkBtn:SetPoint("TOPLEFT", raised, "TOPLEFT", 0, 0)
+	b.junkBtn:SetFrameLevel(raised:GetFrameLevel() + 2)
+	b.junkBtn:RegisterForClicks("RightButtonUp")
+	b.junkBtn:SetScript("OnClick", function()
+		local id = b.itemID
+		if not id then return end
+		db.junkKeep = db.junkKeep or {}
+		if db.junkKeep[id] then
+			db.junkKeep[id] = nil
+			print("|cffebad33SentiUI|r " .. L["Junk sell: item exempt removed."])
+		else
+			db.junkKeep[id] = true
+			print("|cffebad33SentiUI|r " .. L["Junk sell: item exempted."])
+		end
+		b.junk:SetVertexColor(db.junkKeep[id] and 0.35 or 1,
+			db.junkKeep[id] and 0.95 or 1, db.junkKeep[id] and 0.35 or 1)
+	end)
+	b.junkBtn:SetScript("OnEnter", function(self)
+		if not GameTooltip then return end
+		GameTooltip:SetOwner(self, "ANCHOR_TOP")
+		GameTooltip:SetText(L["Right-click: exempt from junk sell"])
+		GameTooltip:Show()
+	end)
+	b.junkBtn:SetScript("OnLeave", function()
+		if GameTooltip then GameTooltip:Hide() end
+	end)
+	b.junkBtn:Hide()
 
 	-- fresh-loot markers: soft gold sheen over the icon + a corner tag,
 	-- driven by C_NewItems.IsNewItem in Paint
