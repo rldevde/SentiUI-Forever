@@ -252,27 +252,36 @@ local function CollectMeter(mode, cfg)
 	local s = SessionForCfg(cfg, mode.type)
 	local cs = s and SourceList(s)
 	if not cs then return 0, 0, true end
-	local top = 0
+	-- combat meter values come back SECRET while a fight runs: keep them
+	-- raw (bars/text/guid lookups go through the engine, which reads
+	-- secrets fine), and keep the engine's source order since comparing
+	-- or sorting secrets in Lua throws
+	local anySecret = false
 	for _, src in ipairs(cs) do
-		local total = Plain(src.totalAmount) or 0
-		local aps = Plain(src.amountPerSecond) or 0
-		local row = {
-			name = Plain(src.name) or "?",
-			cls = Plain(src.classFilename),
-			guid = Plain(src.sourceGUID),
-			spec = Plain(src.specIconID),
-			total = total,
-			aps = aps,
-		}
-		scratch[#scratch + 1] = row
-		local v = mode.perSec and aps or total
-		if v > top then top = v end
+		local total = src.totalAmount
+		if total ~= nil then
+			local aps = src.amountPerSecond
+			if IsSecret(total) or IsSecret(aps) then anySecret = true end
+			scratch[#scratch + 1] = {
+				name = src.name, -- may be secret: FontString renders it
+				cls = Plain(src.classFilename),
+				guid = src.sourceGUID, -- raw: engine accepts secret guids
+				spec = Plain(src.specIconID),
+				total = total,
+				aps = (aps ~= nil) and aps or 0,
+				self_ = src.isLocalPlayer == true or nil,
+			}
+		end
 	end
-	sort(scratch, function(a, b)
-		local va = mode.perSec and a.aps or a.total
-		local vb = mode.perSec and b.aps or b.total
-		return va > vb
-	end)
+	if not anySecret then
+		sort(scratch, function(a, b)
+			local va = mode.perSec and a.aps or a.total
+			local vb = mode.perSec and b.aps or b.total
+			return va > vb
+		end)
+	end
+	local top = scratch[1]
+		and (mode.perSec and scratch[1].aps or scratch[1].total) or 0
 	return #scratch, top, false
 end
 
@@ -295,22 +304,26 @@ local function CollectThreat()
 	end
 	local UDTS = UnitDetailedThreatSituation
 	if type(UDTS) ~= "function" then return 0, 0, "notarget" end
-	local any, top = false, 0
+	local any, top, anySecret = false, 0, false
 	for _, u in ipairs(units) do
 		local okU, ex = pcall(UnitExists, u)
 		if okU and ex then
 			local okT, tanking, status, pct, rawpct = pcall(UDTS, u, mob)
 			if okT then
+				-- prefer a plain read; fall back to the raw (secret) value -
+				-- the engine formats/scales it, Lua just cannot inspect it
 				local p = Plain(pct) or Plain(rawpct)
-				if p then
+					or (pct ~= nil and pct or rawpct)
+				if p ~= nil then
 					any = true
-					if p > top then top = p end
+					if IsSecret(p) then anySecret = true
+					elseif p > top then top = p end
 					local okN, nm = pcall(GetUnitName or UnitName, u)
 					local cls
 					local okC, _, cf = pcall(UnitClass, u)
 					if okC then cls = Plain(cf) end
 					scratch[#scratch + 1] = {
-						name = (okN and Plain(nm)) or u,
+						name = (okN and nm) or u, -- raw: may be secret
 						cls = cls,
 						total = p, aps = 0,
 						tank = (tanking == true or status == 3) and true or nil,
@@ -321,8 +334,14 @@ local function CollectThreat()
 		end
 	end
 	if not any then return 0, 0, "hidden" end
-	sort(scratch, function(a, b) return a.total > b.total end)
-	return #scratch, max(top, 100), false
+	if not anySecret then
+		sort(scratch, function(a, b) return a.total > b.total end)
+		top = max(top, 100)
+	end
+	-- secret top: hand the first row's raw value to the bars; plain top
+	-- never drops under 100 % so a pull at 110 % does not overflow
+	if IsSecret(top) or top <= 0 then top = scratch[1].total end
+	return #scratch, top, false
 end
 
 -- rows ---------------------------------------------------------------------
@@ -334,11 +353,16 @@ local function RowAt(dock, i)
 	r.bg:SetAllPoints()
 	r.bg:SetTexture(BLANK)
 	r.bg:SetVertexColor(0.03, 0.04, 0.06, 0.85)
-	r.fill = r:CreateTexture(nil, "ARTWORK")
-	r.fill:SetTexture(BLANK)
-	r.fill:SetPoint("LEFT", r, "LEFT", 1, 0)
-	r.fill:SetPoint("TOP", r, "TOP", 0, -1)
-	r.fill:SetPoint("BOTTOM", r, "BOTTOM", 0, 1)
+	-- fill is a StatusBar, not a width-driven texture: combat meter values
+	-- are SECRET numbers on this client and Lua cannot do width math on
+	-- them - the engine scales SetMinMaxValues/SetValue just fine
+	r.fill = CreateFrame("StatusBar", nil, r)
+	r.fill:SetPoint("TOPLEFT", r, "TOPLEFT", 1, -1)
+	r.fill:SetPoint("BOTTOMRIGHT", r, "BOTTOMRIGHT", -1, 1)
+	r.fill:SetStatusBarTexture(BLANK)
+	r.fill:SetMinMaxValues(0, 1)
+	r.fill:SetValue(0)
+	r.fillTex = r.fill:GetStatusBarTexture()
 	-- accent edge for the row leader (rank 1) - signature tick
 	r.edge = r:CreateTexture(nil, "OVERLAY")
 	r.edge:SetTexture(BLANK)
@@ -445,8 +469,11 @@ local function UpdateDock(d, cfg)
 			-((i - 1) * (h + gap)))
 		r:SetPoint("RIGHT", d.content, "RIGHT", -8, 0)
 		local v = mode.perSec and src.aps or src.total
-		local frac = (IsN(v) and IsN(top) and top > 0) and min(v / top, 1) or 0
-		r.fill:SetWidth(max((db.width - 10) * frac, frac > 0 and 2 or 0.001))
+		-- StatusBar path: secret combat values scale engine-side. A secret
+		-- or missing top falls back to a 0..1 range so rows still draw.
+		local topv = IsN(top) and max(top, 0.001) or (top ~= nil and top or 1)
+		r.fill:SetMinMaxValues(0, topv)
+		r.fill:SetValue(v ~= nil and v or 0)
 		r.src = src
 		if src.spec then
 			r.icon:SetTexture(src.spec)
@@ -461,26 +488,38 @@ local function UpdateDock(d, cfg)
 			r.name:SetPoint("RIGHT", r, "RIGHT", -64, 0)
 		end
 		local cr, cg, cb = ClassColor(src.cls)
-		r.fill:SetVertexColor(cr, cg, cb, 0.85)
+		r.fillTex:SetVertexColor(cr, cg, cb, 0.85)
 		r.edge:SetVertexColor(0.92, 0.68, 0.20,
 			(i == 1 or src.tank or src.self_) and 0.9 or 0.0)
-		local isMe = (src.guid and src.guid == PlayerGUID()) or src.self_
-		local nm = src.name or "?"
-		r.name:SetText(nm)
-		if isMe then
-			local c = S.colors.accent
-			r.name:SetTextColor(c.r, c.g, c.b)
-		else
-			local c = S.colors.text
-			r.name:SetTextColor(c.r, c.g, c.b)
+		-- never compare a (possibly secret) guid in Lua: isLocalPlayer is
+		-- the one field the game never keeps secret
+		local isMe = src.self_ == true
+			or (src.guid ~= nil and not IsSecret(src.guid)
+				and src.guid == PlayerGUID())
+		if not pcall(r.name.SetText, r.name, src.name or "?") then
+			r.name:SetText("?") -- a secret name SetText refused
 		end
-		local txt = Abbrev(IsN(v) and v or 0)
+		local c = isMe and S.colors.accent or S.colors.text
+		r.name:SetTextColor(c.r, c.g, c.b)
 		if mode.key == "threat" then
-			txt = format("%d%%", floor(v + 0.5))
-		elseif src.aps > 0 and not mode.perSec and mode.key ~= "threat" then
-			txt = txt .. format("  |cff9aa3b5%s|r", Abbrev(src.aps))
+			-- engine-side formatting takes secret percents too
+			r.val:SetFormattedText("%.0f%%", v ~= nil and v or 0)
+		elseif IsN(v) then
+			local txt = Abbrev(v)
+			if IsN(src.aps) and src.aps > 0 and not mode.perSec then
+				txt = txt .. format("  |cff9aa3b5%s|r", Abbrev(src.aps))
+			end
+			r.val:SetText(txt)
+		else
+			-- secret number: AbbreviateNumbers formats it engine-side;
+			-- the raw value as a last resort
+			local shown
+			if AbbreviateNumbers then
+				local okA, ab = pcall(AbbreviateNumbers, v)
+				if okA and ab ~= nil then shown = ab end
+			end
+			r.val:SetFormattedText("%s", shown ~= nil and shown or v)
 		end
-		r.val:SetText(txt)
 		r:Show()
 	end
 	for i = show + 1, #d.rows do d.rows[i]:Hide() end
@@ -555,12 +594,15 @@ local function SpellRow(win, i)
 	r.bg:SetAllPoints()
 	r.bg:SetTexture(BLANK)
 	r.bg:SetVertexColor(0.03, 0.04, 0.06, 0.7)
-	r.fill = r:CreateTexture(nil, "ARTWORK")
-	r.fill:SetTexture(BLANK)
-	r.fill:SetPoint("LEFT", r, "LEFT", 1, 0)
-	r.fill:SetPoint("TOP", r, "TOP", 0, -1)
-	r.fill:SetPoint("BOTTOM", r, "BOTTOM", 0, 1)
-	r.fill:SetVertexColor(0.92, 0.68, 0.20, 0.25)
+	-- StatusBar for the same reason as the meter rows: spell totals can
+	-- be secret during combat, the engine scales the fill for us
+	r.fill = CreateFrame("StatusBar", nil, r)
+	r.fill:SetPoint("TOPLEFT", r, "TOPLEFT", 1, -1)
+	r.fill:SetPoint("BOTTOMRIGHT", r, "BOTTOMRIGHT", -1, 1)
+	r.fill:SetStatusBarTexture(BLANK)
+	r.fill:SetMinMaxValues(0, 1)
+	r.fill:SetValue(0)
+	r.fill:GetStatusBarTexture():SetVertexColor(0.92, 0.68, 0.20, 0.25)
 	r.icon = r:CreateTexture(nil, "ARTWORK", nil, 2)
 	r.icon:SetSize(12, 12)
 	r.icon:SetPoint("LEFT", r, "LEFT", 3, 0)
@@ -608,7 +650,9 @@ end
 -- the per-source spell container: FromID for a picked session, FromType
 -- for live/overall. Returns nil when the client does not expose it
 local function SourceSpells(cfg, mode, guid)
-	if not DM or type(guid) ~= "string" then return nil end
+	-- guid can be a secret string mid-fight: type() would reject it but
+	-- the engine lookup accepts secrets - only nil is unusable
+	if not DM or guid == nil then return nil end
 	local ok, s
 	if cfg.segment == "session" and IsN(cfg.segId)
 		and DM.GetCombatSessionSourceFromID then
@@ -629,14 +673,16 @@ end
 local function SpellName(sp)
 	local n = Plain(sp.creatureName)
 	if n then return n end
-	local id = Plain(sp.spellID)
-	if id and C_Spell and C_Spell.GetSpellInfo then
+	local id = sp.spellID -- raw: GetSpellInfo resolves secret ids engine-side
+	if id ~= nil and C_Spell and C_Spell.GetSpellInfo then
 		local ok, info = pcall(C_Spell.GetSpellInfo, id)
-		if ok and type(info) == "table" and type(info.name) == "string" then
+		if ok and type(info) == "table"
+			and type(info.name) == "string" and not IsSecret(info.name) then
 			return info.name
 		end
 	end
-	return id and ("#" .. tostring(id)) or "?"
+	if IsN(id) then return "#" .. tostring(id) end
+	return "?"
 end
 
 local spellScratch = {}
@@ -653,34 +699,39 @@ ShowSpells = function(d, src)
 	spellWin.sub:SetText(mode.label .. " - " .. segLbl)
 
 	wipe(spellScratch)
+	local anySecret = false
 	if s then
 		local cs = s.combatSpells
 		if type(cs) == "table"
 			and not (S.IsSecretTable and S.IsSecretTable(cs)) then
 			for _, sp in ipairs(cs) do
-				local total = Plain(sp.totalAmount)
-				if total then
+				local total = sp.totalAmount -- raw: may be secret in combat
+				if total ~= nil then
+					if IsSecret(total) then anySecret = true end
 					spellScratch[#spellScratch + 1] = {
 						name = SpellName(sp),
-						icon = Plain(sp.spellID),
+						icon = sp.spellID, -- raw: engine resolves secret ids
 						total = total,
-						aps = Plain(sp.amountPerSecond) or 0,
 					}
 				end
 			end
 		end
 	end
-	sort(spellScratch, function(a, b) return a.total > b.total end)
+	if not anySecret then
+		sort(spellScratch, function(a, b) return a.total > b.total end)
+	end
 
 	local n = min(#spellScratch, SPELL_ROWS)
 	local top = n > 0 and spellScratch[1].total or 0
+	local topv = IsN(top) and max(top, 0.001) or (top ~= nil and top or 1)
 	for i = 1, n do
 		local sp = spellScratch[i]
 		local r = SpellRow(spellWin, i)
 		r:ClearAllPoints()
 		r:SetPoint("TOPLEFT", spellWin, "TOPLEFT", 6, -(36 + (i - 1) * 17))
 		r:SetPoint("TOPRIGHT", spellWin, "TOPRIGHT", -6, -(36 + (i - 1) * 17))
-		r.fill:SetWidth(max(210 * min(sp.total / top, 1), 2))
+		r.fill:SetMinMaxValues(0, topv)
+		r.fill:SetValue(sp.total)
 		local tex
 		if sp.icon and C_Spell and C_Spell.GetSpellTexture then
 			local okT, t = pcall(C_Spell.GetSpellTexture, sp.icon)
@@ -689,7 +740,16 @@ ShowSpells = function(d, src)
 		if tex then r.icon:SetTexture(tex) r.icon:Show()
 		else r.icon:Hide() end
 		r.name:SetText(sp.name)
-		r.val:SetText(Abbrev(sp.total))
+		if IsN(sp.total) then
+			r.val:SetText(Abbrev(sp.total))
+		else
+			local shown
+			if AbbreviateNumbers then
+				local okA, ab = pcall(AbbreviateNumbers, sp.total)
+				if okA and ab ~= nil then shown = ab end
+			end
+			r.val:SetFormattedText("%s", shown ~= nil and shown or sp.total)
+		end
 		r:Show()
 	end
 	for i = n + 1, #spellWin.rows do spellWin.rows[i]:Hide() end
@@ -698,7 +758,8 @@ ShowSpells = function(d, src)
 		r:ClearAllPoints()
 		r:SetPoint("TOPLEFT", spellWin, "TOPLEFT", 6, -36)
 		r:SetPoint("TOPRIGHT", spellWin, "TOPRIGHT", -6, -36)
-		r.fill:SetWidth(0.001)
+		r.fill:SetMinMaxValues(0, 1)
+		r.fill:SetValue(0)
 		r.icon:Hide()
 		r.name:SetText(L["No spell data"])
 		r.val:SetText("")

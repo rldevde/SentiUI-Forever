@@ -55,8 +55,11 @@ when the client does not expose the container the window says so.
 - Overall is a real accumulated total: every session the client reports
   (expired fights + the live one) is summed per source into saved
   variables - it keeps counting through fights and survives /reload.
-- Secret-value safe: sessions, sources and spell containers can be secret
+- Secret-value safe: sessions and spell containers can be secret tables
   on this client; guarded reads skip them and a "Data hidden" hint shows
-  instead.
+  instead. Individual combat values (totals, rates, names, guids) ARE
+  secret mid-fight - they pass through to the engine untouched: bar
+  fills are StatusBars, amounts print via engine formatting, and the
+  self row is flagged by the never-secret isLocalPlayer field.
 - Threat mode needs an attackable target; without one the window shows
   "No target".

@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.1",
+		date = "2026-11-24",
+		changes = {
+			"Meters render live data during combat now: every damage/healing read was filtered through the secret check, and the client marks totalAmount/amountPerSecond as secret mid-fight - so the docks showed \"No data\" exactly while you were fighting. Secret values are now passed through untouched: row fills are StatusBars (the engine scales SetMinMaxValues/SetValue on secret numbers), amounts print via SetFormattedText/AbbreviateNumbers (engine-side formatting), row order comes from the engine's own sorting instead of a Lua sort that would throw, your own row is flagged by isLocalPlayer (never secret), and spell ids/names/guids go to the API raw - lookups like GetCombatSessionSourceFromType and GetSpellTexture accept secret values. The overall accumulator keeps plain numbers only, so Overall freezes mid-fight but never breaks.",
+		},
+		changesDE = {
+			"Meter zeigen jetzt auch im Kampf Live-Daten: Jede Schaden-/Heilungs-Abfrage lief durch den Secret-Check, und der Client markiert totalAmount/amountPerSecond mitten im Kampf als secret - die Docks zeigten ausgerechnet waehrend des Kampfes \"Keine Daten\". Secret-Werte werden jetzt unangetastet durchgereicht: Zeilenfuellungen sind StatusBars (die Engine skaliert SetMinMaxValues/SetValue auch auf Secret-Zahlen), Betraege gehen ueber SetFormattedText/AbbreviateNumbers (Engine-seitige Formatierung), die Reihenfolge kommt aus der Engine-Sortierung statt aus einem Lua-Sort der werfen wuerde, die eigene Zeile markiert isLocalPlayer (nie secret), und Spell-IDs/Namen/GUIDs gehen roh an die API - Lookups wie GetCombatSessionSourceFromType und GetSpellTexture akzeptieren Secret-Werte. Der Overall-Akkumulator nimmt weiterhin nur lesbare Zahlen, Overall friert deshalb im Kampf ein, bricht aber nicht.",
+		},
+	},
+	{
 		version = "0.3.0",
 		date = "2026-11-23",
 		changes = {

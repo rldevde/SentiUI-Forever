@@ -1,5 +1,9 @@
 # SentiUI Meters
 
+## 0.3.1 - 2026-11-24
+
+- Meters render live data during combat now: every damage/healing read was filtered through the secret check, and the client marks `totalAmount`/`amountPerSecond` as secret mid-fight — so the docks showed "No data" exactly while you were fighting. Secret values are now passed through untouched: row fills are StatusBars (the engine scales `SetMinMaxValues`/`SetValue` on secret numbers), amounts print via `SetFormattedText`/`AbbreviateNumbers`, row order comes from the engine's own sorting, your own row is flagged by `isLocalPlayer` (never secret), and spell ids/names/guids go to the API raw since lookups accept secrets. The overall accumulator keeps plain numbers only, so Overall freezes mid-fight but never breaks.
+
 ## 0.3.0 - 2026-11-23
 
 - Reworked the Details way: no more embedded Blizzard session windows at all — every dock renders `C_DamageMeter` data itself, so the `Blizzard_DamageMeter` error class is gone for good.
