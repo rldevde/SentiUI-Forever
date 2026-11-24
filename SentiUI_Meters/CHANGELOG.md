@@ -1,5 +1,9 @@
 # SentiUI Meters
 
+## 0.3.7 - 2026-11-25
+
+- Share button: an `S` in the dock header posts the top five of the shown metric+segment to party chat (one line per rank, combat-deferred, local echo if the chat call is refused). Threat mode excluded.
+
 ## 0.3.6 - 2026-11-24
 
 - Row hover tooltips: hovering a meter row shows a GameTooltip with the source's name, rank #n, the metric value, its per-second rate and the percentage share of the segment (share only computes while numbers are readable — secret combat values render through engine formatting). Ends with the left-click spell-details hint.

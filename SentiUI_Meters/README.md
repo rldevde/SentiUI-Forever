@@ -63,3 +63,5 @@ when the client does not expose the container the window says so.
   self row is flagged by the never-secret isLocalPlayer field.
 - Threat mode needs an attackable target; without one the window shows
   "No target".
+
+- `S` in a dock header shares the top five to party chat.

@@ -1080,6 +1080,67 @@ local function ShowMenu(dock, cfg)
 	menu:Show()
 end
 
+-- share ---------------------------------------------------------------------
+-- posts the dock's top five to the party channel. The send is deferred
+-- out of combat (chat sends can be hardware-gated inside locked code);
+-- a failed send echoes locally instead of vanishing.
+local shareQueue, shareTicker
+
+local function DrainShare()
+	if not shareQueue or #shareQueue == 0 then
+		if shareTicker then shareTicker:Cancel() shareTicker = nil end
+		return
+	end
+	if InCombatLockdown() then
+		if not shareTicker then
+			shareTicker = C_Timer.NewTicker(1, DrainShare)
+		end
+		return
+	end
+	if shareTicker then shareTicker:Cancel() shareTicker = nil end
+	for _, m in ipairs(shareQueue) do
+		local ok = pcall(SendChatMessage, m, "PARTY")
+		if not ok then S.Print(m) end
+	end
+	shareQueue = nil
+end
+
+local function ShareDock(d)
+	if not (IsInGroup and IsInGroup()) then
+		S.Print(L["You are not in a group."]) return
+	end
+	local cfg, mode = d.cfg, d.mode or ModeFor(d.cfg.mode)
+	if mode.key == "threat" then
+		S.Print(L["Threat cannot be shared."]) return
+	end
+	local n
+	if cfg.segment == "overall" then
+		n = CollectOverall(mode)
+	elseif cfg.segment == "session" then
+		n = CollectMeter(mode, cfg)
+	else
+		n = CollectMeter(mode, cfg)
+	end
+	local lines = {}
+	for i = 1, math.min(n or 0, 5) do
+		local src = scratch[i]
+		if src then
+			local v = mode.perSec and src.aps or src.total
+			local okV, vs = pcall(function()
+				return S.Abbrev and S.Abbrev(v) or tostring(v) end)
+			if okV and type(vs) == "string" then
+				lines[#lines + 1] = i .. ". "
+					.. (type(src.name) == "string" and src.name or "?")
+					.. " " .. vs
+			end
+		end
+	end
+	if #lines == 0 then S.Print(L["Nothing to share yet."]) return end
+	shareQueue = { "SentiUI " .. tostring(mode.label) .. ":" }
+	for _, ln in ipairs(lines) do tinsert(shareQueue, ln) end
+	DrainShare()
+end
+
 -- docks --------------------------------------------------------------------
 local function BuildDock(i)
 	local d = CreateFrame("Frame", "SentiUIMeterDock" .. i, UIParent,
@@ -1125,6 +1186,8 @@ local function BuildDock(i)
 		end)
 		return b
 	end
+	d.shareBtn = headBtn("S", -34, L["Share top five to party chat"])
+	d.shareBtn:SetScript("OnClick", function() ShareDock(d) end)
 	d.foldBtn = headBtn(">", -6, L["Fold toward the loot window"])
 	d.foldBtn:SetScript("OnClick", function()
 		d.cfg.collapsed = true

@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.7",
+		date = "2026-11-25",
+		changes = {
+			"Share button: a new 'S' in the dock header posts the top five of the shown metric+segment to party chat, one line per rank. The send drains out of combat and echoes locally if the chat call is refused. Threat mode is excluded (nothing meaningful to post).",
+		},
+		changesDE = {
+			"Teilen-Knopf: Ein 'S' im Dock-Kopf postet die Top fuenf der gezeigten Metrik+Segment in den Gruppenchat, eine Zeile pro Rang. Der Send wartet das Kampfende ab und gibt lokal aus, falls der Chat-Call abgelehnt wird. Bedrohungs-Modus ist ausgenommen.",
+		},
+	},
+	{
 		version = "0.3.6",
 		date = "2026-11-24",
 		changes = {
