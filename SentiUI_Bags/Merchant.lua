@@ -22,6 +22,7 @@ end
 
 -- selling a bag item while a merchant is open is not a protected action
 function Merchant.SellJunk()
+	if InCombatLockdown() then return end -- UseContainerItem is protected
 	local sold = 0
 	for _, bag in ipairs(BAG_IDS) do
 		local n = 0
@@ -85,6 +86,7 @@ end
 
 -- repair: guild funds first when allowed, otherwise own gold
 function Merchant.Repair()
+	if InCombatLockdown() then return end
 	if not (type(CanMerchantRepair) == "function" and CanMerchantRepair()) then
 		return
 	end

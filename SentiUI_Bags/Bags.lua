@@ -169,8 +169,14 @@ local function SnapOrigin(w)
 	pcall(w.frame.SetPoint, w.frame, p, rel or UIParent, rp or p, rx, ry)
 end
 
+local layoutDirty
 function Core.Layout(w)
 	if not w then for _, x in pairs(Core.windows) do Core.Layout(x) end return end
+	-- every slot carries a secure overlay child (Items.lua), so its whole
+	-- ancestor chain - slot, grid, window - is restricted under lockdown:
+	-- any frame op in here (SetSize, SetPoint, Show, SetParent) is then
+	-- forbidden. Contents freeze for the fight and repaint after regen.
+	if InCombatLockdown() then layoutDirty = true return end
 	SnapOrigin(w)
 	local v = w.view
 	local gh = LayoutGrid(w)
@@ -366,7 +372,14 @@ function Core.ApplyGameState(open)
 	local w = Core.windows.bags
 	if not w then return end
 	if open == nil then open = not w.frame:IsShown() end
-	w.frame:SetShown(open and true or false)
+	-- the window is a protected ancestor once slots carry their secure
+	-- overlay: Show goes through CombatDeferWindow's own queue, Hide is
+	-- forbidden outright and waits for regen.
+	if open then
+		w.frame:Show()
+	else
+		S.RunOutOfCombat(function() w.frame:Hide() end)
+	end
 	if open then Refresh() end
 end
 
@@ -430,6 +443,10 @@ function Core.Enable(mod)
 		"BAG_SLOT_FLAGS_UPDATED", "ITEM_LOCK_CHANGED", "PLAYER_MONEY" }) do
 		S.RegisterEvent(ev, Refresh)
 	end
+	-- layout deferred by lockdown repaints once combat ends
+	S.RegisterEvent("PLAYER_REGEN_ENABLED", function()
+		if layoutDirty then layoutDirty = nil Core.Layout() end
+	end)
 	-- the game's bag bookkeeping is the source of truth; the open/close
 	-- events track it, Sync mirrors the result into our window
 	for _, ev in ipairs({ "BAG_OPEN", "BAG_CLOSED", "MERCHANT_SHOW", "MERCHANT_CLOSED" }) do

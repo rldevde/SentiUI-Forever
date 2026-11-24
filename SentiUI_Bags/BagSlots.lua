@@ -248,6 +248,10 @@ function Slots.Make(w, bagIds)
 	end
 	-- refresh paints pick up hasBag
 	function strip:UpdatePaint(size)
+		-- the strip sits under the window frame, which is a restricted
+		-- ancestor once item slots carry their secure overlay: button
+		-- anchors and show/hide are forbidden under lockdown
+		if InCombatLockdown() then return end
 		for _, b in ipairs(self.buttons) do
 			b.inv = InvSlot(b.bag)
 			local t = b.inv and GetInventoryItemTexture

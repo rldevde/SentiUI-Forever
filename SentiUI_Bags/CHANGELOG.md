@@ -1,5 +1,9 @@
 # SentiUI Bags
 
+## 0.4.18 - 2026-11-24
+
+- Forbidden calls in combat on every bag refresh: the 0.4.17 secure overlay is a protected child, which restricts its whole ancestor chain — slot, grid, window. `Core.Layout` now defers entirely under lockdown and repaints on `PLAYER_REGEN_ENABLED`; window Hide waits for regen too, the bag-slot strip skips its repaint in combat, and junk sell/repair bail early since `UseContainerItem`/`RepairAllItems` are protected anyway.
+
 ## 0.4.17 - 2026-11-24
 
 - Using items from the bag window in combat was still blocked: the template's `UseContainerItem` is a protected call and stays forbidden whenever the click dispatch ran through addon-created code. Each slot now carries a small secure overlay child that sends right clicks through the client's own secure path (`/use bag slot`) — works mid-fight. Left click, drag, split and link keep the template's native handler via click pass-through; on a client without that API the overlay hides itself and nothing changes.

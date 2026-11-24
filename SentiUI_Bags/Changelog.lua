@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.18",
+		date = "2026-11-24",
+		changes = {
+			"Forbidden calls in combat on every bag refresh: the 0.4.17 secure overlay is a protected child, which restricts its whole ancestor chain - slot, grid, window. Core.Layout now defers entirely under lockdown and repaints on PLAYER_REGEN_ENABLED; window Hide waits for regen too, the bag-slot strip skips its repaint in combat, and junk sell/repair bail early since UseContainerItem/RepairAllItems are protected anyway.",
+		},
+		changesDE = {
+			"Verbotene Aufrufe im Kampf bei jeder Taschen-Aktualisierung: das Secure-Overlay aus 0.4.17 ist ein geschuetztes Kind, das die komplette Ahnenkette sperrt - Slot, Grid, Fenster. Core.Layout wartet jetzt unter Lockdown komplett und bemalt nach PLAYER_REGEN_ENABLED neu; auch das Fenster-Hide wartet auf den Regen, der Taschen-Slot-Streifen ueberspringt sein Repaint im Kampf, und Schrottverkauf/Reparatur steigen frueh aus, da UseContainerItem/RepairAllItems ohnehin geschuetzt sind.",
+		},
+	},
+	{
 		version = "0.4.17",
 		date = "2026-11-24",
 		changes = {
