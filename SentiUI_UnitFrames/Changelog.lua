@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.48",
+		date = "2026-11-25",
+		changes = {
+			"Tone the screen effects way down and fix the vignette covering the whole display: the strips' SetPoint(point, x, y) shorthand anchored unreliably on this client and stretched them across the screen - they now anchor point-to-point explicitly. Strips are narrower (64px), the edge alpha is much softer, and the pulse breathes around ~12-23% instead of washing the screen red.",
+		},
+		changesDE = {
+			"Bildschirm-Effekte deutlich abgeschwaecht und die Vollbild-Vignette behoben: Die SetPoint(point, x, y)-Kurzform der Streifen wurde auf diesem Client unzuverlaessig verankert und streckte sie ueber den ganzen Bildschirm - sie verankern jetzt explizit Punkt-zu-Punkt. Streifen sind schmaler (64px), die Kanten-Alpha deutlich weicher, und der Puls atmet um ~12-23% statt den Bildschirm rot zu fluten.",
+		},
+	},
+	{
 		version = "0.2.47",
 		date = "2026-11-25",
 		changes = {
