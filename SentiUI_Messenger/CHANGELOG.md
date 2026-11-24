@@ -1,5 +1,9 @@
 # SentiUI Messenger
 
+## 0.3.12 - 2026-11-23
+
+- Whisper chips: slightly taller pills, and the close X moved inside the chip's right edge - on hover it fades in over the unread count's spot, always inside the parent with a hit box big enough to press. Chips reserve right-side space for it so names can't run under it.
+
 ## 0.3.11 - 2026-11-22
 
 - Whisper tiles redesigned: the square letter boxes are now pill chips showing the contact's first name in class color, with the pin star in gold and the unread count on the right. Chips auto-size to the name; the close X sits on the chip's top edge and still fades in on hover.

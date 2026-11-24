@@ -761,7 +761,7 @@ end
 -- short preview above the chips.
 -- ---------------------------------------------------------------------------
 
-local TILE_H, TILE_GAP = 24, 6
+local TILE_H, TILE_GAP = 26, 6
 local tileHolder, tilePool = nil, {}
 local card, cardKey = nil, nil
 local preview = nil
@@ -1047,13 +1047,14 @@ local function tileAt(i)
 	t.label:SetJustifyH("LEFT")
 	t.badge = S.Font(t, 10, C.accent)
 	t.badge:SetPoint("RIGHT", -10, 0)
-	-- tiny close on the chip's top edge, fades in on hover; sits flush
-	-- above the corner so crossing onto it never leaves the frame
+	-- close on the chip's right edge INSIDE the frame: hover fades it in
+	-- and swaps it for the unread count, so it keeps a hit box big
+	-- enough to press and never floats outside the parent
 	local x = CreateFrame("Button", nil, t)
-	x:SetSize(12, 12)
-	x:SetPoint("BOTTOMRIGHT", t, "TOPRIGHT", 3, 0)
+	x:SetSize(18, 18)
+	x:SetPoint("RIGHT", t, "RIGHT", -2, 0)
 	x:SetFrameLevel(t:GetFrameLevel() + 3)
-	x.txt = S.Font(x, 10, C.textDim)
+	x.txt = S.Font(x, 12, C.textDim)
 	x.txt:SetPoint("CENTER", 0, 1)
 	x.txt:SetText("x")
 	x:SetAlpha(0)
@@ -1062,20 +1063,23 @@ local function tileAt(i)
 		if c then Core.DeleteConvo(c.key) end
 	end)
 	x:SetScript("OnEnter", function(self)
-		-- the chip's OnLeave can hide us mid-crossing; re-show here
 		self:SetAlpha(1)
 		self.txt:SetTextColor(C.accent.r, C.accent.g, C.accent.b)
 	end)
 	x:SetScript("OnLeave", function(self)
 		self.txt:SetTextColor(C.textDim.r, C.textDim.g, C.textDim.b)
 		local p = self:GetParent()
-		if not (p and p:IsMouseOver()) then self:SetAlpha(0) end
+		if not (p and p:IsMouseOver()) then
+			self:SetAlpha(0)
+			p.badge:SetShown(p.badgeText ~= "")
+		end
 	end)
 	t.x = x
 	t:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 	t:SetScript("OnEnter", function(self)
 		S.SetBorderLit(self, true)
 		self.x:SetAlpha(1)
+		self.badge:Hide()   -- the x takes the count's spot on hover
 		local c = self.c
 		if c then
 			GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -1088,7 +1092,10 @@ local function tileAt(i)
 	end)
 	t:SetScript("OnLeave", function(self)
 		if not Core.CardShowing(self.c and self.c.key) then S.SetBorderLit(self, false) end
-		if not self.x:IsMouseOver() then self.x:SetAlpha(0) end
+		if not self.x:IsMouseOver() then
+			self.x:SetAlpha(0)
+			self.badge:SetShown(self.badgeText ~= "")
+		end
 		GameTooltip:Hide()
 	end)
 	t:SetScript("OnClick", function(self, btn)
@@ -1125,9 +1132,11 @@ function Core.RebuildTiles()
 			.. chipName(c))
 		t.label:SetTextColor(r, g, b)
 		local badge = (c.unread or 0) > 0 and tostring(c.unread) or ""
+		t.badgeText = badge
 		t.badge:SetText(badge)
+		t.badge:SetShown(badge ~= "" and not t:IsMouseOver())
 		local tw = math.ceil(10 + (t.label:GetStringWidth() or 40)
-			+ (badge ~= "" and (t.badge:GetStringWidth() or 8) + 8 or 2))
+			+ (badge ~= "" and (t.badge:GetStringWidth() or 8) + 22 or 24))
 		t:SetWidth(tw)
 		t:ClearAllPoints()
 		t:SetPoint("LEFT", tileHolder, "LEFT", x, 0)

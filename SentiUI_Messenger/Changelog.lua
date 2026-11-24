@@ -3,6 +3,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.12",
+		date = "2026-11-23",
+		changes = {
+			"Whisper chips: slightly taller pills, and the close X moved inside the chip's right edge - on hover it fades in over the unread count's spot, always inside the parent with a hit box big enough to press. Chips reserve right-side space for it so names can't run under it.",
+		},
+		changesDE = {
+			"Fluester-Chips: etwas hoehere Pillen, und das Schliessen-X sitzt jetzt innerhalb der rechten Kante des Chips - bei Hover blendet es ueber dem Platz der Ungelesen-Zahl ein, immer innerhalb des Elternrahmens mit genuegend Trefferflaeche. Chips halten rechts Platz dafuer frei, damit Namen nicht darunter laufen.",
+		},
+	},
+	{
 		version = "0.3.11",
 		date = "2026-11-22",
 		changes = {
