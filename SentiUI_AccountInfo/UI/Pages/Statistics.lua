@@ -26,6 +26,40 @@ local function NilDash(v)
 	return v == nil and "-" or tostring(v)
 end
 
+-- "12,400" style grouping for xp values (BreakUpLargeNumbers is a
+-- FrameXML helper this client may not ship)
+local function GroupNum(n)
+	if n >= 1000 then
+		return format("%s,%03d", GroupNum(math.floor(n / 1000)), n % 1000)
+	end
+	return tostring(n)
+end
+
+-- value of char.daily[day] rendered as "12,400 XP · +1 lvl · 2h 5m"
+local function DailyText(d, short)
+	if not d then
+		return nil
+	end
+	local parts = {}
+	if (d.xp or 0) > 0 then
+		parts[#parts + 1] = GroupNum(d.xp) .. " XP"
+	end
+	if (d.lvl or 0) > 0 then
+		parts[#parts + 1] = ("+%d lvl"):format(d.lvl)
+	end
+	if not short and (d.played or 0) > 0 then
+		parts[#parts + 1] = W.Duration(d.played)
+	end
+	if #parts == 0 then
+		return nil
+	end
+	return table.concat(parts, short and " " or "  ·  ")
+end
+
+local function TodayKey()
+	return date("%Y-%m-%d")
+end
+
 --------------------------------------------------------------------------------
 -- Columns for the overview table
 --------------------------------------------------------------------------------
@@ -55,6 +89,14 @@ local COLUMNS = {
 		value = function(_, c) return c.stats and c.stats.achievementPoints
 			and tostring(c.stats.achievementPoints) or "-" end,
 		sort = function(_, c) return (c.stats and c.stats.achievementPoints) or 0 end },
+	{ key = "today", label = L.STAT_COL_TODAY, width = 110,
+		value = function(_, c)
+			return DailyText(c.daily and c.daily[TodayKey()], true) or "-"
+		end,
+		sort = function(_, c)
+			local d = c.daily and c.daily[TodayKey()]
+			return d and (d.xp or 0) or 0
+		end },
 	{ key = "zone", label = L.STAT_COL_ZONE, width = 130,
 		value = function(_, c) return c.stats and c.stats.zone or "-" end,
 		sort = function(_, c) return (c.stats and c.stats.zone) or "" end },
@@ -415,6 +457,31 @@ local function Build(content)
 		end
 		Row(L.STAT_PLAYED_LEVEL, char.played and char.played.level
 			and W.Playtime(char.played.level) or "-")
+
+		-- per-day history (xp / levels / played), newest first - only
+		-- exists where the addon actually saw the character play
+		if char.daily then
+			local days = {}
+			for k in pairs(char.daily) do
+				days[#days + 1] = k
+			end
+			table.sort(days, function(a, b)
+				return a > b
+			end)
+			if #days > 0 then
+				Section(L.STAT_SEC_DAILY)
+				for i = 1, math.min(7, #days) do
+					local yy, mm, dd = days[i]:match("(%d+)%-(%d+)%-(%d+)")
+					local label = yy
+						and format("%02d.%02d.%s", tonumber(dd), tonumber(mm), yy)
+						or days[i]
+					if days[i] == TodayKey() then
+						label = "|cffebad33" .. L.STAT_TODAY .. "|r"
+					end
+					Row(label, DailyText(char.daily[days[i]]) or "-")
+				end
+			end
+		end
 
 		Section(L.STAT_SEC_WORLD)
 		local zone = s.zone or "-"

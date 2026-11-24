@@ -2,6 +2,20 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "1.5.5",
+		date = "2026-11-24",
+		changes = {
+			"Daily progress tracking: every character now records how much XP, how many levels and how much playtime it gained per calendar day (deltas from each stat scan, level-ups count the wrapped bar). Newest 14 days are kept.",
+			"Statistics overview gets a 'Today' column (xp + levels, sortable); the details tab shows a 'Daily progress' section listing the last 7 days - today's row highlighted in gold.",
+			"Daily data rides along inside the existing character record, so export/import and account sync carry it automatically.",
+		},
+		changesDE = {
+			"Tages-Fortschritt: jeder Charakter speichert jetzt, wie viel XP, wie viele Level und wie viel Spielzeit er pro Kalendertag gesammelt hat (Deltas aus jedem Stat-Scan, Level-Ups zaehlen den umgebrochenen Balken). Die letzten 14 Tage bleiben gespeichert.",
+			"Statistik-Uebersicht bekommt eine 'Heute'-Spalte (XP + Level, sortierbar); der Details-Tab zeigt eine 'Fortschritt pro Tag'-Sektion mit den letzten 7 Tagen - die heutige Zeile ist gold markiert.",
+			"Tages-Daten haengen am vorhandenen Charakter-Datensatz und reisen bei Export/Import und Account-Sync automatisch mit.",
+		},
+	},
+	{
 		version = "1.5.4",
 		date = "2026-11-22",
 		changes = {

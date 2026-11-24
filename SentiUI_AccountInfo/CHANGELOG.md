@@ -1,5 +1,11 @@
 # SentiUI AccountInfo
 
+## 1.5.5 - 2026-11-24
+
+- Daily progress tracking: every character records how much XP, how many levels and how much playtime it gained per calendar day (deltas from each stat scan; level-ups count the wrapped bar). Newest 14 days are kept.
+- Statistics overview gets a "Today" column (XP + levels, sortable); the details tab shows a "Daily progress" section listing the last 7 days — today's row highlighted in gold.
+- Daily data rides inside the existing character record, so export/import and account sync carry it automatically.
+
 ## 1.5.4 - 2026-11-22
 
 - The sidebar navigation uses the shared Sentinel tab chip now: dark inset body with a 2px accent blade on the left edge that glows on hover and burns on the active page, page icons kept - one design language across the whole suite instead of the module's own constants.

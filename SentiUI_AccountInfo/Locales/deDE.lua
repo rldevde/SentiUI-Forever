@@ -231,3 +231,6 @@ L["Turns the whole module off after a reload."] = "Schaltet das komplette Modul 
 L["Open window"] = "Fenster öffnen"
 L["Opens the AccountInfo window - also reachable via /sai and the panel bar."] = "Öffnet das AccountInfo-Fenster - erreichbar auch über /sai und die Panel-Leiste."
 L["AccountInfo is disabled - enable it under SentiUI settings."] = "AccountInfo ist deaktiviert - aktiviere es in den SentiUI-Einstellungen."
+L.STAT_COL_TODAY = "Heute"
+L.STAT_SEC_DAILY = "Fortschritt pro Tag"
+L.STAT_TODAY = "heute"

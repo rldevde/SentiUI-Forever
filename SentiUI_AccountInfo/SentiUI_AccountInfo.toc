@@ -4,7 +4,7 @@
 ## Notes: Account-wide overview of all your characters: gold, bags, bank, worn gear, stats, playtime and raid/dungeon lockouts - search across characters and WoW accounts.|n|cff8c919fPart of the SentiUI suite|r
 ## Notes-deDE: Accountweite Übersicht aller Charaktere: Gold, Taschen, Bank, Ausrüstung, Statistiken, Spielzeit und Raid-/Dungeon-Lockouts - suche über Charaktere und WoW-Accounts hinweg.|n|cff8c919fTeil der SentiUI-Suite|r
 ## Author: xRL-Dev.de
-## Version: 1.5.4
+## Version: 1.5.5
 ## IconTexture: Interface\AddOns\SentiUI_AccountInfo\Media\Logo.tga
 ## Category: Sentinel
 ## Category-deDE: Sentinel

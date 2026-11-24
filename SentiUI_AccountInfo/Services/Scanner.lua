@@ -494,6 +494,66 @@ local function ScanStats()
 	s.maxLevel = (type(maxLevel) == "number" and type(char.level) == "number"
 		and char.level >= maxLevel) or nil
 
+	-- Daily progress: fold the delta since the previous scan into today's
+	-- bucket (xp, level-ups, played seconds). Level-ups wrap the bar -
+	-- the rest of the previous bar counts first, then whatever the new
+	-- bar already holds. Kept per character in char.daily["YYYY-MM-DD"];
+	-- dailyState carries the last absolute sample (xp alone is useless
+	-- for deltas because the bar resets on level-up).
+	if type(char.level) == "number" then
+		local day = date("%Y-%m-%d")
+		local st = char.dailyState
+		local gained, lvls = 0, 0
+		if st and type(st.level) == "number" then
+			if char.level > st.level then
+				lvls = char.level - st.level
+				if type(st.xp) == "number" and type(st.xpMax) == "number"
+					and st.xpMax > st.xp then
+					gained = st.xpMax - st.xp
+				end
+				if type(s.xp) == "number" then
+					gained = gained + s.xp
+				end
+			elseif char.level == st.level and type(st.xp) == "number"
+				and type(s.xp) == "number" and s.xp > st.xp then
+				gained = s.xp - st.xp
+			end
+		end
+		local play
+		if st and type(st.played) == "number" and char.played
+			and type(char.played.total) == "number"
+			and char.played.total > st.played then
+			play = char.played.total - st.played
+		end
+		if gained > 0 or lvls > 0 or (play and play > 0) then
+			char.daily = char.daily or {}
+			local today = char.daily[day]
+			if not today then
+				today = { xp = 0, lvl = 0, played = 0 }
+				char.daily[day] = today
+			end
+			today.xp = (today.xp or 0) + gained
+			today.lvl = (today.lvl or 0) + lvls
+			if play then
+				today.played = (today.played or 0) + play
+			end
+			-- bound the history to the newest 14 day keys
+			local keys = {}
+			for k in pairs(char.daily) do
+				keys[#keys + 1] = k
+			end
+			table.sort(keys)
+			for i = 1, #keys - 14 do
+				char.daily[keys[i]] = nil
+			end
+		end
+		char.dailyState = {
+			level = char.level, xp = s.xp, xpMax = s.xpMax,
+			played = (char.played and char.played.total)
+				or (st and st.played),
+		}
+	end
+
 	s.zone = PlainCall(GetRealZoneText) or PlainCall(GetZoneText)
 	local sub = PlainCall(GetSubZoneText)
 	s.subzone = (type(sub) == "string" and sub ~= "") and sub or nil

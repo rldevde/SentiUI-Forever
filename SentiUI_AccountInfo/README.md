@@ -15,7 +15,9 @@ over unchanged.
 - **Character view** - one character in detail: gear, bags, bank, mail,
   quests, professions and recipes.
 - **Statistics** - XP, rested, playtime, achievements, mounts, pets and
-  more per character.
+  more per character. The overview's "Today" column and the detail
+  tab's "Daily progress" section track how much XP, how many levels and
+  how much playtime each character gained per day (last 14 days kept).
 - **Lockouts** - raid and dungeon saves across the account, including a
   "who is NOT saved" checklist.
 - **Currency & reputation** - currencies and faction standings per
