@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.44 - 2026-11-24
+
+- FBL sync: reverted the whisper pull-answer path - offline targets make the client print a system error per chunk, and whispers to specific peers are simply not wanted. Sends stay on the channel (+ one guild copy), now draining 4 chunks per 0.15s tick (~26 msg/s). Pull-answer jitter stays at the reduced 3-10s.
+
 ## 0.5.43 - 2026-11-24
 
 - FBL sync: whispering a pull answer to an offline peer spammed 'no player named X online' once per chunk (~80 system lines). Those system lines are now filtered for our own whisper targets, the rest of that peer's copy is aborted, and the peer is skipped for 30 minutes.

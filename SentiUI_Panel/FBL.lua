@@ -1197,13 +1197,8 @@ end
 local SYNC_CHUNK = 236
 local pending, lastDone = {}, {}
 local sendQueue, sendTicker, sendTotal
-local SEND_BURST = 3   -- chunks per ticker step on addon transports
+local SEND_BURST = 4   -- chunks per ticker step on addon transports
 local CHAT_BURST = 12  -- chat-fallback lines per input event
--- addon whispers to an offline target draw "no player named X online"
--- system lines - one PER CHUNK. whisperLive maps the reported bare
--- name to our target so the lines can be filtered and the rest of
--- that peer's copy aborted; whisperDead backs off on repeats
-local whisperLive, whisperDead = {}, {}
 
 -- channel transport: SendAddonMessage accepts "CHANNEL" on modern
 -- clients (native addon traffic on a custom channel - invisible, not
@@ -1244,49 +1239,6 @@ local function ChanSend(text)
 	local ok = pcall(f, text, "CHANNEL", nil, chanNum)
 	inChat = false
 	return ok and not chatBlocked
-end
-
--- addon whispers need the canonical "First Last-Realm" form; a bare
--- sender name gets our own realm attached
-local function WhisperName(sender)
-	if type(sender) ~= "string" or sender == "" then return nil end
-	if not sender:find("-", 1, true) then
-		local realm = GetNormalizedRealmName and GetNormalizedRealmName()
-		if type(realm) == "string" and realm ~= "" then
-			sender = sender .. "-" .. realm
-		end
-	end
-	return sender
-end
-
--- system line "no player named 'X' online" for one of our whisper
--- targets: drop the rest of that copy, keep the error line out of
--- every chat frame, and back off that peer for half an hour
-local function OnWhisperDead(bare)
-	local e = whisperLive[bare]
-	if not e then return end
-	whisperDead[bare] = time()
-	whisperLive[bare] = nil
-	sendQueue = sendQueue or {}
-	for i = #sendQueue, 1, -1 do
-		local it = sendQueue[i]
-		if it.dist == "WHISPER" and it.target == e.target then
-			table.remove(sendQueue, i)
-		end
-	end
-	Log("out", format(L["Peer %s offline - whisper copy skipped"], bare))
-end
-
-if ChatFrame_AddMessageEventFilter then
-	ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(_, _, msg)
-		local who = type(msg) == "string" and msg:match("'(.-)'")
-		if not who then return end
-		who = who:lower()
-		local e = whisperLive[who]
-		if not e or time() - e.at > 600 then return end
-		OnWhisperDead(who)
-		return true -- the error answered our chunk, not a user whisper
-	end)
 end
 
 -- prove whether the client routes addon traffic on custom channels:
@@ -1477,13 +1429,11 @@ local function OnPullRequest(text, sender)
 	pullRespAt = time()
 	Log("in", format(L["Pull request from %s (rev %d)"], sender or "?", reqRev))
 	-- jittered: if someone else's list reaches us first, our rev
-	-- bumps and the recheck cancels this response. The whisper copy
-	-- reaches the requester first - addon whispers are neither
-	-- channel- nor hardware-gated.
+	-- bumps and the recheck cancels this response
 	C_Timer.After(math.random(3, 10), function()
 		if (DB().rev or 0) > reqRev then
 			Log("out", format(L["Answering pull from %s"], sender or "?"))
-			QueueChannelSend({ whisper = WhisperName(sender) })
+			QueueChannelSend({ guild = true })
 		end
 	end)
 end
@@ -1658,10 +1608,8 @@ local function DrainSend()
 	end
 end
 
--- opts.whisper: a direct copy to this player first (pull answers -
--- reaches the requester even while the channel transport is down)
--- opts.guild:   one broadcast on the guild distribution, covering
--- guildmates who never joined the sync channel
+-- opts.guild: one broadcast on the guild distribution alongside the
+-- channel copy, covering guildmates who never joined the sync channel
 QueueChannelSend = function(opts)
 	if not chanNum then return end
 	opts = opts or {}
@@ -1669,24 +1617,13 @@ QueueChannelSend = function(opts)
 	local total = math.ceil(#json / SYNC_CHUNK)
 	if total == 0 then return end
 	sendQueue = {}
-	local function push(dist, target)
+	local function push(dist)
 		for i = 1, total do
 			sendQueue[#sendQueue + 1] = {
 				text = format("FBLv1;%d;%d;%s", i, total,
 					json:sub((i - 1) * SYNC_CHUNK + 1, i * SYNC_CHUNK)),
-				dist = dist, target = target,
+				dist = dist,
 			}
-		end
-	end
-	if opts.whisper then
-		-- skip targets that recently drew an offline error
-		local bare = opts.whisper:gsub("%-.*$", ""):lower()
-		local deadAt = whisperDead[bare]
-		if deadAt and time() - deadAt < 1800 then
-			Log("out", format(L["Peer %s offline - whisper copy skipped"], bare))
-		else
-			push("WHISPER", opts.whisper)
-			whisperLive[bare] = { target = opts.whisper, at = time() }
 		end
 	end
 	push("CHANNEL")

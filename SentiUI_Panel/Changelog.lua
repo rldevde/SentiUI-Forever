@@ -2,6 +2,15 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.44",
+		changes = {
+			"FBL sync: reverted the whisper pull-answer path - offline targets make the client print a system error per chunk. Sends stay on the channel (+ one guild copy), now draining 4 chunks per 0.15s tick (~26 msg/s). Pull-answer jitter stays at the reduced 3-10s.",
+		},
+		changesDE = {
+			"FBL-Sync: Whisper-Pull-Antworten wieder entfernt - Offline-Ziele erzeugen pro Chunk eine System-Fehlerzeile. Sends bleiben auf dem Channel (+ eine Gilden-Kopie) und entleeren jetzt 4 Chunks pro 0,15s-Tick (~26 Msg/s). Pull-Antwort-Jitter bleibt bei reduzierten 3-10s.",
+		},
+	},
+	{
 		version = "0.5.43",
 		changes = {
 			"FBL sync: whispering a pull answer to an offline peer spammed 'no player named X online' once per chunk (~80 system lines). Those system lines are now filtered for our own whisper targets, the rest of that peer's copy is aborted, and the peer is skipped for 30 minutes.",
