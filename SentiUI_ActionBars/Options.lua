@@ -54,6 +54,8 @@ ns.OPTIONS = {
 							desc = L["Tint buttons red while the target is out of range."] },
 						{ type = "toggle", key = "cooldownDim", label = L["Cooldown dim"],
 							desc = L["Desaturate the icon while its cooldown runs; it gets its color back the moment the spell is usable again."] },
+						{ type = "toggle", key = "readyPulse", label = L["Ready pulse"],
+							desc = L["A warm gold flash sweeps the icon when a watched cooldown finishes."] },
 					},
 				},
 				rowBar("bar1", L["Action bar 1"],

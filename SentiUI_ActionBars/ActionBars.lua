@@ -251,6 +251,34 @@ end
 -- on this client, so buttons grayed by an active sweep are re-checked
 -- on a frame ticker and un-grayed when the widget stops sweeping
 local dimmed, dimWatcher = {}, nil
+
+-- a finished cooldown flashes a warm gold sheen across the icon; pure
+-- region ops on the pre-built readyFlash, so it works mid-fight. The
+-- ticker sleeps whenever no flash is in flight
+local flashes, flashTicker = {}, nil
+local function FlashReady(btn)
+	if db.readyPulse == false or not btn.readyFlash then return end
+	btn._flashT = 0
+	flashes[btn] = true
+	if flashTicker then flashTicker:Show() return end
+	flashTicker = CreateFrame("Frame")
+	flashTicker:SetScript("OnUpdate", function(_, dt)
+		for b in pairs(flashes) do
+			b._flashT = (b._flashT or 0) + (dt or 0.016)
+			local t, dur = b._flashT, 0.45
+			if t >= dur then
+				flashes[b] = nil
+				if b.readyFlash then b.readyFlash:Hide() end
+			else
+				local k = 1 - t / dur
+				b.readyFlash:SetAlpha(0.9 * k * k)
+				b.readyFlash:Show()
+			end
+		end
+		if not next(flashes) then flashTicker:Hide() end
+	end)
+end
+
 local function WatchDim(btn)
 	dimmed[btn] = true
 	if dimWatcher then dimWatcher:Show() return end
@@ -268,6 +296,7 @@ local function WatchDim(btn)
 				if b.icon and b.icon.SetDesaturated then
 					pcall(b.icon.SetDesaturated, b.icon, false)
 				end
+				FlashReady(b)
 			end
 		end
 		if not next(dimmed) then dimWatcher:Hide() end
@@ -873,6 +902,18 @@ local function MakeButton(holder, def, i)
 	btn.hotkey = btn.hotkey or btn.HotKey or _G[name .. "HotKey"]
 	btn.name = btn.name or btn.Name or _G[name .. "Name"]
 	btn.checkedTex = btn.GetCheckedTexture and btn:GetCheckedTexture() or nil
+	-- ready-flash sheen: built as a region so pulsing it mid-fight only
+	-- ever touches a Texture - regions are legal under combat lockdown
+	-- where a fresh frame would be born protected
+	if not btn.readyFlash then
+		local rf = btn:CreateTexture(nil, "OVERLAY", nil, 7)
+		rf:SetTexture(BLANK)
+		rf:SetVertexColor(1, 0.86, 0.45)
+		rf:SetBlendMode("ADD")
+		if btn.icon then rf:SetAllPoints(btn.icon) else rf:SetAllPoints(btn) end
+		rf:Hide()
+		btn.readyFlash = rf
+	end
 	if btn.cooldown and btn.cooldown.SetSwipeColor then
 		pcall(btn.cooldown.SetSwipeColor, btn.cooldown, 0, 0, 0, 0.8)
 	end

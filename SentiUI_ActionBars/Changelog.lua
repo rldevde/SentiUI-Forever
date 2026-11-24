@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.66",
+		date = "2026-11-25",
+		changes = {
+			"Ready pulse: when a watched cooldown ends, a warm gold flash sweeps the icon (setting under Bars > Icons). The sheen is a pre-built region on each button and the flash ticker sleeps whenever nothing pulses, so it works mid-fight and costs nothing at rest.",
+		},
+		changesDE = {
+			"Bereit-Puls: Endet ein beobachteter Cooldown, laeuft ein warmer Gold-Blitz ueber das Icon (Einstellung unter Leisten > Symbole). Der Schein ist eine vorgebaute Region pro Button und der Puls-Ticker schlaeft, solange nichts blinkt - funktioniert also im Kampf und kostet in Ruhe nichts.",
+		},
+	},
+	{
 		version = "0.3.65",
 		date = "2026-11-24",
 		changes = {
