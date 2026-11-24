@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.20",
+		date = "2026-11-25",
+		changes = {
+			"Rare+ feed icons get a periodic shine sweep (masked gradient strip, Rare shine setting) and a big quality-colored card pops above the feed for drops of the chosen quality or better (Loot toast: off / rare+ / epic+ / legendary, epic by default). The toast is one pooled frame that fades in, floats up a few pixels and fades out - pure region/pool ops, safe in combat.",
+		},
+		changesDE = {
+			"Seltene+ Feed-Icons bekommen einen periodischen Glanz-Sweep (maskierter Gradientenstreifen, Einstellung Selten-Glanz) und fuer Beute ab der gewaehlten Qualitaet poppt eine grosse qualitaetsfarbene Karte ueber dem Feed (Beute-Toast: aus / selten+ / episch+ / legendaer, Standard episch). Der Toast ist ein gepoolter Frame, der einblendet, leicht aufsteigt und ausblendet - reine Region-/Pool-Ops, kampfsicher.",
+		},
+	},
+	{
 		version = "0.2.19",
 		date = "2026-11-24",
 		changes = {

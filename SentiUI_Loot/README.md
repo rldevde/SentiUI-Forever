@@ -17,7 +17,9 @@ loot and roll windows.
   on one row, hover shows the tooltip, right-click dismisses early.
   Self-loot is matched through the game's own format strings, so it
   works in every language. Mover, with row-count and hold-time
-  settings.
+  settings. Rare+ icons get a periodic shine sweep (Rare shine) and a
+  big quality-colored card pops above the feed for drops of the chosen
+  quality or better (Loot toast: off / rare+ / epic+ / legendary).
 - **Fast loot** - every loot slot is taken the instant the window opens,
   before it can render. Respects the autoloot modifier/cvar unless
   "always" is enabled.

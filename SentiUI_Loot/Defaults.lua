@@ -25,6 +25,9 @@ ns.DEFAULTS = {
 	feed = true,
 	feedMax = 6,                   -- rows visible at once
 	feedHold = 4,                  -- seconds a row stays after its last loot
+	lootGlint = true,              -- shine sweep on rare+ feed icons
+	toastQuality = "epic",         -- big card for drops of this quality+:
+	                               -- "off" | "rare" | "epic" | "legendary"
 	feedExit = "right",            -- "left"|"right" fly to that screen edge,
 	                               -- "fade" stays and fades in place
 

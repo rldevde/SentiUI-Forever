@@ -872,6 +872,7 @@ end
 -- on one row, hover for the tooltip, right-click dismisses early. Self-loot
 -- is matched through the game's own format strings so every language works.
 local feed, feedRows, feedEntries = nil, {}, {}
+local toast                 -- the big card a rare+ drop pops
 local FEED_ROW_H, FEED_ICON = 20, 16
 
 local function fmtPattern(fmt)
@@ -921,6 +922,7 @@ local function CopperText(copper)
 end
 
 local StartExit -- defined below FeedLayout; the row click forwards here
+local ShowToast -- defined with the feed; a rare+ drop pops a big card
 
 local function FeedRow(i)
 	local r = feedRows[i]
@@ -943,6 +945,23 @@ local function FeedRow(i)
 	r.text:SetWordWrap(false)
 	r.qty = S.Font(r, 10, ACCENT)
 	r.qty:SetPoint("RIGHT", -5, 0)
+	-- shine sweep for rare+ drops: a soft gradient strip ADD-blended over
+	-- the icon and masked to its square, so nothing spills onto neighbors
+	local mask = r:CreateMaskTexture()
+	mask:SetTexture("Interface\\Buttons\\WHITE8X8")
+	mask:SetAllPoints(r.icon)
+	r.glint = r:CreateTexture(nil, "OVERLAY", nil, 6)
+	r.glint:SetTexture("Interface\\Buttons\\WHITE8X8")
+	r.glint:SetSize(14, FEED_ICON)
+	r.glint:SetVertexColor(1, 1, 1)
+	if CreateColor and r.glint.SetGradient then
+		r.glint:SetGradient("HORIZONTAL",
+			CreateColor(1, 1, 1, 0), CreateColor(1, 1, 1, 0.85),
+			CreateColor(1, 1, 1, 0))
+	end
+	r.glint:SetBlendMode("ADD")
+	r.glint:AddMaskTexture(mask)
+	r.glint:Hide()
 	r:RegisterForClicks("RightButtonUp")
 	r:SetScript("OnClick", function(self)
 		local e = feedEntries[self.i]
@@ -1035,6 +1054,15 @@ local function FeedPush(e)
 	end
 	tinsert(feedEntries, 1, e)
 	while #feedEntries > (db.feedMax or 6) do tremove(feedEntries) end
+	if not e.money then
+		e.glintT = (db.lootGlint ~= false and (e.quality or 0) >= 3)
+			and 0 or nil
+		local minQ = ({ rare = 3, epic = 4, legendary = 5 })
+			[db.toastQuality or "epic"]
+		if minQ and (e.quality or 0) >= minQ and ShowToast then
+			ShowToast(e)
+		end
+	end
 	FeedLayout()
 end
 
@@ -1115,10 +1143,80 @@ local function BuildFeed()
 					StartExit(e, row)
 				end
 			end
+			-- shine sweep on rare+ items: 0.9s pass, then ~3s rest; pure
+			-- region ops on the row's masked strip, legal mid-fight
+			if row and row.glint then
+				if e.glintT ~= nil and not e.fading then
+					e.glintT = (e.glintT or 0) + (dt or 0.016)
+					local prog = (e.glintT % 4.0) / 0.9
+					if prog < 1 then
+						row.glint:ClearAllPoints()
+						row.glint:SetPoint("LEFT", row.icon, "LEFT",
+							-16 + (FEED_ICON + 30) * prog, 0)
+						row.glint:Show()
+					else
+						row.glint:Hide()
+					end
+				else
+					row.glint:Hide()
+				end
+			end
 		end
 		if dirty then FeedLayout() end
 	end)
+
+	-- the big card a rare+ drop pops above the feed: slides up a hair,
+	-- holds, fades. One pooled frame built here (never under lockdown)
+	toast = CreateFrame("Frame", "SentiUILootToast", feed)
+	toast:SetSize(300, 52)
+	S.Template(toast, "raised")
+	local ticon = toast:CreateTexture(nil, "ARTWORK")
+	ticon:SetPoint("LEFT", 8, 0)
+	ticon:SetSize(36, 36)
+	ticon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	toast.icon = ticon
+	local tborder = toast:CreateTexture(nil, "BORDER")
+	tborder:SetPoint("TOPLEFT", ticon, -1, 1)
+	tborder:SetPoint("BOTTOMRIGHT", ticon, 1, -1)
+	tborder:SetColorTexture(1, 1, 1, 0.9)
+	toast.border = tborder
+	local tname = S.Font(toast, 13)
+	tname:SetPoint("LEFT", ticon, "RIGHT", 10, 6)
+	tname:SetPoint("RIGHT", toast, "RIGHT", -8, 0)
+	tname:SetJustifyH("LEFT")
+	tname:SetWordWrap(false)
+	toast.name = tname
+	local tsub = S.Font(toast, 10, ACCENT)
+	tsub:SetPoint("TOPLEFT", tname, "BOTTOMLEFT", 0, -3)
+	toast.sub = tsub
+	toast:Hide()
+	toast:SetScript("OnUpdate", function(self, dt)
+		self.t = (self.t or 0) + (dt or 0.016)
+		local t, dur = self.t, 3.0
+		if t >= dur then self:Hide() return end
+		self:SetAlpha(t < 0.2 and t / 0.2 or t > 2.5 and (dur - t) / 0.5 or 1)
+		self:ClearAllPoints()
+		self:SetPoint("BOTTOM", feed, "TOP", 0, 24 + t * 4)
+	end)
+
 	feed:SetShown(db.feed)
+end
+
+function ShowToast(e)
+	if not toast then return end
+	toast.icon.suiIconLink = e.link
+	if not IconSticks(toast.icon, e.icon) then
+		IconSticks(toast.icon, "Interface\\Icons\\INV_Misc_QuestionMark")
+		RetryIcon(toast.icon, e.link)
+	end
+	local r, g, b = QualityColor(e.quality)
+	toast.border:SetColorTexture(r, g, b)
+	toast.name:SetText(e.name or "")
+	toast.name:SetTextColor(r, g, b)
+	toast.sub:SetText(e.count and e.count > 1 and ("x" .. e.count)
+		or (LOOT or "Loot"))
+	toast.t = 0
+	toast:Show()
 end
 
 -- enable / settings ------------------------------------------------------------------
