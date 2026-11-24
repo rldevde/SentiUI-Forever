@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.4",
+		date = "2026-11-24",
+		changes = {
+			"Row text was still washed out after the fill darkened - the new StatusBar fill is a widget frame whose texture renders on its own frame level, painting half over the row's plain font strings (white text showed grey under it). Names, values, icons and the rank edge now live on a text-holder frame raised above the fill, in the meter rows and the spell breakdown alike.",
+		},
+		changesDE = {
+			"Zeilentext war auch nach dem Abdunkeln weiter verwaschen - die neue StatusBar-Fuellung ist ein Widget-Frame, dessen Textur auf eigenem Frame-Level rendert und die einfachen FontStrings der Zeile halb uebermalt hat (weisser Text wirkte grau). Namen, Werte, Icons und der Rang-Rand liegen jetzt auf einem Text-Holder-Frame ueber der Fuellung - in den Meter-Zeilen wie im Zauber-Breakdown.",
+		},
+	},
+	{
 		version = "0.3.3",
 		date = "2026-11-24",
 		changes = {

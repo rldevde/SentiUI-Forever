@@ -1,5 +1,9 @@
 # SentiUI Meters
 
+## 0.3.4 - 2026-11-24
+
+- Row text was still washed out after the fill darkened — the StatusBar fill is a widget frame whose texture renders on its own frame level, painting half over the row's font strings. Names, values, icons and the rank edge now live on a text-holder frame raised above the fill (meter rows and spell breakdown alike).
+
 ## 0.3.3 - 2026-11-24
 
 - Meter rows get the real contrast fix: the class-colored fill renders as a dark muted tint (38 % brightness, Details-style) instead of a saturated fill — white row text now sits on a dark bar and stays readable while the class color remains recognizable.
