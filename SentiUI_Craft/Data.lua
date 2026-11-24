@@ -62,6 +62,19 @@ end
 
 function Data.Icon(id) return (call("GetTradeSkillTexture", id)) end
 
+-- Secure buttons only fire with the spell NAME on this client, not the ID.
+function Data.SpellName(id)
+	if C_Spell and C_Spell.GetSpellName then
+		local ok, n = pcall(C_Spell.GetSpellName, id)
+		if ok and type(n) == "string" then return n end
+	end
+	if _G.GetSpellInfo then
+		local ok, n = pcall(_G.GetSpellInfo, id)
+		if ok and type(n) == "string" then return n end
+	end
+	return nil
+end
+
 -- Professions with a crafting window, in tab order (two primaries first -
 -- those can be unlearned). Gathering professions fail the crafting-UI
 -- check, same rule the game's own tabs use.

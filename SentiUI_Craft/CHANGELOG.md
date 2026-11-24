@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3 - 2026-11-23
+
+- Fix the profession tabs, the Stop button and the Professions key still doing nothing: the secure `spell` attribute only fires when it carries the spell NAME on this client, never the ID (same lesson SentiUI_Pally learned). Tab overlays and the K-keybind button now resolve their spell ID to a name before the attribute is set, falling back to the tab's OpenTradeSkill click if the name can't be resolved.
+
 ## 0.1.2 - 2026-11-23
 
 - Fix dead profession tabs and the craft Stop button: their secure overlays set spell attributes inside an insecure PreClick handler, which taints the click dispatch so the cast dies silently. The overlays now carry their `type`/`spell`/`macrotext` attributes statically (refreshed when the tabs rebuild, never in combat), register both click phases and honor `useOnKeyDown=false` - the same proven shape as the secure reload overlay. The open profession's tab casts nothing, so clicking it can never toggle the window shut.

@@ -3,6 +3,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.3",
+		date = "2026-11-23",
+		changes = {
+			"Fix the profession tabs, the Stop button and the Professions key still doing nothing: the secure spell attribute only fires when it carries the spell NAME on this client, never the ID (same lesson SentiUI_Pally learned). Tab overlays and the K-keybind button now resolve their spell ID to a name before the attribute is set, falling back to the tab's OpenTradeSkill click if the name can't be resolved.",
+		},
+		changesDE = {
+			"Berufs-Tabs, Stop-Button und Berufs-Taste taten weiterhin nichts: Das secure spell-Attribut feuert auf diesem Client nur mit dem ZauberNAMEN, nie der ID (dieselbe Lektion wie bei SentiUI_Pally). Tab-Overlays und der K-Tasten-Button loesen ihre Spell-ID jetzt zu einem Namen auf, bevor das Attribut gesetzt wird; ohne Namen greift der OpenTradeSkill-Fallback des Tabs.",
+		},
+	},
+	{
 		version = "0.1.2",
 		date = "2026-11-23",
 		changes = {

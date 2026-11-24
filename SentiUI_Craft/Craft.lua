@@ -624,7 +624,9 @@ local function buildTabs()
 		if b.secure and not InCombatLockdown() then
 			-- every tab casts its profession spell; the open one's does
 			-- nothing, so a click there can never toggle the window shut
-			local cast = (not isOpen) and tt.spellID or nil
+			-- the secure spell attribute needs the spell NAME on this
+			-- client, not the ID (same fix as SentiUI_Pally's cast chips)
+			local cast = (not isOpen) and D.SpellName(tt.spellID) or nil
 			pcall(b.secure.SetAttribute, b.secure, "type", cast and "spell" or nil)
 			pcall(b.secure.SetAttribute, b.secure, "type1", cast and "spell" or nil)
 			pcall(b.secure.SetAttribute, b.secure, "spell", cast)
@@ -1067,8 +1069,10 @@ local function applyKey()
 	end
 	local spell = keySpell()
 	keyBtn.spell = spell
-	keyBtn:SetAttribute("type", spell and "spell" or nil)
-	keyBtn:SetAttribute("spell", spell)
+	-- secure spell attribute wants the name, not the ID
+	local name = spell and D.SpellName(spell) or nil
+	keyBtn:SetAttribute("type", name and "spell" or nil)
+	keyBtn:SetAttribute("spell", name)
 	local keys = {}
 	if type(GetBindingKey) == "function" then
 		for _, k in ipairs({ GetBindingKey(KEY_BINDING) }) do
