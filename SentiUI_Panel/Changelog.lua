@@ -2,6 +2,19 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.42",
+		changes = {
+			"FBL sync speed: a full list now travels in seconds instead of half a minute. Chunks grew to 236 bytes (still under the 255-byte message cap), the addon drain sends 3 chunks per 0.15s tick (~20 msg/s, was 1 per 0.3s), and every broadcast additionally pushes one guild copy - reaching guildmates who never joined the sync channel.",
+			"Pull answers go direct: when a peer asks for a newer list, we now whisper them a full copy via addon message first (not channel- or hardware-gated) before the jittered channel broadcast. Pull cooldown 600s -> 300s, answer jitter 5-40s -> 3-10s.",
+			"Chat fallback flood cap: channel sends inside an input event are now limited to 12 lines per event so the client spam throttle stops silently eating chunks.",
+		},
+		changesDE = {
+			"FBL-Sync-Tempo: Eine volle Liste kommt jetzt in Sekunden statt in einer halben Minute an. Chunks auf 236 Bytes gewachsen (weiter unter der 255-Byte-Grenze), der Addon-Drain sendet 3 Chunks pro 0,15s-Tick (~20 Msg/s, vorher 1 pro 0,3s), und jeder Broadcast pusht zusaetzlich eine Gilden-Kopie - erreicht Gildenmitglieder, die nie im Sync-Channel sind.",
+			"Pull-Antworten gehen direkt: Fragt ein Peer eine neuere Liste an, bekommt er zuerst eine komplette Kopie per Addon-Whisper (weder channel- noch hardware-gated), bevor der verzoegerte Channel-Broadcast folgt. Pull-Cooldown 600s -> 300s, Antwort-Jitter 5-40s -> 3-10s.",
+			"Chat-Fallback-Flutbremse: Channel-Sends innerhalb eines Input-Events sind jetzt auf 12 Zeilen pro Event begrenzt, damit der Spam-Schutz des Clients keine Chunks mehr stillschweigend verschluckt.",
+		},
+	},
+	{
 		version = "0.5.41",
 		changes = {
 			"FBL sync: the receive notice now names the sender's client - 'Blacklist received from X via SentiUI' vs 'via ForeverBlackListed', learned from each peer's FBLver ping (SentiUI announces SentiUI_Panel-x.y, the standalone a bare version).",

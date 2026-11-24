@@ -840,7 +840,7 @@ OnJoined = function()
 	C_Timer.After(3, SendVersionPing)
 	C_Timer.After(4, SendPullRequest)
 	if DataHash() ~= (DB().sync.lastHash or -1) then
-		C_Timer.After(5, QueueChannelSend)
+		C_Timer.After(5, function() QueueChannelSend({ guild = true }) end)
 	end
 end
 
@@ -1192,9 +1192,13 @@ end
 -- sync channel; chunk format matches the standalone ("FBLv1;i;total;chunk"
 -- on the FBLsync addon prefix and on channel chat), so FBL clients and
 -- ours reassemble/merge each other's payloads identically
-local SYNC_CHUNK = 200
+-- wire chunk: FBLv1;seq;total; + payload must fit the 255-byte message
+-- cap; even 4-digit seq/total leave 236 bytes of headroom
+local SYNC_CHUNK = 236
 local pending, lastDone = {}, {}
-local sendQueue, sendTicker
+local sendQueue, sendTicker, sendTotal
+local SEND_BURST = 3   -- chunks per ticker step on addon transports
+local CHAT_BURST = 12  -- chat-fallback lines per input event
 
 -- channel transport: SendAddonMessage accepts "CHANNEL" on modern
 -- clients (native addon traffic on a custom channel - invisible, not
@@ -1235,6 +1239,19 @@ local function ChanSend(text)
 	local ok = pcall(f, text, "CHANNEL", nil, chanNum)
 	inChat = false
 	return ok and not chatBlocked
+end
+
+-- addon whispers need the canonical "First Last-Realm" form; a bare
+-- sender name gets our own realm attached
+local function WhisperName(sender)
+	if type(sender) ~= "string" or sender == "" then return nil end
+	if not sender:find("-", 1, true) then
+		local realm = GetNormalizedRealmName and GetNormalizedRealmName()
+		if type(realm) == "string" and realm ~= "" then
+			sender = sender .. "-" .. realm
+		end
+	end
+	return sender
 end
 
 -- prove whether the client routes addon traffic on custom channels:
@@ -1424,10 +1441,14 @@ local function OnPullRequest(text, sender)
 	if time() - pullRespAt < 60 then return end
 	pullRespAt = time()
 	Log("in", format(L["Pull request from %s (rev %d)"], sender or "?", reqRev))
-	C_Timer.After(math.random(5, 40), function()
+	-- jittered: if someone else's list reaches us first, our rev
+	-- bumps and the recheck cancels this response. The whisper copy
+	-- reaches the requester first - addon whispers are neither
+	-- channel- nor hardware-gated.
+	C_Timer.After(math.random(3, 10), function()
 		if (DB().rev or 0) > reqRev then
 			Log("out", format(L["Answering pull from %s"], sender or "?"))
-			QueueChannelSend()
+			QueueChannelSend({ whisper = WhisperName(sender) })
 		end
 	end)
 end
@@ -1452,7 +1473,7 @@ end
 -- advertising a newer rev makes us ask the channel for it
 local pullSentAt = 0
 local function MaybePull()
-	if time() - pullSentAt < 600 then return end
+	if time() - pullSentAt < 300 then return end
 	pullSentAt = time()
 	SendPullRequest()
 end
@@ -1514,10 +1535,37 @@ local function OnChunk(from, transport, seq, total, chunk)
 	if s.got >= total then FinishReceive(from, transport) end
 end
 
--- paced drain: native addon traffic needs no hardware event (one
--- chunk per tick keeps us under the message throttle); the chat
--- fallback only moves while a real input event is active
+-- paced drain: native addon dists (channel-addon, guild, whisper)
+-- need no hardware event and burst a few chunks per ticker step;
+-- channel-chat items only move while a real input event is active,
+-- capped per event so the client spam throttle doesn't eat chunks
 local sendFailed = 0
+
+-- drop every queued chunk of one distribution: a lost chunk dooms
+-- that copy's reassembly anyway, the rest is wasted traffic
+local function DropDist(dist, target)
+	local n = 0
+	for i = #sendQueue, 1, -1 do
+		local it = sendQueue[i]
+		if it.dist == dist and it.target == target then
+			table.remove(sendQueue, i)
+			n = n + 1
+		end
+	end
+	return n
+end
+
+-- one queued item over its own transport: channel items ride the
+-- probed ChanSend (addon dist, or chat inside input events); every
+-- other dist is a plain addon message - never hardware-gated
+local function ItemSend(it)
+	if it.dist == "CHANNEL" then return ChanSend(it.text) end
+	local f = C_ChatInfo and C_ChatInfo.SendAddonMessage or SendAddonMessage
+	if not f then return false end
+	local ok, res = pcall(f, PREFIX, it.text, it.dist, it.target)
+	return ok and res ~= false
+end
+
 local function DrainSend()
 	-- channel sends are combat-restricted on this client; the ticker
 	-- keeps running and resumes once combat ends
@@ -1536,30 +1584,31 @@ local function DrainSend()
 		if sendTicker then sendTicker:Cancel() sendTicker = nil end
 		return
 	end
-	-- the chat fallback needs a hardware event; hold the queue until
-	-- one arrives (SyncSendChannel / RequestRemoval run inside clicks)
-	if not chanAddonOK and not hw then return end
 	-- small control messages first (version/stat ping, pull)
 	if verPending and ChanSend(verPending[1]) and ChanSend(verPending[2]) then
 		verPending = nil
 	end
 	if pullPending and ChanSend(pullPending) then pullPending = nil end
-	while sendQueue[1] do
-		if not ChanSend(sendQueue[1]) then
-			if chanAddonOK then
-				-- transport is up but the call was rejected: one missing
-				-- chunk dooms the reassembly anyway - drop the payload
-				sendFailed = sendFailed + #sendQueue
-				sendQueue = {}
-				break
-			end
-			return -- chat path: retry on the next input event
+	local sent, chatSent = 0, 0
+	local i = 1
+	while sendQueue[i] do
+		local it = sendQueue[i]
+		local onChanChat = it.dist == "CHANNEL" and not chanAddonOK
+		if onChanChat and not hw then
+			i = i + 1 -- chat fallback parks until the next input event
+		elseif onChanChat and chatSent >= CHAT_BURST then
+			break     -- per-event flood cap; more on the next event
+		elseif not onChanChat and sent >= SEND_BURST then
+			break     -- addon transports are paced by the ticker
+		elseif ItemSend(it) then
+			table.remove(sendQueue, i)
+			chanSentAny = true
+			if onChanChat then chatSent = chatSent + 1 else sent = sent + 1 end
+		elseif onChanChat then
+			return    -- chat call rejected mid-event: retry next input
+		else
+			sendFailed = sendFailed + DropDist(it.dist, it.target)
 		end
-		table.remove(sendQueue, 1)
-		chanSentAny = true
-		-- pace native addon sends to one chunk per ticker step;
-		-- the chat fallback drains the whole queue inside the click
-		if chanAddonOK then break end
 	end
 	if #sendQueue == 0 and (chanSentAny or sendFailed > 0) then
 		if sendTicker then sendTicker:Cancel() sendTicker = nil end
@@ -1574,21 +1623,35 @@ local function DrainSend()
 	end
 end
 
-QueueChannelSend = function()
+-- opts.whisper: a direct copy to this player first (pull answers -
+-- reaches the requester even while the channel transport is down)
+-- opts.guild:   one broadcast on the guild distribution, covering
+-- guildmates who never joined the sync channel
+QueueChannelSend = function(opts)
 	if not chanNum then return end
+	opts = opts or {}
 	local json = F.ExportWireJSON()
 	local total = math.ceil(#json / SYNC_CHUNK)
 	if total == 0 then return end
 	sendQueue = {}
-	for i = 1, total do
-		sendQueue[i] = format("FBLv1;%d;%d;%s", i, total,
-			json:sub((i - 1) * SYNC_CHUNK + 1, i * SYNC_CHUNK))
+	local function push(dist, target)
+		for i = 1, total do
+			sendQueue[#sendQueue + 1] = {
+				text = format("FBLv1;%d;%d;%s", i, total,
+					json:sub((i - 1) * SYNC_CHUNK + 1, i * SYNC_CHUNK)),
+				dist = dist, target = target,
+			}
+		end
 	end
+	if opts.whisper then push("WHISPER", opts.whisper) end
+	push("CHANNEL")
+	if opts.guild and IsInGuild and IsInGuild() then push("GUILD") end
+	sendTotal = total
 	DB().sync.lastHash = DataHash()
 	Log("out", format(L["Sending blacklist: %d chunks"], total))
-	if not sendTicker then sendTicker = C_Timer.NewTicker(0.3, DrainSend) end
-	-- inside a click the chat fallback drains everything at once;
-	-- on the addon transport this just sends the first chunk early
+	if not sendTicker then sendTicker = C_Timer.NewTicker(0.15, DrainSend) end
+	-- inside a click the chat fallback drains a burst; the addon
+	-- transports just get their first paced step early
 	DrainSend()
 end
 
@@ -1599,7 +1662,7 @@ F._liveShare = function()
 	if liveTimer then liveTimer:Cancel() end
 	liveTimer = C_Timer.NewTimer(6, function()
 		liveTimer = nil
-		QueueChannelSend()
+		QueueChannelSend({ guild = true })
 	end)
 end
 
@@ -1617,12 +1680,12 @@ function F.SyncSendChannel()
 	end
 	-- called from a click: RunHardware carries the input event the
 	-- SendChatMessage fallback needs to drain right away
-	RunHardware(QueueChannelSend)
-	if #sendQueue == 0 then return end
+	RunHardware(QueueChannelSend, { guild = true })
+	if not sendTotal or sendTotal == 0 then return end
 	if chanAddonOK == nil then
 		S.Print(L["Queued - channel transport not established yet"])
 	else
-		S.Print(format(L["Sending blacklist: %d chunks"], #sendQueue))
+		S.Print(format(L["Sending blacklist: %d chunks"], sendTotal))
 	end
 end
 

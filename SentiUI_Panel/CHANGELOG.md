@@ -1,5 +1,11 @@
 # SentiUI Panel
 
+## 0.5.42 - 2026-11-24
+
+- FBL sync speed: a full list now travels in seconds instead of half a minute. Chunks grew to 236 bytes (still under the 255-byte message cap), the addon drain sends 3 chunks per 0.15s tick (~20 msg/s, was 1 per 0.3s), and every broadcast additionally pushes one guild copy - reaching guildmates who never joined the sync channel.
+- Pull answers go direct: when a peer asks for a newer list, we now whisper them a full copy via addon message first (not channel- or hardware-gated) before the jittered channel broadcast. Pull cooldown 600s -> 300s, answer jitter 5-40s -> 3-10s.
+- Chat fallback flood cap: channel sends inside an input event are now limited to 12 lines per event so the client spam throttle stops silently eating chunks (a missing chunk corrupts the whole list at the receiver).
+
 ## 0.5.41 - 2026-11-24
 
 - FBL sync: the receive notice now names the sender's client - 'Blacklist received from X via SentiUI' vs 'via ForeverBlackListed', learned from each peer's FBLver ping (SentiUI announces SentiUI_Panel-x.y, the standalone a bare version).
