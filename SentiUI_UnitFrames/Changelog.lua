@@ -2,6 +2,22 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.51",
+		date = "2026-11-25",
+		changes = {
+			"Own buff reminder: a pulsing gold ! on the player frame while a buff your own class can give is missing on yourself - rogues and shamans also flag a missing weapon enchant (own-buff reminder under Unit Frames > Extras).",
+			"Durability warning: a small gear icon at the player frame's bottom corner turns yellow once the worst piece drops under half durability, red under a quarter.",
+			"Interrupt announce: when your kick lands (the target's cast breaks within 0.6s of your interrupt cast) a party line posts 'Interrupted: <spell>' - combat-deferred so the send never fires inside a locked call.",
+			"Boss-kill effects: a won encounter (ENCOUNTER_END) triggers the same gold edge flash as level ups; an optional screenshot toggle joins the level/achievement ones.",
+		},
+		changesDE = {
+			"Eigen-Buff-Erinnerung: Ein pulsierendes goldenes ! am Spielerfenster, solange ein Buff deiner eigenen Klasse auf dir fehlt - Schurken und Schamanen melden zusaetzlich eine fehlende Waffenverzauberung (Eigen-Buff-Erinnerung unter Einheitenfenster > Extras).",
+			"Haltbarkeits-Warnung: Ein kleines Zahnrad-Symbol an der unteren Ecke des Spielerfensters wird gelb, sobald das schlechteste Teil unter die Haelfte faellt, rot unter einem Viertel.",
+			"Unterbrechungs-Ansage: Wenn dein Kick landet (die gegnerische Beschwoerung bricht innerhalb von 0,6s nach deinem Unterbrechungs-Zauber ab), schreibt eine Gruppenzeile 'Unterbrochen: <Zauber>' - kampfverzoegert, damit der Send nie in einem gesperrten Call feuert.",
+			"Boss-Kill-Effekte: Ein gewonnener Encounter loest denselben goldenen Rand-Blitz aus wie Level-Ups; ein optionaler Screenshot-Schalter gesellt sich zu Level/Erfolg.",
+		},
+	},
+	{
 		version = "0.2.50",
 		date = "2026-11-25",
 		changes = {

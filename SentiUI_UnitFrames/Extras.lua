@@ -671,6 +671,14 @@ ns.RegisterBusEvent("ACHIEVEMENT_EARNED", function()
 		C_Timer.After(0.5, function() pcall(Screenshot) end)
 	end
 end)
+ns.RegisterBusEvent("ENCOUNTER_END", function(_, _, _, _, success)
+	local won = Plain(success)
+	if won ~= 1 and won ~= true then return end
+	if ns.db and ns.db.levelFlash ~= false and flash then flash.t = 0 end
+	if ns.db and ns.db.shotBoss == true and Screenshot then
+		C_Timer.After(0.5, function() pcall(Screenshot) end)
+	end
+end)
 
 -- ===========================================================================
 -- Cooldown tracker: interrupt + signature defensive icons under a member's
@@ -849,10 +857,63 @@ end
 
 -- a tracked cast lands on the cell whose unit cast it - the event is
 -- registered per frame through EXTRA_EVENTS below, no GUID mapping needed
+local INTERRUPTS = {
+	[1766]=1,[6552]=1,[47528]=1,[96231]=1,[2139]=1,[19647]=1,[57994]=1,
+	[106839]=1,[116705]=1,[15487]=1,[183752]=1,[187707]=1,[147362]=1,
+	[351338]=1,[78675]=1,[97547]=1,
+}
+local lastKick = 0
+
 local function OnCastSucceeded(f, event, unit, castGUID, spellID)
 	local id = Plain(spellID)
 	local secs = id and CD_SPELLS[id]
 	if secs then ShowCD(f, id, secs) end
+	if f.unit == "player" and id and INTERRUPTS[id] then
+		lastKick = GetTime()
+	end
+end
+
+-- kick announce: the interrupt that lands on our target right after our
+-- own kick cast is ours - attribute and post it to the party. Without
+-- the combat log this correlation window is the only readable proof.
+local kickPending
+local function SendKick(msg)
+	if InCombatLockdown() then
+		if not kickPending then
+			kickPending = msg
+			C_Timer.After(0.5, function()
+				local m = kickPending
+				kickPending = nil
+				if m and not InCombatLockdown() then SendKick(m) end
+			end)
+		end
+		return
+	end
+	local ok = pcall(SendChatMessage, msg, "PARTY")
+	if not ok and DEFAULT_CHAT_FRAME then
+		pcall(DEFAULT_CHAT_FRAME.AddMessage, DEFAULT_CHAT_FRAME, msg)
+	end
+end
+
+local function OnCastInterrupted(f, event, unit, castGUID, spellID)
+	if f.unit ~= "target" then return end
+	if not ns.db or ns.db.kickAnnounce == false then return end
+	if GetTime() - lastKick > 0.6 then return end
+	lastKick = 0
+	if not (IsInGroup and IsInGroup()) then return end
+	local id = Plain(spellID)
+	local name
+	if id then
+		if C_Spell and C_Spell.GetSpellName then
+			local ok, v = pcall(C_Spell.GetSpellName, id)
+			if ok and type(v) == "string" and v ~= "" then name = v end
+		end
+		if not name and GetSpellInfo then
+			local ok, v = pcall(GetSpellInfo, id)
+			if ok then name = v end
+		end
+	end
+	SendKick(name and ("Unterbrochen: " .. name) or "Unterbrochen!")
 end
 
 -- ===========================================================================
@@ -921,6 +982,78 @@ function X.UpdateMissingBuff(f)
 	mk:SetShown(missing)
 end
 
+-- ===========================================================================
+-- Own-buff reminder: pulsing gold "!" on the player frame while a buff
+-- your own class hands out is absent on yourself - plus a weapon-enchant
+-- check for rogue/shaman (temporary enchants never fire UNIT_AURA on
+-- their own here, so the check rides the missing-buff scan).
+-- ===========================================================================
+local WEAPON_BUFF = { ROGUE = true, SHAMAN = true }
+
+function X.UpdateSelfBuff(f)
+	local mk = f.SelfBuff
+	if not mk then return end
+	if ns.db.selfBuffWarn == false then mk:Hide() return end
+	local names = OwnBuffNames()
+	local okC, _, cls = pcall(UnitClass, "player")
+	local wantWeapon = okC and type(cls) == "string" and WEAPON_BUFF[cls]
+	if not names and not wantWeapon then mk:Hide() return end
+	local now = GetTime()
+	if f._sbT and now - f._sbT < 1 then return end
+	f._sbT = now
+	local have = {}
+	if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
+		for i = 1, 40 do
+			local ok, a = pcall(C_UnitAuras.GetAuraDataByIndex,
+				"player", i, "HELPFUL")
+			if not ok or not a then break end
+			local okN, nm = pcall(function() return a.name end)
+			if okN and type(nm) == "string" then have[nm] = true end
+		end
+	end
+	local missing = false
+	if names then
+		for n in pairs(names) do
+			if not have[n] then missing = true break end
+		end
+	end
+	if not missing and wantWeapon and GetWeaponEnchantInfo then
+		local okW, mh, _, _, oh = pcall(GetWeaponEnchantInfo)
+		if okW and (mh == false or oh == false) then missing = true end
+	end
+	mk:SetShown(missing)
+end
+
+-- ===========================================================================
+-- Durability warning: small gear icon at the player frame's bottom corner,
+-- yellow once the worst piece drops under half, red under a quarter.
+-- UPDATE_INVENTORY_DURABILITY is a global event - bus-registered, since
+-- per-frame unit events would filter it out.
+-- ===========================================================================
+local DUR_SLOTS = { 1, 3, 5, 6, 7, 8, 9, 10, 11, 16, 17 }
+local playerFrame
+
+function X.UpdateDurability(f)
+	local ic = f.DurIcon
+	if not ic then return end
+	if ns.db.durWarn == false then ic:Hide() return end
+	local worst = 100
+	for _, slot in ipairs(DUR_SLOTS) do
+		local ok, cur, mx = pcall(GetInventoryItemDurability, slot)
+		if ok and type(cur) == "number" and type(mx) == "number"
+			and mx > 0 and cur / mx * 100 < worst then
+			worst = cur / mx * 100
+		end
+	end
+	if worst >= 50 then ic:Hide() return end
+	ic:SetVertexColor(1, worst < 25 and 0.25 or 0.8, 0.2)
+	ic:Show()
+end
+
+ns.RegisterBusEvent("UPDATE_INVENTORY_DURABILITY", function()
+	if playerFrame then X.UpdateDurability(playerFrame) end
+end)
+
 function X.Attach(f)
 	-- called from UF.Build: extra bars/icons for frames that want them
 	BuildPredOverlays(f)
@@ -928,6 +1061,26 @@ function X.Attach(f)
 		BuildClassPower(f)
 		BuildCombatText(f)
 		BuildScreenFX()
+		playerFrame = f
+		local sb = f:CreateFontString(nil, "OVERLAY")
+		sb:SetFont(S.media.font, 13, "OUTLINE")
+		sb:SetPoint("TOPLEFT", f, "TOPLEFT", 1, -1)
+		sb:SetText("!")
+		sb:SetTextColor(0.92, 0.68, 0.20)
+		sb:Hide()
+		local pul = CreateFrame("Frame", nil, f)
+		pul:SetScript("OnUpdate", function(self, dt)
+			if not sb:IsShown() then return end
+			self.t = (self.t or 0) + (dt or 0.016)
+			sb:SetAlpha(0.45 + 0.45 * math.abs(math.sin(self.t * 4)))
+		end)
+		f.SelfBuff = sb
+		local di = f:CreateTexture(nil, "OVERLAY")
+		di:SetSize(12, 12)
+		di:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
+		di:SetTexture("Interface\\Icons\\Trade_BlackSmithing")
+		di:Hide()
+		f.DurIcon = di
 	end
 	if (f.key == "party" or f.key == "raid") and f.db
 		and f.db.cooldownIcons ~= false then
@@ -952,6 +1105,8 @@ function X.Refresh(f)
 	if f.key == "player" then
 		X.UpdateClassPower(f)
 		X.UpdateLowHP(f)
+		X.UpdateSelfBuff(f)
+		X.UpdateDurability(f)
 	end
 	if f.MissingBuff then X.UpdateMissingBuff(f) end
 end
@@ -980,7 +1135,11 @@ local EXTRA_EVENTS = {
 	UNIT_THREAT_SITUATION_UPDATE = X.UpdateThreatPct,
 	UNIT_THREAT_LIST_UPDATE = X.UpdateThreatPct,
 	UNIT_SPELLCAST_SUCCEEDED = OnCastSucceeded,
-	UNIT_AURA = function(f) X.UpdateMissingBuff(f) end,
+	UNIT_SPELLCAST_INTERRUPTED = OnCastInterrupted,
+	UNIT_AURA = function(f)
+		X.UpdateMissingBuff(f)
+		if f.unit == "player" then X.UpdateSelfBuff(f) end
+	end,
 }
 
 function X.OnFrameEvent(f, event, ...)

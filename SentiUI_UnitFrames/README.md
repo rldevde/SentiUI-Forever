@@ -46,10 +46,17 @@ class-colored health). Standalone module - requires the SentiUI core.
   ice block, divine shield, ...), driven by `UNIT_SPELLCAST_SUCCEEDED`
   per cell so any group member shows, no addon channel needed. On by
   default for party, opt-in on raid cells.
-- **Screen effects** - a red vignette pulses at the screen edges while
-  your health drops below the chosen threshold (Low health pulse), a
-  gold flash marks level ups (Level-up flash), and optional
-  screenshots fire on level ups and earned achievements.
+- **Screen effects** - a red edge pulse while your health drops below
+  the chosen threshold (Low health pulse), a gold flash marks level
+  ups and won boss encounters, and optional screenshots fire on level
+  ups, achievements and boss kills.
+- **Warnings** - a pulsing gold `!` on the player frame while a buff
+  your class can give is missing on yourself (rogues/shamans also flag
+  a missing weapon enchant), and a small gear icon that goes yellow
+  under 50% worst-piece durability, red under 25%.
+- **Interrupt announce** - posts `Interrupted: <spell>` to the party
+  when your kick lands (the target's cast breaks within 0.6s of your
+  interrupt cast); the chat send is combat-deferred.
 
 ## Usage
 

@@ -45,6 +45,10 @@ ns.DEFAULTS = {
 	levelFlash = true,             -- gold screen flash on level ups
 	shotLevelUp = false,           -- screenshot on level up
 	shotAchieve = false,           -- screenshot on earned achievements
+	shotBoss = false,              -- screenshot on boss-kill (ENCOUNTER_END)
+	selfBuffWarn = true,           -- pulsing ! when your own buff/enchant is missing
+	durWarn = true,                -- gear icon when durability runs low
+	kickAnnounce = true,           -- party line when your interrupt lands
 	raid = {
 		enable = true, w = 74, h = 26, spacing = 3, power = false,
 		growth = "RIGHT",         -- columns grow to the right, members stack upward

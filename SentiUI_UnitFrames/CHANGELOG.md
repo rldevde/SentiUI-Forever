@@ -1,5 +1,12 @@
 # SentiUI Unit Frames
 
+## 0.2.51 - 2026-11-25
+
+- Own buff reminder: a pulsing gold `!` on the player frame while a buff your class can give is missing on yourself; rogues and shamans also flag a missing weapon enchant.
+- Durability warning: a small gear icon at the player frame's bottom corner, yellow under 50% worst-piece durability, red under 25%.
+- Interrupt announce: a party line `Interrupted: <spell>` when the target's cast breaks within 0.6s of your own interrupt cast; the send is combat-deferred.
+- Boss-kill effects: `ENCOUNTER_END` success triggers the gold edge flash and an optional screenshot (new toggle next to the level/achievement ones).
+
 ## 0.2.42 - 2026-11-24
 
 - Party pet bars and boss/arena frames actually paint now: `UF.Build` creates the health/power bars but only `UF.Configure` anchors and sizes them inside the frame - the party-pet and boss/arena builders called Build + Refresh and skipped Configure, so the boxes showed under a companion or boss yet stayed empty. Both paths now call Configure, and an OnShow hook repaints when the visibility driver flips a late-spawning pet or boss visible.

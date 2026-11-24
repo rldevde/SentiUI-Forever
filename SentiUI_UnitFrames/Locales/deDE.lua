@@ -143,3 +143,7 @@ L["Click to fold the marker tray."] = "Klicken, um die Markenleiste ein-/auszukl
 L["Pull timer"] = "Pull-Timer"
 L["Starts a 10 second countdown."] = "Startet einen 10-Sekunden-Countdown."
 L["Alt power bar"] = "Alternative Kraftleiste"
+L["Screenshot on boss kills"] = "Screenshot bei Boss-Kills"
+L["Own buff reminder"] = "Eigen-Buff-Erinnerung"
+L["Durability warning"] = "Haltbarkeits-Warnung"
+L["Announce interrupts"] = "Unterbrechungen ansagen"
