@@ -2,6 +2,15 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.46",
+		changes = {
+			"FBL list sorting: a small 'Sort:' strip on top of the blacklist switches between Name, Date added and Reporter - and each row shows the date and reporter directly in the list. The mode is persisted in FBLDB.sortBy and shared with the standalone ForeverBlackListed addon.",
+		},
+		changesDE = {
+			"FBL-Listen-Sortierung: Eine kleine 'Sortieren:'-Leiste ueber der Blacklist schaltet zwischen Name, Eingetragen und Melder um - und jede Zeile zeigt Datum und Melder direkt in der Liste. Der Modus wird in FBLDB.sortBy gespeichert und mit dem Standalone-Addon geteilt.",
+		},
+	},
+	{
 		version = "0.5.45",
 		changes = {
 			"FBL sync: removal requests (FBLreq) and incoming lists are now left to ForeverBlackListed when it is loaded and channel-joined - previously both addons processed them, stacking two admin dialogs and merging every list twice. If the standalone's sync join is disabled, the panel keeps handling them as before.",

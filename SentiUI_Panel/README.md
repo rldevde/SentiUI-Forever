@@ -54,6 +54,9 @@ note history, votes, groups, good list, removal requests and tooltip
 warnings. Shares the FBLDB data model with the standalone
 ForeverBlackListed addon and delegates writes/sync to it when loaded.
 
+- Sort strip on top of the list: switch rows between Name, Date added
+  and Reporter; every row shows the entry's date and reporter (mode
+  persisted in FBLDB.sortBy, shared with the standalone addon)
 - Wire sync on the FBLsync channel: chunked JSON export, auto-accept
   with trust modes (everyone / guild / friends), live share of local
   changes, version pings, pull requests and last-write-wins merge

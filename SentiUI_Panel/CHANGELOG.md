@@ -1,5 +1,9 @@
 # SentiUI Panel
 
+## 0.5.46 - 2026-11-24
+
+- FBL list sorting: a small 'Sort:' strip on top of the blacklist switches between Name, Date added and Reporter - each row now shows the entry's date and reporter directly in the list. The mode is persisted in FBLDB.sortBy and shared with the standalone ForeverBlackListed addon.
+
 ## 0.5.45 - 2026-11-24
 
 - FBL sync: removal requests (FBLreq) and incoming lists are now left to ForeverBlackListed when it is loaded and channel-joined - previously both addons processed them, stacking two admin dialogs and merging every list twice. If the standalone's sync join is disabled, the panel keeps handling them as before.

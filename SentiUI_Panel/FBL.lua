@@ -478,10 +478,18 @@ function F.SortedEntries()
 	local db = extdb()
 	local out = {}
 	for _, e in pairs(db.entries) do out[#out + 1] = e end
+	local mode = db.sortBy or "name"
 	sort(out, function(a, b)
 		local ga = db.groups[a.group] and db.groups[a.group].order or 99
 		local gb = db.groups[b.group] and db.groups[b.group].order or 99
 		if ga ~= gb then return ga < gb end
+		if mode == "added" then
+			local ta, tb = a.added or 0, b.added or 0
+			if ta ~= tb then return ta > tb end
+		elseif mode == "by" then
+			local ba, bb = (a.by or ""):lower(), (b.by or ""):lower()
+			if ba ~= bb then return ba < bb end
+		end
 		return (a.name or ""):lower() < (b.name or ""):lower()
 	end)
 	return out
@@ -1914,7 +1922,7 @@ local function Window()
 	listBg:SetPoint("TOPLEFT", 10, -82)
 	listBg:SetPoint("BOTTOMRIGHT", -10, 80)
 	local scroll = CreateFrame("ScrollFrame", nil, listBg)
-	scroll:SetPoint("TOPLEFT", 4, -4)
+	scroll:SetPoint("TOPLEFT", 4, -24)
 	scroll:SetPoint("BOTTOMRIGHT", -4, 4)
 	local holder = CreateFrame("Frame", nil, scroll)
 	scroll:SetScrollChild(holder)
@@ -1925,6 +1933,40 @@ local function Window()
 	end)
 	f.holder, f.scroll = holder, scroll
 	holder.rows, holder.heads = {}, {}
+
+	-- sort strip inside the list header: mode is persisted in db.sortBy
+	local sortStrip = CreateFrame("Frame", nil, listBg)
+	sortStrip:SetPoint("TOPLEFT", 4, -4)
+	sortStrip:SetPoint("TOPRIGHT", -4, -4)
+	sortStrip:SetHeight(18)
+	f.sortStrip = sortStrip
+	local sortLbl = ns.Font(sortStrip, 9, S.colors.textDim)
+	sortLbl:SetPoint("LEFT", 4, 0)
+	sortLbl:SetText(L["Sort:"])
+	f.sortBtns = {}
+	local sx = 10 + sortLbl:GetStringWidth()
+	for _, m in ipairs({
+		{ "name", L["Name"] },
+		{ "added", L["Date added"] },
+		{ "by", L["Reporter"] },
+	}) do
+		local b = CreateFrame("Button", nil, sortStrip)
+		b.mode = m[1]
+		b.fs = ns.Font(b, 9, S.colors.textDim)
+		b.fs:SetPoint("LEFT", 0, 0)
+		b.fs:SetText(m[2])
+		b:SetSize(b.fs:GetStringWidth() + 6, 16)
+		b:SetPoint("LEFT", sx, 0)
+		sx = sx + b:GetWidth() + 10
+		b:SetScript("OnClick", function(self)
+			extdb().sortBy = self.mode
+			F.RefreshWindow()
+		end)
+		f.sortBtns[m[1]] = b
+	end
+	-- the strip belongs to the list view only: ride on scroll visibility
+	scroll:HookScript("OnHide", function() sortStrip:Hide() end)
+	scroll:HookScript("OnShow", function() sortStrip:Show() end)
 
 	local empty = ns.Font(f, 11, S.colors.textDim)
 	empty:SetPoint("CENTER", listBg, "CENTER")
@@ -2202,6 +2244,11 @@ function F.RefreshWindow()
 	for _, r in ipairs(holder.rows) do r:Hide() end
 	for _, h in ipairs(holder.heads) do h:Hide() if h.rule then h.rule:Hide() end end
 	for _, c in ipairs(f.chips) do c:SetActive(c.fid == f.filter) end
+	local smode = extdb().sortBy or "name"
+	for m, b in pairs(f.sortBtns) do
+		local c = m == smode and S.colors.accent or S.colors.textDim
+		b.fs:SetTextColor(c.r, c.g, c.b)
+	end
 	local isAdm = F.IsAdmin()
 	f.adminChip:SetShown(isAdm)
 	if not isAdm and f.filter == "admin" then f.filter = "all" end
@@ -2444,7 +2491,11 @@ function F.RefreshWindow()
 			row.line:SetText((good and "|cff4dd278" or "|cffff5555") .. e.name .. "|r"
 				.. (e.guild and e.kind ~= "guild"
 					and ("  |cff8c919f<" .. e.guild .. ">|r") or "")
-				.. (e.realm and ("  |cff6a6f7d@" .. e.realm .. "|r") or ""))
+				.. (e.realm and ("  |cff6a6f7d@" .. e.realm .. "|r") or "")
+				.. ((e.added or e.by) and ("  |cff6a6f7d· "
+					.. (e.added and date("%d.%m.%y", e.added) or "")
+					.. (e.by and ((e.added and " · " or "") .. e.by) or "")
+					.. "|r") or ""))
 			local up, down = F.EntryVotes(e)
 			local my = F.MyVote(e)
 			row.votes:SetText(up + down > 0
