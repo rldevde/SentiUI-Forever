@@ -12,4 +12,5 @@ ns.DEFAULTS = {
 	heals = true,         -- incoming healing
 	misses = true,        -- miss/dodge/parry/block/resist
 	gains = true,         -- energize / leech / absorb
+	deathRecap = true,    -- card listing the last hits when you die
 }

@@ -147,6 +147,65 @@ local function Push(text, r, g, b, crit)
 	feed:SetScript("OnUpdate", UpdateFeed)
 end
 
+-- death recap ---------------------------------------------------------------
+-- ring buffer of the last incoming events; when you die a small card
+-- lists them so you can see what actually killed you
+local recent, recap = {}, nil
+local RECAP_N = 8
+
+local function BuildRecap()
+	if recap then return end
+	recap = CreateFrame("Frame", "SentiUI_CT_Recap", UIParent)
+	recap:SetSize(240, 26 + RECAP_N * (ROW_H + 1))
+	recap:SetPoint("CENTER", 0, -40)
+	recap:SetFrameStrata("DIALOG")
+	local bg = recap:CreateTexture(nil, "BACKGROUND")
+	bg:SetAllPoints()
+	bg:SetColorTexture(0.05, 0.05, 0.06, 0.85)
+	local title = S.Font(recap, 12, nil, "OUTLINE")
+	title:SetPoint("TOP", 0, -7)
+	title:SetText(L["What killed you"])
+	title:SetTextColor(0.92, 0.68, 0.20)
+	recap.rows = {}
+	for i = 1, RECAP_N do
+		local r = S.Font(recap, 11, nil, "OUTLINE")
+		r:SetPoint("TOP", 0, -22 - (i - 1) * (ROW_H + 1))
+		r:Hide()
+		recap.rows[i] = r
+	end
+	recap:Hide()
+end
+
+local function ShowRecap()
+	if not recap or db.deathRecap == false then return end
+	local n = math.min(#recent, RECAP_N)
+	if n == 0 then return end
+	for i = 1, RECAP_N do
+		local e = recent[#recent - i + 1]
+		local row = recap.rows[i]
+		if e then
+			pcall(row.SetText, row, e.text)
+			row:SetTextColor(e.r, e.g, e.b)
+			row:Show()
+		else
+			row:Hide()
+		end
+	end
+	recap:SetAlpha(1)
+	recap.t = 0
+	recap:SetScript("OnUpdate", function(self, dt)
+		self.t = self.t + (dt or 0.016)
+		if self.t > 10 then
+			self:SetAlpha(math.max(0, 1 - (self.t - 10) / 2))
+			if self.t >= 12 then
+				self:Hide()
+				self:SetScript("OnUpdate", nil)
+			end
+		end
+	end)
+	recap:Show()
+end
+
 -- event ---------------------------------------------------------------------
 local function OnCombatText(_, arg1, arg2, arg3)
 	if IsSecret(arg1) then return end
@@ -170,6 +229,8 @@ local function OnCombatText(_, arg1, arg2, arg3)
 			return
 		end
 	end
+	tinsert(recent, { text = text, r = st.col[1], g = st.col[2], b = st.col[3] })
+	if #recent > 16 then tremove(recent, 1) end
 	Push(text, st.col[1], st.col[2], st.col[3], crit)
 end
 
@@ -187,7 +248,17 @@ function Core.Enable(mod)
 	Core.enabled = true
 	db = mod.db
 	BuildFeed()
+	BuildRecap()
 	S.RegisterEvent("COMBAT_TEXT_UPDATE", function(ev, a, b, c)
 		S.SafeCall("ct:feed", OnCombatText, ev, a, b, c)
+	end)
+	S.RegisterEvent("PLAYER_DEAD", function()
+		S.SafeCall("ct:recap", ShowRecap)
+	end)
+	S.RegisterEvent("PLAYER_ALIVE", function()
+		if recap then recap:Hide() end
+	end)
+	S.RegisterEvent("PLAYER_UNGHOST", function()
+		if recap then recap:Hide() end
 	end)
 end

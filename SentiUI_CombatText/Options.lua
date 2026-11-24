@@ -33,6 +33,8 @@ ns.OPTIONS = {
 							desc = L["Miss, dodge, parry, block and resist entries."] },
 						{ type = "toggle", key = "gains", label = L["Resource gains"],
 							desc = L["Energize, leech and absorb entries."] },
+						{ type = "toggle", key = "deathRecap", label = L["Death recap"],
+							desc = L["A small card lists the last incoming hits when you die."] },
 					},
 				},
 			},
