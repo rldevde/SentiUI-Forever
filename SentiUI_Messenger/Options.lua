@@ -30,7 +30,7 @@ ns.OPTIONS = {
 				},
 				{
 					label = L["Whisper tiles"],
-					desc = L["Small squares over the chat, one per recent conversation. Left-click opens that chat's own window, right-click opens it in the Messenger hub. Move the strip via /sui unlock."],
+					desc = L["Pill chips over the chat, one per recent conversation - first name in class color. Left-click opens that chat's own window, right-click opens it in the Messenger hub. Move the strip via /sui unlock."],
 					items = {
 						{ type = "toggle", key = "tiles", label = L["Show whisper tiles"] },
 						{ type = "slider", key = "tileMax", label = L["Tiles shown"], min = 2, max = 10, step = 1,

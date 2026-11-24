@@ -754,26 +754,17 @@ function Core.Open(key)
 end
 
 -- ---------------------------------------------------------------------------
--- whisper tiles + conversation card + preview toast
--- A row of small squares over the chat panel - one per recent conversation,
--- initial letter in class color, unread count, pin marker. Clicking a tile
+-- whisper chips + conversation card + preview toast
+-- A row of pill chips over the chat panel - one per recent conversation,
+-- first name in class color, unread count, pin marker. Clicking a chip
 -- opens that conversation's own window (the card). A new whisper flashes a
--- short preview above the tiles.
+-- short preview above the chips.
 -- ---------------------------------------------------------------------------
 
-local TILE, TILE_GAP = 36, 6
+local TILE_H, TILE_GAP = 24, 6
 local tileHolder, tilePool = nil, {}
 local card, cardKey = nil, nil
 local preview = nil
-
--- one whole UTF-8 character, so accented and multibyte initials work
-local UTF8CHAR = "[%z\1-\127\194-\244][\128-\191]*"
-
-local function initialOf(c)
-	local n = displayName(c) or "?"
-	local ch = n:match(UTF8CHAR)
-	return ch and ch:upper() or "?"
-end
 
 -- ---------------------------------------------------------------------------
 -- the conversation card: one person's window
@@ -1045,18 +1036,22 @@ local function tileAt(i)
 	local t = tilePool[i]
 	if t then return t end
 	t = CreateFrame("Button", nil, tileHolder, "BackdropTemplate")
-	t:SetSize(TILE, TILE)
+	t:SetHeight(TILE_H)
+	-- pill ends: the PillEdge backdrop rounds to a capsule at this
+	-- height; a missing media file degrades to a flat chip, never square-ish
 	S.Template(t, "inset")
-	t.initial = S.Font(t, 15, C.accent)
-	t.initial:SetPoint("CENTER", 0, 1)
-	t.badge = S.Font(t, 9, C.accent)
-	t.badge:SetPoint("BOTTOMRIGHT", -1, 1)
-	t.pin = S.Font(t, 9, C.accent)
-	t.pin:SetPoint("TOPLEFT", 2, 0)
-	-- tiny close on the top-right corner, fades in on hover
+	-- one line carries pin marker + first name; no RIGHT anchor so
+	-- GetStringWidth() measures the real text width for the chip size
+	t.label = S.Font(t, 11)
+	t.label:SetPoint("LEFT", 10, 0)
+	t.label:SetJustifyH("LEFT")
+	t.badge = S.Font(t, 10, C.accent)
+	t.badge:SetPoint("RIGHT", -10, 0)
+	-- tiny close on the chip's top edge, fades in on hover; sits flush
+	-- above the corner so crossing onto it never leaves the frame
 	local x = CreateFrame("Button", nil, t)
 	x:SetSize(12, 12)
-	x:SetPoint("TOPRIGHT", 1, 1)
+	x:SetPoint("BOTTOMRIGHT", t, "TOPRIGHT", 3, 0)
 	x:SetFrameLevel(t:GetFrameLevel() + 3)
 	x.txt = S.Font(x, 10, C.textDim)
 	x.txt:SetPoint("CENTER", 0, 1)
@@ -1067,6 +1062,8 @@ local function tileAt(i)
 		if c then Core.DeleteConvo(c.key) end
 	end)
 	x:SetScript("OnEnter", function(self)
+		-- the chip's OnLeave can hide us mid-crossing; re-show here
+		self:SetAlpha(1)
 		self.txt:SetTextColor(C.accent.r, C.accent.g, C.accent.b)
 	end)
 	x:SetScript("OnLeave", function(self)
@@ -1106,34 +1103,48 @@ local function tileAt(i)
 	return t
 end
 
+-- the chip label: pin marker + first name - a whisper partner is
+-- recognized faster by name than by an initial glyph
+local function chipName(c)
+	local nm = displayName(c) or "?"
+	return nm:match("^(%S+)") or nm
+end
+
 function Core.RebuildTiles()
 	if not tileHolder then return end
 	local max = math.max(2, db.tileMax or 6)
-	tileHolder:SetWidth(max * (TILE + TILE_GAP))
 	local list = Core.List()
 	local n = math.min(#list, max)
+	local x = 0
 	for i = 1, n do
 		local c = list[i]
 		local t = tileAt(i)
 		t.c = c
-		t:ClearAllPoints()
-		t:SetPoint("LEFT", tileHolder, "LEFT", (i - 1) * (TILE + TILE_GAP), 0)
 		local r, g, b = RowClassColor(c)
-		t.initial:SetText(initialOf(c))
-		t.initial:SetTextColor(r, g, b)
-		t.badge:SetText((c.unread or 0) > 0 and tostring(c.unread) or "")
-		t.pin:SetText(c.pinned and "*" or "")
+		t.label:SetText((c.pinned and "|cff" .. S.Hex(C.accent) .. "*|r " or "")
+			.. chipName(c))
+		t.label:SetTextColor(r, g, b)
+		local badge = (c.unread or 0) > 0 and tostring(c.unread) or ""
+		t.badge:SetText(badge)
+		local tw = math.ceil(10 + (t.label:GetStringWidth() or 40)
+			+ (badge ~= "" and (t.badge:GetStringWidth() or 8) + 8 or 2))
+		t:SetWidth(tw)
+		t:ClearAllPoints()
+		t:SetPoint("LEFT", tileHolder, "LEFT", x, 0)
+		x = x + tw + TILE_GAP
 		S.SetBorderLit(t, Core.CardShowing(c.key))
 		t:Show()
 	end
 	for i = n + 1, #tilePool do tilePool[i]:Hide() end
+	tileHolder:SetWidth(math.max(x, 1))
+	tileHolder:SetHeight(TILE_H)
 	tileHolder:SetShown(db.tiles)
 end
 
 local function BuildTiles()
 	if tileHolder then return end
 	tileHolder = CreateFrame("Frame", "SentiUIMessengerTiles", UIParent)
-	tileHolder:SetSize(6 * (TILE + TILE_GAP), TILE)
+	tileHolder:SetSize(400, TILE_H)
 	-- dock above whichever left-side strip is highest: the chat tab row,
 	-- the XP bar, or a rep bar stacked above it - the panel's top edge
 	-- alone can sit under a data bar

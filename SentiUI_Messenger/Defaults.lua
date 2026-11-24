@@ -8,10 +8,10 @@ ns.DEFAULTS = {
 	sound = true,           -- play the whisper sound on new messages (throttled)
 	minimapBadge = true,    -- unread counter on the SentiUI minimap button
 
-	-- whisper tiles: small squares over the chat, one per recent chat,
+	-- whisper chips: pill chips over the chat, one per recent chat,
 	-- click opens that conversation's own window
 	tiles = true,
-	tileMax = 6,            -- tiles shown at once
+	tileMax = 6,            -- chips shown at once
 	preview = true,         -- short preview toast on a new whisper
 	previewSec = 6,         -- seconds the preview stays
 	autoOpen = true,        -- open the conversation window on a new whisper

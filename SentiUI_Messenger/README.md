@@ -6,12 +6,12 @@ independently.
 
 ## Features
 
-- **Whisper tiles**: a row of small squares above the left chat panel —
-  one per recent conversation, the sender's initial in their class
+- **Whisper chips**: a row of pill chips above the left chat panel —
+  one per recent conversation, the contact's first name in their class
   color plus unread count and pin marker. Left-click opens that chat's
   own **conversation card** (a small window with the thread and a reply
   box, draggable, position saved), right-click opens it in the hub.
-  A new whisper flashes a short **preview toast** above the tiles;
+  A new whisper flashes a short **preview toast** above the chips;
   clicking it opens the card. The strip is a mover — `/sui unlock` to
   drag it anywhere.
 - **One window for all whispers** (`/smsg`, `/sm`, or the button on the

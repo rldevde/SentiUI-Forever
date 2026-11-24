@@ -3,6 +3,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.11",
+		date = "2026-11-22",
+		changes = {
+			"Whisper tiles redesigned: the square letter boxes are now pill chips showing the contact's first name in class color, with the pin star in gold and the unread count on the right. Chips auto-size to the name; the close X sits on the chip's top edge and still fades in on hover.",
+		},
+		changesDE = {
+			"Fluester-Kacheln neu gestaltet: Aus den eckigen Buchstaben-Kaestchen wurden Pillen-Chips mit dem Vornamen des Kontakts in Klassenfarbe, dem Pin-Stern in Gold und der Ungelesen-Zahl rechts. Die Breite passt sich dem Namen an; das Schliessen-X sitzt an der Oberkante des Chips und blendet weiterhin bei Hover ein.",
+		},
+	},
+	{
 		version = "0.3.10",
 		date = "2026-11-22",
 		changes = {
