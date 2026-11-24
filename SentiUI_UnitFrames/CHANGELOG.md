@@ -1,5 +1,9 @@
 # SentiUI Unit Frames
 
+## 0.2.41 - 2026-11-24
+
+- Members joining mid-combat now appear immediately: party, pet, boss/arena and single frames switch from `RegisterUnitWatch` - which only flipped shown state after combat on this client - to engine-side `[@unit,exists]` visibility state drivers, the same mechanism the raid holder already used. Party pet boxes also stop hanging empty under members with no companion out.
+
 ## 0.2.40 - 2026-11-24
 
 - Offline status delay fixes: the 30s join grace now runs BEFORE the friend/guild roster corroboration - those flags update on their own cadence and reported joiners as offline, so guildies and friends still flashed offline despite the grace. Roster updates now repaint all group frames (coalesced over 0.5s so mass joins do not hitch), and the stale-offline revalidation ticker polls every second instead of every four.

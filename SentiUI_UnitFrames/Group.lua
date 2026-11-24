@@ -1,6 +1,7 @@
 -- Group frames: a static five-button party block (SecureUnitButtonTemplate
--- + RegisterUnitWatch, so joins/leaves mid-combat still flip visibility
--- without touching protected attributes) and a SecureGroupHeaderTemplate
+-- + a [unit,exists] visibility state driver, so joins/leaves flip
+-- visibility mid-combat without touching protected attributes) and a
+-- SecureGroupHeaderTemplate
 -- raid grid parented to an unprotected holder - the visibility state
 -- driver lives on the holder so a state flip never runs the protected
 -- header update (ADDON_ACTION_BLOCKED).
@@ -113,7 +114,15 @@ function G.CreateParty()
 		b.ReadyCheck = b.textHolder:CreateFontString(nil, "OVERLAY")
 		b.ReadyCheck:SetFont(S.media.font, 12, "OUTLINE")
 		b.ReadyCheck:SetPoint("CENTER", b.Health, "CENTER")
-		RegisterUnitWatch(b)
+		-- engine-side visibility driver: RegisterUnitWatch does not flip
+		-- shown state mid-combat on this client, so a join only appeared
+		-- after PLAYER_REGEN_ENABLED
+		if tok == "player" then
+			RegisterStateDriver(b, "visibility", "[petbattle] hide; show")
+		else
+			RegisterStateDriver(b, "visibility",
+				"[petbattle] hide; [@" .. tok .. ",exists] show; hide")
+		end
 		G.partyButtons[i] = b
 		b.Refresh = UF.Refresh
 		b:SetScript("OnEvent", function(self, event, unit, ...) UF.OnFrameEvent(self, event, unit, ...) end)
@@ -131,7 +140,7 @@ function G.CreateParty()
 		-- the player slot stays registered only when "show player" is on;
 		-- otherwise UnitWatch would keep showing it over slot 1
 		if tok == "player" and not db.showPlayer then
-			UnregisterUnitWatch(b)
+			UnregisterStateDriver(b, "visibility")
 			RegisterStateDriver(b, "visibility", "hide")
 		end
 	end

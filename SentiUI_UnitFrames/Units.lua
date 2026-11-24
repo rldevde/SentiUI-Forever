@@ -637,15 +637,18 @@ end
 
 function UF.SetEnabled(f, enabled)
 	if InCombatLockdown() then return S.RunOutOfCombat(UF.SetEnabled, f, enabled) end
+	UnregisterUnitWatch(f)
+	UnregisterStateDriver(f, "visibility")
 	if enabled then
 		if f.unit == "player" then
-			UnregisterUnitWatch(f)
 			RegisterStateDriver(f, "visibility", "[petbattle] hide; show")
 		else
-			RegisterUnitWatch(f)
+			-- unit-exists driver instead of RegisterUnitWatch: the engine
+			-- flips it even in combat, the watch only ran post-combat
+			RegisterStateDriver(f, "visibility",
+				"[petbattle] hide; [@" .. f.unit .. ",exists] show; hide")
 		end
 	else
-		UnregisterUnitWatch(f)
 		RegisterStateDriver(f, "visibility", "hide")
 	end
 end

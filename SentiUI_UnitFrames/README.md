@@ -15,8 +15,10 @@ class-colored health). Standalone module - requires the SentiUI core.
   left edge: a class icon for players (3D fallback for creatures) or the
   engine's 3D portrait for every unit.
 - **Party** - a fixed five-button block (`player` + `party1-4`) driven
-  by `RegisterUnitWatch`, so joins and leaves mid-combat update
-  visibility without touching protected attributes. Role marks,
+  by an engine-side `[@unit,exists]` visibility state driver, so joins
+  and leaves mid-combat update visibility without touching protected
+  attributes (RegisterUnitWatch only ran after combat on this client).
+  Role marks,
   leader icons, ready-check marks, range fading, growth direction.
 - **Raid** - `SecureGroupHeaderTemplate` grid (up to 8x5) on an
   unprotected holder; the visibility state driver lives on the holder

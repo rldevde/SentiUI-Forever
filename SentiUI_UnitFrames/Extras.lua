@@ -397,7 +397,8 @@ local function MakeGroupSet(prefix, count, key, title, cfg)
 		end)
 		for ev in pairs(UF.basicEvents) do ns.RegisterUnitEvent(b, ev) end
 		X.RegisterFrameEvents(b)
-		RegisterUnitWatch(b)
+		RegisterStateDriver(b, "visibility",
+			"[petbattle] hide; [@" .. unit .. ",exists] show; hide")
 		UF.Refresh(b)
 		holder.buttons[i] = b
 	end
@@ -440,7 +441,10 @@ function X.CreatePartyPets()
 				UF.OnFrameEvent(self, event, u, ...)
 			end)
 			for ev in pairs(UF.basicEvents) do ns.RegisterUnitEvent(pet, ev) end
-			RegisterUnitWatch(pet)
+			-- engine-side hide when no pet: keeps the empty box from
+			-- hanging under members without a companion
+			RegisterStateDriver(pet, "visibility",
+				"[petbattle] hide; [@" .. pet.unit .. ",exists] show; hide")
 			UF.Refresh(pet)
 			b.PetButton = pet
 		end

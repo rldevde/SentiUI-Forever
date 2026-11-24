@@ -2,6 +2,15 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.41",
+		changes = {
+			"Members joining mid-combat now appear immediately: party, pet, boss/arena and single frames switch from RegisterUnitWatch - which only flipped shown state after combat on this client - to engine-side [@unit,exists] visibility state drivers, the same mechanism the raid holder already used. Party pet boxes also stop hanging empty under members with no companion out.",
+		},
+		changesDE = {
+			"Im Kampf beitretende Mitglieder erscheinen jetzt sofort: Party-, Pet-, Boss-/Arena- und Einzel-Frames nutzen statt RegisterUnitWatch - das den Sichtbarkeitswechsel auf diesem Client erst nach dem Kampf ausführte - engine-seitige [@unit,exists]-Sichtbarkeits-State-Driver, denselben Mechanismus wie der Raid-Holder. Pet-Felder unter Mitgliedern ohne Begleiter bleiben nicht mehr leer hängen.",
+		},
+	},
+	{
 		version = "0.2.40",
 		changes = {
 			"Offline status delay fixes: the 30s join grace now runs BEFORE the friend/guild roster corroboration - those flags update on their own cadence and reported joiners as offline, so guildies and friends still flashed offline despite the grace. Roster updates now repaint all group frames (coalesced over 0.5s so mass joins do not hitch), and the stale-offline revalidation ticker polls every second instead of every four.",
