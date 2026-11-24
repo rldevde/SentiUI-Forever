@@ -34,6 +34,8 @@ ns.DEFAULTS = {
 		showRole = true, auras = false, showPets = true,
 		defensiveIcons = true,    -- external defensive icons on party cells
 		cooldownIcons = true,     -- interrupt/defensive cooldowns under the cell
+		cooldownMax = 4,          -- how many tracker icons show at once
+		missingBuff = true,       -- gold ! when a member lacks a buff you can give
 		portrait = "class",       -- class icon tile on the left edge
 	},
 	raidTools = { enable = true, collapsed = false }, -- top-edge foldable marker tray
@@ -53,6 +55,8 @@ ns.DEFAULTS = {
 		auras = false,            -- opt-in: aura icons on the small raid cells
 		defensiveIcons = true,    -- external defensive icons on raid cells
 		cooldownIcons = false,    -- opt-in: interrupt/defensive cooldowns (cramped cells)
+		cooldownMax = 4,          -- how many tracker icons show at once
+		missingBuff = true,       -- gold ! when a member lacks a buff you can give
 		portrait = "off",         -- opt-in: class icon/3D portrait on raid cells
 	},
 	boss = { enable = true, w = 160, h = 26, power = true },

@@ -137,6 +137,26 @@ function CB.Create(f)
 	spark:SetBlendMode("ADD")
 	spark:SetPoint("CENTER", cb:GetStatusBarTexture(), "RIGHT")
 	cb.spark = spark
+	-- latency tail on the player cast bar: the last latency-ms slice of
+	-- the fill reads red, the "safe to move" zone Quartz-style. Only the
+	-- player's own bar - remote latency is unknowable
+	if f.key == "player" then
+		local lat = cb:CreateTexture(nil, "OVERLAY", nil, 1)
+		lat:SetTexture("Interface\\Buttons\\WHITE8X8")
+		lat:SetPoint("TOPRIGHT", cb, "TOPRIGHT", -1, -1)
+		lat:SetPoint("BOTTOMRIGHT", cb, "BOTTOMRIGHT", -1, 1)
+		lat:SetVertexColor(0.85, 0.12, 0.12, 0.55)
+		lat:SetBlendMode("ADD")
+		lat:Hide()
+		cb.lat = lat
+	end
+	-- end-of-cast flash: full-bar texture we recolor + fade on stop
+	local flash = cb:CreateTexture(nil, "OVERLAY", nil, 3)
+	flash:SetAllPoints()
+	flash:SetTexture("Interface\\Buttons\\WHITE8X8")
+	flash:SetBlendMode("ADD")
+	flash:Hide()
+	cb.flash = flash
 	cb.text = ns.Font(cb, 10)
 	cb.text:SetPoint("LEFT", cb, "LEFT", 4, 0)
 	cb.text:SetPoint("RIGHT", cb, "RIGHT", -32, 0)
@@ -190,6 +210,7 @@ function CB.Update(f)
 	cb.iconBox:SetShown(type(icon) ~= "nil")
 	Paint(cb, Plain(notInt) == true)
 	pcall(cb.text.SetText, cb.text, name)
+	cb.flash:Hide()
 	cb.startT, cb.endT, cb.channel = st, et, channel
 	cb.duration = nil
 	-- preferred: the engine's duration object animates the bar itself
@@ -228,14 +249,62 @@ function CB.Update(f)
 		else
 			FillFromTimes(self)
 		end
+		if self.lat then
+			local okL = pcall(function()
+				local ms = GetNetStats()
+				local durms
+				if self.duration and self.duration.GetTotalDuration then
+					local t = self.duration:GetTotalDuration()
+					if t then durms = t * 1000 end
+				end
+				if not durms and self.endT and self.startT then
+					durms = self.endT - self.startT
+				end
+				if type(ms) == "number" and type(durms) == "number"
+					and durms > 0 and ms > 0 then
+					self.lat:SetWidth(math.max(2,
+						self:GetWidth() * math.min(1, ms / durms)))
+					self.lat:Show()
+				else
+					self.lat:Hide()
+				end
+			end)
+			if not okL then self.lat:Hide() end
+		end
 	end)
 	cb:SetShown(f:IsShown())
 end
 
-function CB.Stop(f)
+-- end-of-cast flash: the whole bar glows once and fades out in place
+local function FlashOut(cb, r, g, b)
+	cb:SetMinMaxValues(0, 1)
+	cb:SetValue(1)
+	cb.flash:SetVertexColor(r, g, b, 1)
+	cb.flash:Show()
+	cb._flashA = 0.85
+	cb:SetScript("OnUpdate", function(self, dt)
+		self._flashA = self._flashA - (dt or 0.016) * 2.2
+		if self._flashA <= 0 then
+			self.flash:Hide()
+			self:SetScript("OnUpdate", nil)
+			self:Hide()
+			return
+		end
+		self.flash:SetAlpha(self._flashA)
+	end)
+end
+
+function CB.Stop(f, event)
 	local cb = f.Castbar
 	if not cb then return end
 	cb:SetScript("OnUpdate", nil)
 	cb.duration = nil
-	cb:Hide()
+	if not cb:IsShown() then return end
+	if event == "UNIT_SPELLCAST_INTERRUPTED" or event == "UNIT_SPELLCAST_FAILED" then
+		FlashOut(cb, 0.85, 0.15, 0.15)
+	elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_CHANNEL_STOP" then
+		FlashOut(cb, 0.5, 0.75, 0.3)
+	else
+		cb:Hide()
+	end
 end

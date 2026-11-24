@@ -678,7 +678,10 @@ end)
 -- can't be used: registering COMBAT_LOG_EVENT_UNFILTERED is a protected
 -- call on this client (it was the UNKNOWN() forbidden call)
 -- ===========================================================================
-local CD_ICON, CD_GAP, CD_MAX = 12, 2, 4
+-- the pool is fixed at build time; db.cooldownMax only decides how many
+-- of the pooled slots the allocator may use (icons cluster right either
+-- way), so the option needs no reload
+local CD_ICON, CD_GAP, CD_POOL = 12, 2, 8
 -- spellID -> cooldown seconds. The interrupt set is complete-ish; the
 -- defensive list keeps to signature buttons - an id the client lacks
 -- simply never fires
@@ -738,13 +741,13 @@ end
 -- mid-fight, same recipe the loot and quest feeds use
 local function BuildCDRow(f)
 	local h = CreateFrame("Frame", nil, f)
-	h:SetSize(CD_MAX * (CD_ICON + CD_GAP), CD_ICON)
+	h:SetSize(CD_POOL * (CD_ICON + CD_GAP), CD_ICON)
 	-- under the cell's right edge: the external-defensive row owns the
 	-- left corner below
 	h:SetPoint("BOTTOMRIGHT", f, "TOPRIGHT", -1, -1)
 	h:SetFrameLevel(f:GetFrameLevel() + 4)
 	h.slots = {}
-	for i = 1, CD_MAX do
+	for i = 1, CD_POOL do
 		local slot = CreateFrame("Frame", nil, h)
 		slot:SetSize(CD_ICON, CD_ICON)
 		slot:SetPoint("RIGHT", h, "RIGHT", -(i - 1) * (CD_ICON + CD_GAP), 0)
@@ -752,6 +755,15 @@ local function BuildCDRow(f)
 		icon:SetAllPoints()
 		icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 		slot.icon = icon
+		-- gold ready-glow, pulsed briefly when the cooldown comes back up
+		local glow = slot:CreateTexture(nil, "OVERLAY", nil, 1)
+		glow:SetTexture(BLANK)
+		glow:SetBlendMode("ADD")
+		glow:SetVertexColor(0.92, 0.68, 0.20, 0.9)
+		glow:SetPoint("TOPLEFT", -1, 1)
+		glow:SetPoint("BOTTOMRIGHT", 1, -1)
+		glow:Hide()
+		slot.glow = glow
 		local cd = CreateFrame("Cooldown", nil, slot, "CooldownFrameTemplate")
 		cd:SetAllPoints()
 		cd:SetDrawEdge(false)
@@ -774,13 +786,30 @@ local function BuildCDRow(f)
 		for i = 1, #self.slots do
 			local slot = self.slots[i]
 			if slot:IsShown() then
-				local left = (slot.ends or 0) - now
-				if left <= 0 then
-					slot.spell = nil
-					slot:Hide()
+				if slot.ready then
+					-- cooldown came back: ~0.8s gold pulse, then the slot
+					-- retires instead of vanishing mid-glow
+					local t2 = slot.ready - now
+					if t2 <= 0 then
+						slot.ready = nil
+						slot.glow:Hide()
+						slot:SetAlpha(1)
+						slot:Hide()
+					else
+						local w = 0.6 + 0.4 * math.sin(t2 * 14)
+						slot.glow:SetAlpha(w)
+						slot:SetAlpha(0.7 + 0.3 * w)
+					end
 				else
-					slot.t:SetText(left >= 60
-						and math.ceil(left / 60) .. "m" or math.ceil(left))
+					local left = (slot.ends or 0) - now
+					if left <= 0 then
+						slot.spell = nil
+						slot.ready = now + 0.8
+						slot.glow:Show()
+					else
+						slot.t:SetText(left >= 60
+							and math.ceil(left / 60) .. "m" or math.ceil(left))
+					end
 				end
 			end
 		end
@@ -791,18 +820,23 @@ end
 local function ShowCD(b, spellID, secs)
 	local h = b.CDRow
 	if not h then return end
+	local limit = math.min(CD_POOL,
+		(b.db and b.db.cooldownMax) or CD_POOL)
 	-- a recast restarts its own slot; a new spell takes the first free one
 	local slot
-	for i = 1, #h.slots do
+	for i = 1, limit do
 		if h.slots[i].spell == spellID then slot = h.slots[i] break end
 	end
 	if not slot then
-		for i = 1, #h.slots do
+		for i = 1, limit do
 			if not h.slots[i]:IsShown() then slot = h.slots[i] break end
 		end
 	end
 	if not slot then return end
 	slot.spell = spellID
+	slot.ready = nil
+	slot.glow:Hide()
+	slot:SetAlpha(1)
 	slot.icon:SetTexture(SpellTex(spellID) or BLANK)
 	slot.ends = GetTime() + secs
 	if CooldownFrame_Set then
@@ -821,6 +855,72 @@ local function OnCastSucceeded(f, event, unit, castGUID, spellID)
 	if secs then ShowCD(f, id, secs) end
 end
 
+-- ===========================================================================
+-- Missing raid buff: a small gold "!" above a cell's left corner when a
+-- buff your own class hands out is absent on that member. Ids resolve to
+-- localized names once, auras match by name - so every rank of a buff
+-- counts, and a secret name or missing API just never marks.
+-- ===========================================================================
+local BUFF_IDS = {
+	PRIEST  = { 21562, 48168, 14752, 48074 }, -- Fortitude / Prayer / Spirit(s)
+	MAGE    = { 1459, 23028, 27127 },         -- Intellect / Brilliance(s)
+	DRUID   = { 1126, 21849, 988 },           -- Mark / Gift / Thorns
+	WARRIOR = { 6673, 469 },                  -- Battle / Commanding Shout
+	PALADIN = { 19740, 19742, 20217, 25782 }, -- Might / Wisdom / Kings / G.Kings
+	SHAMAN  = { 131 },                        -- Water Breathing (thin, but it is ours)
+}
+
+local ownBuffs  -- false = "this class gives nothing", nil = not resolved yet
+local function OwnBuffNames()
+	if ownBuffs ~= nil then return ownBuffs end
+	local ok, _, cls = pcall(UnitClass, "player")
+	if not ok or type(cls) ~= "string" then return nil end
+	local ids = BUFF_IDS[cls]
+	if not ids then ownBuffs = false return ownBuffs end
+	local names = {}
+	for _, id in ipairs(ids) do
+		local n
+		if C_Spell and C_Spell.GetSpellName then
+			local okN, v = pcall(C_Spell.GetSpellName, id)
+			if okN then n = v end
+		end
+		if type(n) ~= "string" and GetSpellInfo then
+			local okN, v = pcall(GetSpellInfo, id)
+			if okN then n = v end
+		end
+		if type(n) == "string" and n ~= "" then names[n] = true end
+	end
+	ownBuffs = next(names) and names or false
+	return ownBuffs
+end
+
+function X.UpdateMissingBuff(f)
+	local mk = f.MissingBuff
+	if not mk then return end
+	local names = OwnBuffNames()
+	if not names or not f.unit then mk:Hide() return end
+	local now = GetTime()
+	if f._mbT and now - f._mbT < 1 then return end -- aura scans walk 40 indexes
+	f._mbT = now
+	local dead = pcall(UnitIsDeadOrGhost, f.unit) and UnitIsDeadOrGhost(f.unit)
+	if dead == true or not (C_UnitAuras and C_UnitAuras.GetAuraDataByIndex) then
+		mk:Hide()
+		return
+	end
+	local have = {}
+	for i = 1, 40 do
+		local ok, a = pcall(C_UnitAuras.GetAuraDataByIndex, f.unit, i, "HELPFUL")
+		if not ok or not a then break end
+		local okN, nm = pcall(function() return a.name end)
+		if okN and type(nm) == "string" then have[nm] = true end
+	end
+	local missing = false
+	for n in pairs(names) do
+		if not have[n] then missing = true break end
+	end
+	mk:SetShown(missing)
+end
+
 function X.Attach(f)
 	-- called from UF.Build: extra bars/icons for frames that want them
 	BuildPredOverlays(f)
@@ -833,6 +933,16 @@ function X.Attach(f)
 		and f.db.cooldownIcons ~= false then
 		BuildCDRow(f)
 	end
+	if (f.key == "party" or f.key == "raid") and f.db
+		and f.db.missingBuff then
+		local mk = f:CreateFontString(nil, "OVERLAY")
+		mk:SetFont(S.media.font, 11, "OUTLINE")
+		mk:SetPoint("BOTTOMLEFT", f, "TOPLEFT", 1, -2)
+		mk:SetText("!")
+		mk:SetTextColor(0.92, 0.68, 0.20)
+		mk:Hide()
+		f.MissingBuff = mk
+	end
 end
 
 function X.Refresh(f)
@@ -843,6 +953,7 @@ function X.Refresh(f)
 		X.UpdateClassPower(f)
 		X.UpdateLowHP(f)
 	end
+	if f.MissingBuff then X.UpdateMissingBuff(f) end
 end
 
 local function OnHealth(f)
@@ -869,6 +980,7 @@ local EXTRA_EVENTS = {
 	UNIT_THREAT_SITUATION_UPDATE = X.UpdateThreatPct,
 	UNIT_THREAT_LIST_UPDATE = X.UpdateThreatPct,
 	UNIT_SPELLCAST_SUCCEEDED = OnCastSucceeded,
+	UNIT_AURA = function(f) X.UpdateMissingBuff(f) end,
 }
 
 function X.OnFrameEvent(f, event, ...)

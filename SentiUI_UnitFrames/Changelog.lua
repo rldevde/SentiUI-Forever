@@ -2,6 +2,20 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.50",
+		date = "2026-11-25",
+		changes = {
+			"Cast bar polish: player cast bar shows a red latency tail (the 'safe to move' slice); every cast bar flashes gold on a finished cast and red on an interrupt/fail instead of vanishing instantly.",
+			"Cooldown tracker polish: a finished cooldown icon pulses gold for ~0.8s before retiring; the icon count is configurable (Tracker icons slider, 1-8, party + raid separately).",
+			"Missing raid buff marker: a gold ! above a party/raid cell when a member lacks a buff your own class can give (Fortitude, Intellect, Mark, shouts, blessings). Ids resolve to localized names at runtime, so every rank counts and it stays locale-free. On by default (Missing buff marker under Unit Frames > Extras).",
+		},
+		changesDE = {
+			"Zauberleisten-Polish: Die eigene Leiste zeigt jetzt einen roten Latenz-Schweif (die 'sicher bewegliche' Zone), jede Leiste blinkt bei beendetem Zauber gold und bei Unterbrechung/Fehlschlag rot statt sofort zu verschwinden.",
+			"Cooldown-Tracker-Polish: Ein abgelaufenes Cooldown-Symbol pulsiert ~0,8s gold, bevor es sich zurueckzieht, und die Symbolanzahl ist konfigurierbar (Tracker-Symbole-Regler, 1-8, Gruppe + Raid getrennt).",
+			"Fehlender-Raidbuff-Marker: Ein goldenes ! ueber der Gruppen-/Raidzelle, wenn einem Mitglied ein Buff fehlt, den deine Klasse geben kann (Seelenstaerke, Intelligenz, Mal, Rufe, Segen). Ids werden zur Laufzeit in lokalisierte Namen aufgeloest - jeder Rang zaehlt und es bleibt sprachunabhaengig. Standardmaessig an (Fehlender-Buff-Marker unter Einheitenfenster > Extras).",
+		},
+	},
+	{
 		version = "0.2.49",
 		date = "2026-11-25",
 		changes = {

@@ -68,7 +68,7 @@ local function OnFrameEvent(f, event, unit, ...)
 	if unit and unit ~= f.unit and not UF.passAll[event] then return end
 	local what = EVENT_TO_UPDATE[event]
 	if what == "CastStop" then
-		ns.CastBar.Stop(f)
+		ns.CastBar.Stop(f, event)
 	elseif what == "Cast" then
 		ns.CastBar.Update(f)
 	elseif what == "Auras" then
