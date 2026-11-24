@@ -4,6 +4,22 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.13",
+		date = "2026-11-24",
+		changes = {
+			"Quest progress lines (loot/kill counters mid-screen) now paint live during combat: Paint only touches regions, so the entries no longer expire unseen inside the queue before the after-combat repaint could run.",
+			"Tracker keeps counting in combat: when quest log reads come back secret under lockdown, each quest falls back to its last readable objective render - and a fully secret collect pass keeps the previous row set instead of blanking the tracker.",
+			"Secret progress message text goes to the row raw (the engine prints it) instead of being dropped.",
+			"More refresh triggers: UNIT_QUEST_LOG_CHANGED, QUEST_WATCH_UPDATE, QUEST_ITEM_UPDATE and BAG_UPDATE_DELAYED now schedule a recount so looting a quest item mid-fight updates immediately.",
+		},
+		changesDE = {
+			"Quest-Fortschrittszeilen (Loot-/Kill-Zähler) zeichnen jetzt live im Kampf: Paint rührt nur Regionen an, die Einträge verfallen also nicht mehr ungesehen in der Warteschlange bis zum Nach-Kampf-Repaint.",
+			"Tracker zählt im Kampf weiter: kommen Quest-Log-Daten unter Lockdown als secret zurück, fällt jede Quest auf den letzten lesbaren Ziel-Stand zurück - und ein komplett secret Collect behält das bisherige Zeilen-Set statt den Tracker zu leeren.",
+			"Geheimer Fortschritts-Text geht roh an die Zeile (die Engine druckt ihn) statt verworfen zu werden.",
+			"Mehr Refresh-Auslöser: UNIT_QUEST_LOG_CHANGED, QUEST_WATCH_UPDATE, QUEST_ITEM_UPDATE und BAG_UPDATE_DELAYED lösen jetzt ein Neu-Zählen aus - Looten eines Quest-Items im Kampf aktualisiert sofort.",
+		},
+	},
+	{
 		version = "0.4.12",
 		date = "2026-11-23",
 		changes = {

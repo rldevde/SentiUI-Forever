@@ -69,30 +69,38 @@ local function GetRow(i)
 	r = CreateFrame("Frame", nil, holder)
 	r:SetSize(W, ROW_H)
 	r:EnableMouse(false)
-	r:Hide() -- born hidden - Paint shows it only while a live entry exists
+	-- the row itself stays shown forever; every piece the player sees is a
+	-- region (FontString/Texture) Paint shows, hides, sizes and fades.
+	-- Region ops are legal under combat lockdown where Show/SetPoint/
+	-- SetWidth on the frame would fire ADDON_ACTION_FORBIDDEN - this is
+	-- what keeps the loot lines counting mid-fight.
 
 	-- full-width dim backdrop: without it a row whose text fails to render
-	-- leaves a bare gold line floating on screen (it did)
+	-- leaves a bare gold line floating on screen (it did). Centered on the
+	-- row and sized per Paint so the box hugs the text
 	r.bg = r:CreateTexture(nil, "BACKGROUND")
-	r.bg:SetAllPoints()
+	r.bg:SetPoint("CENTER", r, "CENTER")
+	r.bg:SetSize(W, ROW_H)
 	r.bg:SetColorTexture(0, 0, 0, 0.42)
 	if r.bg.SetGradient and CreateColor then
 		pcall(r.bg.SetGradient, r.bg, "VERTICAL",
 			CreateColor(0, 0, 0, 0.5), CreateColor(0, 0, 0, 0.28))
 	end
+	r.bg:Hide()
 
 	-- accent edge on the left, Sentinel signature
-	local edge = r:CreateTexture(nil, "BACKGROUND", nil, 1)
-	edge:SetColorTexture(ACC.r, ACC.g, ACC.b, 0.9)
-	edge:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0)
-	edge:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0)
-	edge:SetWidth(2)
+	r.edge = r:CreateTexture(nil, "BACKGROUND", nil, 1)
+	r.edge:SetColorTexture(ACC.r, ACC.g, ACC.b, 0.9)
+	r.edge:SetPoint("TOPLEFT", r.bg, "TOPLEFT")
+	r.edge:SetPoint("BOTTOMLEFT", r.bg, "BOTTOMLEFT")
+	r.edge:SetWidth(2)
+	r.edge:Hide()
 
 	-- count underline track + fill, tucked under the text
 	r.track = r:CreateTexture(nil, "ARTWORK")
 	r.track:SetColorTexture(1, 1, 1, 0.14)
 	r.track:SetSize(140, 2)
-	r.track:SetPoint("BOTTOM", r, "BOTTOM", 0, 5)
+	r.track:SetPoint("BOTTOM", r.bg, "BOTTOM", 0, 5)
 	r.track:Hide()
 	r.bar = r:CreateTexture(nil, "ARTWORK", nil, 1)
 	r.bar:SetColorTexture(ACC.r, ACC.g, ACC.b, 0.95)
@@ -122,19 +130,31 @@ end
 
 -- combat lockdown: rows are Frames - a row created under lockdown is
 -- born protected and every Show/SetPoint/SetWidth on it fires
--- ADDON_ACTION_FORBIDDEN. Entries keep landing in `live` (plain data)
--- and the repaint runs on PLAYER_REGEN_ENABLED.
-local repaint, regenWired
+-- ADDON_ACTION_FORBIDDEN. The pool is warmed out of combat and Paint
+-- below only ever touches REGIONS (FontStrings/Textures) on existing
+-- rows - legal mid-fight, so loot lines keep counting live instead of
+-- expiring unseen inside `live` before the regen repaint can run.
+local function RowAlpha(r, a)
+	r.bg:SetAlpha(a)
+	r.edge:SetAlpha(a)
+	r.text:SetAlpha(a)
+	r.track:SetAlpha(a)
+	r.bar:SetAlpha(a)
+end
+
 local function Paint()
-	if InCombatLockdown() or not holder then repaint = true return end
+	if not holder then return end
 	for i = 1, ROWS do
 		local r, e = GetRow(i), live[i]
 		if not r then return end -- pool creation deferred until out of combat
 		if e then
 			-- guard content, not the call: if SetText itself is broken it
-			-- must surface the error instead of dying inside a pcall
+			-- must surface the error instead of dying inside a pcall. A
+			-- secret text goes to the engine raw - it still prints
 			local t = e.text
-			if type(t) ~= "string" or t == "" then t = "·" end
+			if not S.IsSecret(t) and (type(t) ~= "string" or t == "") then
+				t = "·"
+			end
 			r.text:SetText(t)
 			-- one line sized to its text: shrink the font a step at a time
 			-- only when a very long line would overflow the cap
@@ -146,7 +166,7 @@ local function Paint()
 				rowW = math.max(150, math.min(sw + 18, MAX_W))
 				if sw + 18 <= MAX_W then break end
 			end
-			r:SetWidth(rowW)
+			r.bg:SetWidth(rowW)
 			if e.have and e.need and e.need > 0 then
 				local frac = math.max(0, math.min(e.have / e.need, 1))
 				local tw = math.min(140, rowW - 30)
@@ -158,10 +178,15 @@ local function Paint()
 				r.track:Hide()
 				r.bar:Hide()
 			end
-			r:SetAlpha(e.alpha or 1)
-			r:Show()
+			RowAlpha(r, e.alpha or 1)
+			r.bg:Show()
+			r.edge:Show()
 		else
-			r:Hide()
+			r.text:SetText("")
+			r.bg:Hide()
+			r.edge:Hide()
+			r.track:Hide()
+			r.bar:Hide()
 		end
 	end
 end
@@ -183,6 +208,14 @@ local function Push(e)
 end
 
 local function Show(text, kind)
+	-- a secret message text (combat lockdown can mark it) cannot be
+	-- parsed or wrapped - Lua would throw - so it goes to the row raw:
+	-- FontString:SetText still prints it. A fresh table as key keeps the
+	-- in-place update check from comparing two secrets (that throws too)
+	if S.IsSecret(text) then
+		Push({ key = {}, text = text, t = GetTime() })
+		return
+	end
 	local words, have, need = Parse(text)
 	local key = words
 	if kind == "done" then
@@ -271,9 +304,10 @@ end
 function Progress.OnInfo(_, msgType, text)
 	if S.IsSecret(msgType) or type(msgType) ~= "number" then return end
 	local kind = kinds[msgType]
-	if not kind or type(text) ~= "string" then return end
-	if db.progress ~= false and not S.IsSecret(text) then
-		Show(text, kind)
+	if not kind then return end
+	if type(text) ~= "string" and not S.IsSecret(text) then return end
+	if db.progress ~= false then
+		Show(text, kind) -- handles secret text internally
 	end
 	Share(text, kind)
 end
@@ -350,10 +384,4 @@ function Progress.Apply()
 		end)
 	end
 	if holder then holder:SetShown(db and db.progress ~= false) end
-	if not regenWired then
-		regenWired = true
-		S.RegisterEvent("PLAYER_REGEN_ENABLED", function()
-			if repaint then repaint = nil Paint() end
-		end)
-	end
 end

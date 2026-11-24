@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.13 - 2026-11-24
+
+- Quest progress lines (loot/kill counters mid-screen) now paint live during combat: `Paint` only touches regions, so entries no longer expire unseen inside the queue before the after-combat repaint could run.
+- Tracker keeps counting in combat: when quest log reads come back secret under lockdown, each quest falls back to its last readable objective render — and a fully secret collect pass keeps the previous row set instead of blanking the tracker.
+- Secret progress message text goes to the row raw (the engine prints it) instead of being dropped.
+- More refresh triggers: `UNIT_QUEST_LOG_CHANGED`, `QUEST_WATCH_UPDATE`, `QUEST_ITEM_UPDATE` and `BAG_UPDATE_DELAYED` now schedule a recount so looting a quest item mid-fight updates immediately.
+
 ## 0.4.12 - 2026-11-23
 
 - Zone detection reworked: "here" is now a SET of header names built from zone/subzone/minimap/instance text plus every map name up the player's map chain — a plain `GetRealZoneText` compare missed quests filed under a subzone or instance header (e.g. Northshire Valley vs Elwynn Forest, The Stockade).

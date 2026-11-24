@@ -122,31 +122,45 @@ local function IsComplete(questID)
 	return false
 end
 
+-- second return: true when the read ran into secret values - under
+-- combat lockdown this client can mark objective data secret, and the
+-- caller then keeps the last readable render instead of blanking
 local function Objectives(questID)
 	local list = {}
+	local secret = false
 	-- modern table API first
 	if C_QuestLog and C_QuestLog.GetQuestObjectives then
 		local ok, objs = pcall(C_QuestLog.GetQuestObjectives, questID)
 		if ok and type(objs) == "table" and not S.IsSecretTable(objs) then
 			for _, o in ipairs(objs) do
-				if type(o) == "table" and not S.IsSecretTable(o)
-					and type(o.text) == "string" then
-					list[#list + 1] = {
-						text = o.text,
-						finished = o.finished == true,
-						numF = type(o.numFulfilled) == "number" and o.numFulfilled or nil,
-						numR = type(o.numRequired) == "number" and o.numRequired or nil,
-					}
+				if type(o) == "table" and not S.IsSecretTable(o) then
+					if S.IsSecret(o.text) then
+						secret = true
+					elseif type(o.text) == "string" then
+						local fin = o.finished
+						local nf, nr = o.numFulfilled, o.numRequired
+						list[#list + 1] = {
+							text = o.text,
+							finished = (not S.IsSecret(fin)) and fin == true,
+							numF = (type(nf) == "number"
+								and not S.IsSecret(nf)) and nf or nil,
+							numR = (type(nr) == "number"
+								and not S.IsSecret(nr)) and nr or nil,
+						}
+					end
 				end
 			end
-			return list
+			return list, secret
+		elseif ok and type(objs) == "table" then
+			secret = true -- secret table: unreadable mid-combat
 		end
 	end
-	if not GetQuestObjectiveInfo then return list end
+	if not GetQuestObjectiveInfo then return list, secret end
 	local j = 1
 	while true do
 		local ok, text, _, finished, numF, numR = pcall(GetQuestObjectiveInfo, questID, j, false)
-		if not ok or not text or S.IsSecret(text) then break end
+		if not ok or not text then break end
+		if S.IsSecret(text) then secret = true break end
 		list[#list + 1] = {
 			text = text,
 			finished = (not S.IsSecret(finished)) and finished == true,
@@ -156,7 +170,7 @@ local function Objectives(questID)
 		j = j + 1
 		if j > 30 then break end
 	end
-	return list
+	return list, secret
 end
 
 -- opening a quest shows the world map on its map and pings it - the old
@@ -508,6 +522,24 @@ local function MainHeader(headerQuests)
 	return real
 end
 
+-- combat lockdown can mark quest log reads secret on this client: each
+-- quest keeps its last fully rendered objective lines, and a collect
+-- pass that hit secrets keeps the last full row set - the tracker then
+-- shows the known state mid-fight instead of going quiet, and regen
+-- rebuilds with live data anyway (the combat pass sets `dirty`)
+local objCache = {} -- questID -> { [index] = { text=, finished= } }
+local cleanCache    -- last items list (incl. headers) built w/o secrets
+local cleanCount = 0
+
+local function RenderObj(o)
+	local t = o.text
+	if S.IsSecret(t) or type(t) ~= "string" then return nil end
+	if o.numF and o.numR and o.numR > 1 then
+		t = format("%s  |cff8a8040(%d/%d)|r", t, o.numF, o.numR)
+	end
+	return t
+end
+
 local function Refresh()
 	if not frame or not db or db.tracker ~= "sentiui" then
 		if frame and not InCombatLockdown() then frame:Hide() end
@@ -529,12 +561,16 @@ local function Refresh()
 	local count = 0
 	local curHeader
 	local headerQuests = {} -- header name -> quest ids under it (zone match)
+	local sawSecret = false
 	for i = 1, NumEntries() do
 		local info = QuestInfo(i)
-		if info and not S.IsSecretTable(info) then
+		if info and S.IsSecretTable(info) then
+			sawSecret = true
+		elseif info then
 			-- a header first, title or not: a secret title must not let the
 			-- quests below file under the previous zone's header
 			if (not S.IsSecret(info.isHeader)) and info.isHeader == true then
+				if S.IsSecret(info.title) then sawSecret = true end
 				curHeader = (not S.IsSecret(info.title)) and info.title or nil
 				if curHeader then items[#items + 1] = { header = curHeader } end
 			elseif not S.IsSecret(info.title)
@@ -548,14 +584,39 @@ local function Refresh()
 					and not S.IsSecret(info.level) and info.level > 0 then
 					title = format("[%d] %s", info.level, title)
 				end
+				local objs, objSecret = {}, false
+				if not complete then
+					objs, objSecret = Objectives(info.questID)
+				end
 				local it = {
 					quest = true, id = info.questID, logIndex = i,
 					title = title, rawTitle = info.title,
 					complete = complete,
 					color = DiffColor(info.level),
-					objs = complete and {} or Objectives(info.questID),
 					zoneHeader = type(curHeader) == "string" and curHeader or nil,
 				}
+				-- rendered objective lines; secret reads fall back per
+				-- index to the last readable line so the counter stays
+				local lines, cache = {}, objCache[it.id]
+				if objSecret and #objs == 0 and cache then
+					for j = 1, #cache do
+						lines[#lines + 1] = cache[j]
+					end
+				else
+					for j, o in ipairs(objs) do
+						local t = RenderObj(o)
+						if t then
+							cache = cache or {}
+							cache[j] = { text = t,
+								finished = o.finished == true }
+						end
+						local e = cache and cache[j]
+						if e then lines[#lines + 1] = e end
+					end
+				end
+				if cache then objCache[it.id] = cache end
+				it.lines = lines
+				if objSecret then sawSecret = true end
 				if it.zoneHeader then
 					local ids = headerQuests[it.zoneHeader]
 					if not ids then ids = {} headerQuests[it.zoneHeader] = ids end
@@ -605,6 +666,11 @@ local function Refresh()
 				end
 				items[#items + 1] = it
 				count = count + 1
+			elseif S.IsSecret(info.isHeader) or S.IsSecret(info.title)
+				or S.IsSecret(info.questID) or S.IsSecret(info.isHidden) then
+				-- gating fields secret (combat): the quest row would be
+				-- dropped silently - the collect falls back to cleanCache
+				sawSecret = true
 			end
 		end
 	end
@@ -669,6 +735,15 @@ local function Refresh()
 	-- and a trailing header
 	if clean[#clean] and clean[#clean].header then clean[#clean] = nil end
 
+	-- a collect that ran into secret reads keeps the last full render
+	-- (mid-combat blind spots); the rows repainted live still count,
+	-- and PLAYER_REGEN_ENABLED rebuilds with readable data anyway
+	if sawSecret and cleanCache then
+		clean, count = cleanCache, cleanCount
+	else
+		cleanCache, cleanCount = clean, count
+	end
+
 	headerFS:SetText(count > 0 and format("%s  |cff555c70(%d)|r", L["Quests"], count) or L["Quests"])
 	for _, b in ipairs({ zoneBtn, allBtn }) do
 		if b then
@@ -724,14 +799,10 @@ local function Refresh()
 					or (it.color and (it.color .. it.title .. "|r") or it.title))
 				SetFont(r.objs, fs - 1, "")
 				lines = {}
-				for _, o in ipairs(it.objs) do
-					local t = o.text or ""
-					if o.numF and o.numR and o.numR > 1 then
-						t = format("%s  |cff8a8040(%d/%d)|r", t, o.numF, o.numR)
-					end
-					lines[#lines + 1] = o.finished
-						and format("|cff%s- %s|r", S.Hex(C.green), t)
-						or format("|cff%s- %s|r", S.Hex(C.textDim), t)
+				for _, ln in ipairs(it.lines or {}) do
+					lines[#lines + 1] = ln.finished
+						and format("|cff%s- %s|r", S.Hex(C.green), ln.text)
+						or format("|cff%s- %s|r", S.Hex(C.textDim), ln.text)
 				end
 				r.objs:SetText(#lines > 0 and table.concat(lines, "\n") or "")
 				r.questID = it.id
@@ -1011,9 +1082,10 @@ function Core.Enable(mod)
 	-- quest events are not protected on this client; a slow ticker covers
 	-- anything the events miss
 	for _, ev in ipairs({ "QUEST_WATCH_LIST_CHANGED", "QUEST_LOG_UPDATE",
-		"QUEST_ACCEPTED", "QUEST_REMOVED", "ZONE_CHANGED_NEW_AREA",
-		"PLAYER_ENTERING_WORLD" }) do
-		S.RegisterEvent(ev, Schedule)
+		"UNIT_QUEST_LOG_CHANGED", "QUEST_WATCH_UPDATE", "QUEST_ITEM_UPDATE",
+		"BAG_UPDATE_DELAYED", "QUEST_ACCEPTED", "QUEST_REMOVED",
+		"ZONE_CHANGED_NEW_AREA", "PLAYER_ENTERING_WORLD" }) do
+		S.RegisterEvent(ev, Schedule) -- unknown events are skipped inside
 	end
 	S.RegisterEvent("PLAYER_REGEN_DISABLED", function()
 		if db.hideInCombat and frame then frame:SetAlpha(0) end
