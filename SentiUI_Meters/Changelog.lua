@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.5",
+		date = "2026-11-24",
+		changes = {
+			"Row text tuning after feedback: THICKOUTLINE read as a fat black box around every letter - back to regular OUTLINE with the drop shadow kept. The class fill brightens from 38 % to 58 % so bar colours are recognizable again while the text stays readable on them.",
+		},
+		changesDE = {
+			"Zeilentext nachjustiert: THICKOUTLINE wirkte wie ein dicker schwarzer Kasten um jeden Buchstaben - zurueck auf normales OUTLINE, der Schlagschatten bleibt. Die Klassenfuellung hellt von 38 % auf 58 % auf, damit die Balkenfarben wieder erkennbar sind und der Text trotzdem lesbar bleibt.",
+		},
+	},
+	{
 		version = "0.3.4",
 		date = "2026-11-24",
 		changes = {

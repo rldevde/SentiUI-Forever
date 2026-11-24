@@ -382,16 +382,16 @@ local function RowAt(dock, i)
 	r.icon = r.texts:CreateTexture(nil, "ARTWORK")
 	r.icon:SetSize(10, 10)
 	r.icon:SetPoint("LEFT", r.texts, "LEFT", 3, 0)
-	-- THICKOUTLINE + black drop shadow on row text: the class-colored
+	-- OUTLINE + black drop shadow on row text: the class-colored
 	-- fill behind it makes plain 9pt text unreadable
-	r.name = S.Font(r.texts, 9, S.colors.text, "THICKOUTLINE")
+	r.name = S.Font(r.texts, 9, S.colors.text, "OUTLINE")
 	r.name:SetPoint("LEFT", r, "LEFT", 4, 0)
 	r.name:SetPoint("RIGHT", r, "RIGHT", -64, 0)
 	r.name:SetJustifyH("LEFT")
 	r.name:SetWordWrap(false)
 	r.name:SetShadowOffset(1, -1)
 	r.name:SetShadowColor(0, 0, 0, 0.9)
-	r.val = S.Font(r.texts, 9, S.colors.text, "THICKOUTLINE")
+	r.val = S.Font(r.texts, 9, S.colors.text, "OUTLINE")
 	r.val:SetPoint("RIGHT", r.texts, "RIGHT", -4, 0)
 	r.val:SetJustifyH("RIGHT")
 	r.val:SetWordWrap(false)
@@ -499,11 +499,10 @@ local function UpdateDock(d, cfg)
 			r.name:SetPoint("RIGHT", r, "RIGHT", -64, 0)
 		end
 		local cr, cg, cb = ClassColor(src.cls)
-		-- class colour stays as a dark tint (Details-style muted fill):
-		-- bright fills made the white 9pt row text unreadable even with
-		-- outline + shadow
+		-- class colour as a muted tint (58 %): saturated fills made the
+		-- white row text unreadable, 38 % killed the colours entirely
 		if IsN(cr) and IsN(cg) and IsN(cb) then
-			cr, cg, cb = cr * 0.38, cg * 0.38, cb * 0.38
+			cr, cg, cb = cr * 0.58, cg * 0.58, cb * 0.58
 		end
 		r.fillTex:SetVertexColor(cr, cg, cb, 0.9)
 		r.edge:SetVertexColor(0.92, 0.68, 0.20,
@@ -627,14 +626,14 @@ local function SpellRow(win, i)
 	r.icon = r.texts:CreateTexture(nil, "ARTWORK", nil, 2)
 	r.icon:SetSize(12, 12)
 	r.icon:SetPoint("LEFT", r.texts, "LEFT", 3, 0)
-	r.name = S.Font(r.texts, 9, S.colors.text, "THICKOUTLINE")
+	r.name = S.Font(r.texts, 9, S.colors.text, "OUTLINE")
 	r.name:SetPoint("LEFT", r.texts, "LEFT", 19, 0)
 	r.name:SetPoint("RIGHT", r.texts, "RIGHT", -56, 0)
 	r.name:SetJustifyH("LEFT")
 	r.name:SetWordWrap(false)
 	r.name:SetShadowOffset(1, -1)
 	r.name:SetShadowColor(0, 0, 0, 0.9)
-	r.val = S.Font(r.texts, 9, S.colors.textDim, "THICKOUTLINE")
+	r.val = S.Font(r.texts, 9, S.colors.textDim, "OUTLINE")
 	r.val:SetShadowOffset(1, -1)
 	r.val:SetShadowColor(0, 0, 0, 0.9)
 	r.val:SetPoint("RIGHT", r, "RIGHT", -4, 0)

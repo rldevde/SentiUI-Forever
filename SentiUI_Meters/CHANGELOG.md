@@ -1,5 +1,9 @@
 # SentiUI Meters
 
+## 0.3.5 - 2026-11-24
+
+- Row text tuning: `THICKOUTLINE` read as a fat black box — back to regular `OUTLINE` with the drop shadow kept. Class fill brightens from 38 % to 58 % so bar colours are recognizable again while text stays readable.
+
 ## 0.3.4 - 2026-11-24
 
 - Row text was still washed out after the fill darkened — the StatusBar fill is a widget frame whose texture renders on its own frame level, painting half over the row's font strings. Names, values, icons and the rank edge now live on a text-holder frame raised above the fill (meter rows and spell breakdown alike).
