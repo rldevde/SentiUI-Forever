@@ -1,5 +1,9 @@
 # SentiUI Tooltips
 
+## 0.2.19 - 2026-11-25
+
+- Owned count on item tooltips: shows bags count plus a bank remainder (toggle "Owned count", on by default).
+
 ## 0.2.18 - 2026-11-23
 
 - Fixed the shell-path Lua error on enable: the fallback backdrop read `c.b` instead of `c.bg.b`, feeding `nil` into `SetBackdropColor`.

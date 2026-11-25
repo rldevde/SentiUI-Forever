@@ -1,5 +1,9 @@
 # SentiUI Action Bars
 
+## 0.3.67 - 2026-11-25
+
+- "Open all" button on the mail window: drains the inbox one letter per tick until empty.
+
 ## 0.3.65 - 2026-11-24
 
 - Cooldown dim: action icons desaturate while their cooldown sweeps and get the color back the moment the spell is usable again (option: Cooldown dim, on by default). Cooldown end fires no event on this client, so a small watcher re-checks dimmed buttons every 0.1s until the widget stops sweeping; charge abilities keep their color while a charge recharges.

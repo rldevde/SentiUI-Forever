@@ -1,5 +1,13 @@
 # SentiUI Unit Frames
 
+## 0.2.54 - 2026-11-25
+
+- Member targets: class-colored short name of each group member's target on their cell.
+- Swing timer: white strip under the player frame via `UnitSwingTimerInfo` (stays hidden where the API is absent).
+- Form mana: thin blue mana strip for druids while shifted.
+- Pet happiness: pet cell flags unhappy/content hunter pets.
+- Cast strips extended to boss and arena cells.
+
 ## 0.2.53 - 2026-11-25
 
 - Removed the `!` markers: own-buff reminder on the player frame and missing-buff marker above group cells are gone.

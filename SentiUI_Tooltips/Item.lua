@@ -96,6 +96,22 @@ local function AddID(tip, link, data)
 	end
 end
 
+-- owned count: "Bags: x | Bank: y" - GetItemCount includeCharges=false,
+-- includeBank toggles the second read
+local function AddCount(tip, link)
+	if not (C_Item and C_Item.GetItemCount) then return end
+	local okB, bags = pcall(C_Item.GetItemCount, link, false)
+	bags = okB and plain(bags) or 0
+	local okT, total = pcall(C_Item.GetItemCount, link, true)
+	total = okT and plain(total) or bags
+	if type(bags) ~= "number" or type(total) ~= "number" then return end
+	local bank = total - bags
+	if bags <= 0 and bank <= 0 then return end
+	if HasLine(tip, { L["Owned:"] }) then return end
+	tip:AddLine("|cff" .. S.Hex(S.colors.accent) .. L["Owned:"] .. "|r "
+		.. bags .. (bank > 0 and " (+" .. bank .. " " .. L["bank"] .. ")" or ""))
+end
+
 function Item.Apply(tip, data)
 	local db = ns.Cfg()
 	local link = TipLink(tip, data)
@@ -103,6 +119,7 @@ function Item.Apply(tip, data)
 	if db.qualityBorder then Quality(tip, link) end
 	if db.itemLevel then AddItemLevel(tip, link) end
 	if db.stackSize then AddStack(tip, link) end
+	if db.itemCount ~= false then AddCount(tip, link) end
 	if db.showIDs then AddID(tip, link, data) end
 end
 

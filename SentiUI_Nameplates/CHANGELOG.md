@@ -1,5 +1,9 @@
 # SentiUI Nameplates
 
+## 0.1.29 - 2026-11-25
+
+- Combo points: gold pips under the target plate's health box (on by default, toggle under Extras).
+
 ## 0.1.28 - 2026-11-25
 
 - Target glow: soft pulsing gold light around the targeted plate (suite glow texture, ADD blend).

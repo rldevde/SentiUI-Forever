@@ -49,6 +49,9 @@ ns.DEFAULTS = {
 	kickAnnounce = true,           -- party line when your interrupt lands
 	gradientFill = true,           -- top-light gradient on health fills
 	partyCastbar = true,           -- slim cast strip under party cells
+	partyTargets = true,           -- member's target name on group cells
+	swingTimer = true,             -- white auto-attack strip under the frame
+	formMana = true,               -- druid mana strip while shifted
 	raid = {
 		enable = true, w = 74, h = 26, spacing = 3, power = false,
 		growth = "RIGHT",         -- columns grow to the right, members stack upward

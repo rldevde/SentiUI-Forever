@@ -69,6 +69,7 @@ ns.OPTIONS = {
 				disabled = function(get) return get("executeGlow") == false end },
 			{ type = "toggle", key = "gradientFill", label = L["Gradient fill"] },
 			{ type = "toggle", key = "dimOthers", label = L["Dim non-target plates"] },
+			{ type = "toggle", key = "comboPips", label = L["Combo points"] },
 		},
 	},
 }

@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.67",
+		date = "2026-11-25",
+		changes = {
+			"'Open all' button on the mail window: drains the inbox one letter per tick (AutoLootMailItem, index 1 repeats as looted letters leave the list) until the box is empty.",
+		},
+		changesDE = {
+			"'Alle oeffnen'-Knopf am Briefkasten: leert den Eingang Brief fuer Brief im Tick (AutoLootMailItem, Index 1 wiederholt sich da gelootete Briefe aus der Liste fallen) bis die Box leer ist.",
+		},
+	},
+	{
 		version = "0.3.66",
 		date = "2026-11-25",
 		changes = {

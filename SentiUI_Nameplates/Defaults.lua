@@ -31,5 +31,6 @@ ns.DEFAULTS = {
 	executeGlow = true,      -- spark on the fill edge under executePct
 	executePct = 20,         -- percent
 	gradientFill = true,     -- top-light gradient on the health fill
-	dimOthers = false,       -- fade non-target plates to 70%
+	dimOthers = false,
+	comboPips = true,          -- your combo points under the target plate       -- fade non-target plates to 70%
 }

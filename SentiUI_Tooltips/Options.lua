@@ -64,6 +64,7 @@ ns.OPTIONS = {
 						{ type = "toggle", key = "itemLevel", label = L["Item level"] },
 						{ type = "toggle", key = "showIDs", label = L["Show IDs"] },
 						{ type = "toggle", key = "stackSize", label = L["Stack size"] },
+						{ type = "toggle", key = "itemCount", label = L["Owned count"] },
 					},
 				},
 			},

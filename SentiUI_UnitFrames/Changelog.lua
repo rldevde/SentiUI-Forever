@@ -2,6 +2,24 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.54",
+		date = "2026-11-25",
+		changes = {
+			"Member targets: each party/raid cell shows a short class-colored name of what that member is currently targeting (top-right corner, polled twice a second).",
+			"Swing timer: a white 3px strip under the player frame tracks the melee auto-attack swing via UnitSwingTimerInfo - on clients without the API it simply stays hidden.",
+			"Form mana: druids get a thin blue mana strip under the player frame while shifted, since the main power bar shows rage/energy.",
+			"Pet happiness: the pet cell flags unhappy (red) and content (yellow) hunter pets via GetPetHappiness.",
+			"Cast strips now also run on boss and arena cells.",
+		},
+		changesDE = {
+			"Mitglieder-Ziele: Jede Gruppen-/Raidzelle zeigt oben rechts einen kurzen, klassengefaerbten Namen des aktuellen Ziels des Mitglieds (zweimal pro Sekunde abgefragt).",
+			"Swing-Timer: Ein weisser 3px-Streifen unter dem Spielerfenster trackt den Auto-Angriff ueber UnitSwingTimerInfo - Clients ohne die API lassen ihn schlicht versteckt.",
+			"Gestalten-Mana: Druiden bekommen einen duennen blauen Mana-Streifen unter dem Fenster, solange sie verwandelt sind - die Hauptleiste zeigt dann Wut/Energie.",
+			"Begleiter-Zufriedenheit: Die Pet-Zelle meldet unzufriedene (rot) und zufriedene (gelb) Jaeger-Begleiter ueber GetPetHappiness.",
+			"Zauberleisten laufen jetzt auch auf Boss- und Arena-Zellen.",
+		},
+	},
+	{
 		version = "0.2.53",
 		date = "2026-11-25",
 		changes = {

@@ -979,9 +979,106 @@ local function OnCastStop(f)
 	if f.CastStrip then f.CastStrip:Hide() end
 end
 
+-- ===========================================================================
+-- Secondary features on one shared 0.5s sweep: party target names, hunter
+-- pet happiness, druid mana strip in forms and the melee swing timer.
+-- Every read is pcall'd + secret-guarded; missing APIs degrade to hidden.
+-- ===========================================================================
+local sweepFrames = {}
+local function RegSweep(f) sweepFrames[#sweepFrames + 1] = f end
+
+local function Shorten(s, n)
+	if type(s) ~= "string" then return nil end
+	if #s > n then s = s:sub(1, n - 1) .. "…" end
+	return s
+end
+
+local function Sweep()
+	for _, f in ipairs(sweepFrames) do
+		-- party/raid cell: member's current target name (class colored)
+		if f.PTText then
+			if ns.db.partyTargets == false then f.PTText:Hide()
+			else
+				local ok, nm = pcall(GetUnitName, f.unit .. "target")
+				nm = ok and Shorten(nm, 8)
+				if nm then
+					f.PTText:SetText(nm)
+					local okC, _, cls = pcall(UnitClass, f.unit .. "target")
+					local cc = okC and cls and RAID_CLASS_COLORS
+						and RAID_CLASS_COLORS[cls]
+					if cc then
+						f.PTText:SetTextColor(cc.r, cc.g, cc.b)
+					else
+						f.PTText:SetTextColor(0.75, 0.77, 0.82)
+					end
+					f.PTText:Show()
+				else
+					f.PTText:Hide()
+				end
+			end
+		end
+		-- pet cell: hunter happiness icon (1 = unhappy, 2 = content)
+		if f.HappyIcon then
+			local okH, hap = pcall(GetPetHappiness or function() end)
+			local lvl = okH and Plain(hap)
+			if type(lvl) == "number" and lvl <= 2 then
+				f.HappyIcon:SetVertexColor(
+					lvl == 1 and 1 or 0.95, lvl == 1 and 0.2 or 0.7, 0.2)
+				f.HappyIcon:Show()
+			else
+				f.HappyIcon:Hide()
+			end
+		end
+		-- player: druid mana strip while shifted (form > 0)
+		if f.FormMana then
+			local okF, form = pcall(GetShapeshiftForm or function() end)
+			local on = okF and type(form) == "number" and form > 0
+			if on and ns.db.formMana ~= false then
+				local cur = Plain(UnitPower("player", 0))
+				local mx = Plain(UnitPowerMax("player", 0))
+				if cur and mx and mx > 0 then
+					f.FormMana:SetMinMaxValues(0, mx)
+					f.FormMana:SetValue(cur)
+					f.FormMana:Show()
+				else
+					f.FormMana:Hide()
+				end
+			else
+				f.FormMana:Hide()
+			end
+		end
+		-- player: swing timer (melee auto-attack) via the modern API;
+		-- older shapes of the return just fail the guard and stay hidden
+		if f.Swing then
+			local shown = false
+			if ns.db.swingTimer ~= false and UnitSwingTimerInfo then
+				local okS, info = pcall(UnitSwingTimerInfo, "player")
+				if okS and type(info) == "number" and info > 0 then
+					f.Swing:SetMinMaxValues(0, 1)
+					f.Swing:SetValue(info)
+					shown = true
+				elseif okS and type(info) == "table"
+					and not S.IsSecretTable(info) then
+					local st, dur = info.startTime, info.duration
+					if type(st) == "number" and type(dur) == "number"
+						and dur > 0 then
+						f.Swing:SetMinMaxValues(0, dur)
+						f.Swing:SetValue(math.min(
+							math.max(GetTime() - st, 0), dur))
+						shown = true
+					end
+				end
+			end
+			f.Swing:SetShown(shown)
+		end
+	end
+end
+C_Timer.NewTicker(0.5, Sweep)
+
 function X.Attach(f)
 	-- called from UF.Build: extra bars/icons for frames that want them
 	BuildPredOverlays(f)
+	RegSweep(f)
 	if f.key == "player" then
 		BuildClassPower(f)
 		BuildCombatText(f)
@@ -993,8 +1090,46 @@ function X.Attach(f)
 		di:SetTexture("Interface\\Icons\\Trade_BlackSmithing")
 		di:Hide()
 		f.DurIcon = di
+		-- swing timer: white strip under the player frame
+		local sw = CreateFrame("StatusBar", nil, f)
+		sw:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 0, -3)
+		sw:SetPoint("TOPRIGHT", f, "BOTTOMRIGHT", 0, -3)
+		sw:SetHeight(3)
+		sw:SetStatusBarTexture(BLANK)
+		sw:SetStatusBarColor(0.9, 0.9, 0.9, 0.8)
+		sw:SetMinMaxValues(0, 1)
+		sw:SetValue(0)
+		sw:Hide()
+		f.Swing = sw
+		-- druid mana strip: visible only while shifted
+		local fm = CreateFrame("StatusBar", nil, f)
+		fm:SetPoint("TOPLEFT", sw, "BOTTOMLEFT", 0, -1)
+		fm:SetPoint("TOPRIGHT", sw, "BOTTOMRIGHT", 0, -1)
+		fm:SetHeight(3)
+		fm:SetStatusBarTexture(BLANK)
+		fm:SetStatusBarColor(0.20, 0.55, 0.95, 0.9)
+		fm:SetMinMaxValues(0, 1)
+		fm:SetValue(0)
+		fm:Hide()
+		f.FormMana = fm
 	end
-	if (f.key == "party" or f.key == "raid") and ns.db.partyCastbar ~= false then
+	if f.key == "pet" then
+		local hi = f:CreateTexture(nil, "OVERLAY")
+		hi:SetSize(11, 11)
+		hi:SetPoint("TOPRIGHT", f, "TOPRIGHT", -1, -1)
+		hi:SetTexture("Interface\\Icons\\Ability_Hunter_BeastTraining")
+		hi:Hide()
+		f.HappyIcon = hi
+	end
+	if f.key == "party" or f.key == "raid" then
+		local pt = f:CreateFontString(nil, "OVERLAY")
+		pt:SetFont(S.media.font, 8, "OUTLINE")
+		pt:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, -1)
+		pt:Hide()
+		f.PTText = pt
+	end
+	if (f.key == "party" or f.key == "raid" or f.key == "boss"
+		or f.key == "arena") and ns.db.partyCastbar ~= false then
 		local cs = CreateFrame("StatusBar", nil, f)
 		cs:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 1, -1)
 		cs:SetPoint("TOPRIGHT", f, "BOTTOMRIGHT", -1, -1)

@@ -561,6 +561,32 @@ local function SkinMail(f)
 			end
 		end
 	end
+	-- "Open all" button: drains the inbox one letter at a time on a
+	-- ticker - letters leave the list after looting, so index 1 works
+	-- until the box is empty
+	if not f.sentiOpenAll and _G.InboxFrame and S.Widgets
+		and S.Widgets.Button then
+		local b = S.Widgets.Button(f, L["Open all"], 72, 18)
+		b:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 34)
+		b:SetScript("OnClick", function()
+			if b._drain then return end
+			b._drain = C_Timer.NewTicker(0.35, function(t)
+				local n = GetInboxNumItems and GetInboxNumItems() or 0
+				if n <= 0 then
+					b._drain = nil
+					t:Cancel()
+					return
+				end
+				if AutoLootMailItem then
+					pcall(AutoLootMailItem, 1)
+				else
+					pcall(TakeInboxItem, 1)
+					pcall(TakeInboxMoney, 1)
+				end
+			end)
+		end)
+		f.sentiOpenAll = b
+	end
 end
 
 -- quest/gossip frames get a gold divider under the header zone so the

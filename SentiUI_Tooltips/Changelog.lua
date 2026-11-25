@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.19",
+		date = "2026-11-25",
+		changes = {
+			"Owned count on item tooltips: a line shows how many you carry and how many more sit in the bank (toggle 'Owned count', on by default).",
+		},
+		changesDE = {
+			"Besitz-Anzeige im Tooltip: Eine Zeile zeigt wie viele du traegst und wie viele zusaetzlich in der Bank liegen (Schalter 'Besitz', standardmaessig an).",
+		},
+	},
+	{
 		version = "0.2.18",
 		date = "2026-11-23",
 		changes = {

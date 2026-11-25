@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.29",
+		date = "2026-11-25",
+		changes = {
+			"Combo points: your combo pips show as gold squares under the plate of the mob you are attacking (on by default; toggle under Extras).",
+		},
+		changesDE = {
+			"Combopunkte: Deine Combos erscheinen als goldene Kaestchen unter der Plakette des Mobs, den du gerade angreifst (standardmaessig an; Schalter in Extras).",
+		},
+	},
+	{
 		version = "0.1.28",
 		date = "2026-11-25",
 		changes = {

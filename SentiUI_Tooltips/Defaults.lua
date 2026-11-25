@@ -36,4 +36,5 @@ ns.DEFAULTS = {
 	itemLevel = true,
 	showIDs = false,      -- item/spell IDs
 	stackSize = false,
+	itemCount = true,
 }

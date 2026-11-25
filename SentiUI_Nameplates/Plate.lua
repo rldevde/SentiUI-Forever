@@ -290,6 +290,16 @@ local function ApplyTargetFX(p, unit, db, isTarget)
 	end
 	if p.exec then p.exec:SetShown(ex) end
 	if p.fx then p.fx:SetShown((glowOn or ex) == true) end
+	-- combo points on the plate you are attacking (rogue/druid style)
+	if p.combo then
+		local n = 0
+		if isTarget and db.comboPips ~= false then
+			local okC, cp = pcall(UnitPower, "player", 4)
+			local v = okC and plain(cp)
+			n = type(v) == "number" and math.min(v, 10) or 0
+		end
+		for i, sq in ipairs(p.combo) do sq:SetShown(i <= n) end
+	end
 	p:SetAlpha(isTarget and 1 or (db.dimOthers and 0.7 or 1))
 end
 
@@ -442,6 +452,17 @@ function Plate.Create(parent)
 	p.exec:SetVertexColor(1, 0.30, 0.12, 1)
 	p.exec:SetPoint("CENTER", p.hp:GetStatusBarTexture(), "RIGHT", 0, 0)
 	p.exec:Hide()
+	-- combo pips: the player's combo points under the hp box, only on the
+	-- plate you are attacking - reads UnitPower (combo = 4) on the target
+	p.combo = {}
+	for i = 1, 10 do
+		local sq = p:CreateTexture(nil, "OVERLAY", nil, 2)
+		sq:SetSize(5, 5)
+		sq:SetPoint("TOP", box, "BOTTOM", (i - 5.5) * 6, -2)
+		sq:SetColorTexture(0.95, 0.75, 0.20, 1)
+		sq:Hide()
+		p.combo[i] = sq
+	end
 	p.fx = CreateFrame("Frame", nil, p)
 	p.fx:Hide()
 	p.fx:SetScript("OnUpdate", function(self, dt)
