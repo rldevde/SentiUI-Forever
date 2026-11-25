@@ -1,5 +1,9 @@
 # SentiUI AccountInfo
 
+## 1.5.6 - 2026-11-25
+
+- Missing `strtrim` fallbacks added across the store, export/import, sync and recipes paths. These modules no longer throw on this client when Blizzard's optional FrameXML trim utility is absent.
+
 ## 1.5.5 - 2026-11-24
 
 - Daily progress tracking: every character records how much XP, how many levels and how much playtime it gained per calendar day (deltas from each stat scan; level-ups count the wrapped bar). Newest 14 days are kept.

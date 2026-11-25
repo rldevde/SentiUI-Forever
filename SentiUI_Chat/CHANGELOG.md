@@ -1,5 +1,11 @@
 # SentiUI Chat
 
+## 0.2.40 - 2026-11-25
+
+- Level-up chat jump fixed at the source: ChatFrame1 now gets the real `ignoreFramePositionManager` frame field instead of the ineffective secure attribute, its legacy managed-position entries are removed, and any already-registered managed-container membership is cleared. Blizzard's level-up/banner layout pass should no longer move the chat out of the panel even for one frame.
+- When the fallback snap-back does correct a displaced ChatFrame1, it now also saves that corrected rectangle to the chat cache so a later FCF restore cannot reapply the stale pre-panel position.
+- Chat message/label guards now check secret values before type or truthiness tests, so protected chat text cannot throw inside the filter, throttle, loot-window detection or player-level rewrite paths.
+
 ## 0.2.39 - 2026-11-23
 
 - Chat tabs keep their Sentinel skin permanently: the tab style only ran once per frame (the styled-flag early-return sat before the tab pass), but the engine re-paints the tab's Selected/Highlight art on every dock/hover/select and the gray Blizzard bevels crept back. StyleTab now re-runs on every watchdog tick (it is fully idempotent) and also kills a NineSlice on newer tab templates.

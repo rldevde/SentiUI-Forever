@@ -4,6 +4,20 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.4.16",
+		date = "2026-11-25",
+		changes = {
+			"Quest tracker combat integrity: secret or missing quest-log structure (row count, headers and watch membership) now keeps the last coherent row set instead of dropping or reshuffling quests mid-fight; objective cache entries keep their objective index, so partial secret reads no longer shift lines onto the wrong objective.",
+			"Switching the tracker to Questie/Blizzard during combat now queues the hide for regen instead of silently skipping it and leaving the SentiUI tracker stuck visible.",
+			"Hide in combat no longer leaves an invisible click wall, and alpha-hidden quest-item buttons no longer swallow row clicks.",
+		},
+		changesDE = {
+			"Kampf-Integritaet des Questtrackers: Geheime oder fehlende Questlog-Struktur (Zeilenzahl, Header und Watch-Mitgliedschaft) behaelt jetzt den letzten stimmigen Zeilensatz statt Quests mitten im Kampf fallen zu lassen oder zu verschieben; Objective-Cache-Eintraege behalten ihren Ziel-Index, dadurch rutschen Zeilen bei teilweise geheimen Reads nicht mehr auf das falsche Ziel.",
+			"Der Wechsel zu Questie/Blizzard im Kampf reiht das Verstecken jetzt fuer die Kampfende ein statt es still zu ueberspringen und den SentiUI-Tracker sichtbar haengen zu lassen.",
+			"Im Kampf verstecken hinterlaesst keine unsichtbare Klickwand mehr, und alpha-versteckte Questitem-Buttons schlucken keine Zeilenklicks mehr.",
+		},
+	},
+	{
 		version = "0.4.15",
 		date = "2026-11-25",
 		changes = {

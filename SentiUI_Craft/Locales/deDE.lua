@@ -30,6 +30,8 @@ L["Set Favorite"] = "Favorisieren"
 L["Remove Favorite"] = "Favorit entfernen"
 L["Track Recipe"] = "Rezept verfolgen"
 L["Untrack"] = "Nicht mehr verfolgen"
+L["AH search"] = "AH-Suche"
+L["Search reagents (AH)"] = "Reagenzien suchen (AH)"
 L["Enable professions module"] = "Berufs-Modul aktivieren"
 L["Turns the custom professions window off after a reload; the game's own window opens professions again."] =
 	"Schaltet das eigene Berufsfenster nach einem Reload ab; das Spiel-Fenster öffnet Berufe wieder."

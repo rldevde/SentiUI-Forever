@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.13",
+		date = "2026-11-25",
+		changes = {
+			"Added the missing bundled portrait texture for the Lordaeron Captain rare in the Ruins of Lordaeron compendium entry; the boss card no longer points at a texture file that was never shipped.",
+		},
+		changesDE = {
+			"Die fehlende Portrait-Textur fuer den seltenen Hauptmann von Lordaeron im Ruinen-von-Lordaeron-Kompendium ergaenzt; die Boss-Karte zeigt nicht mehr auf eine nie mitgelieferte Texturdatei.",
+		},
+	},
+	{
 		version = "0.1.12",
 		date = "2026-11-22",
 		changes = {

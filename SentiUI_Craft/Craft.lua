@@ -175,6 +175,40 @@ local function foldKey(sec)
 	return (data and data.prof and data.prof.name or "") .. ":" .. (sec.name or "")
 end
 
+-- paste an item/recipe link into the open chat box (shift-click)
+local function insertLink(link)
+	local insert = ChatFrameUtil and ChatFrameUtil.InsertLink or ChatEdit_InsertLink
+	if link and type(insert) == "function" then insert(link) end
+end
+
+-- Auctionator builds its reagent "Search" into Blizzard's professions
+-- frame - ours is parked off screen, so the window calls the addon's
+-- public API itself. Nothing shown when the addon isn't loaded.
+local function ahAPI()
+	local a = _G.Auctionator and _G.Auctionator.API
+	local v1 = type(a) == "table" and a.v1
+	if not (type(v1) == "table") then return nil end
+	if type(v1.MultiSearchExact) == "function" or type(v1.MultiSearch) == "function" then
+		return v1
+	end
+	return nil
+end
+
+-- feed the recipe's material names to Auctionator's multi-search
+local function ahSearch(r)
+	local api = ahAPI()
+	if not (api and type(r) == "table") then return end
+	local names = {}
+	for _, m in ipairs(r.mats or {}) do
+		if type(m.name) == "string" and m.name ~= "" then
+			names[#names + 1] = m.name
+		end
+	end
+	if #names == 0 then return end
+	local fn = api.MultiSearchExact or api.MultiSearch
+	pcall(fn, "SentiUI_Craft", names)
+end
+
 -- ---------------------------------------------------------------------------
 -- list rows
 -- ---------------------------------------------------------------------------
@@ -240,13 +274,16 @@ local function rowAt(i)
 						or (PROFESSIONS_TRACK_RECIPE or L["Track Recipe"]),
 					fn = function() D.SetTracked(rr.id, not D.IsTracked(rr.id)) end }
 			end
+			if ahAPI() and #(rr.mats or {}) > 0 then
+				items[#items + 1] = {
+					text = L["Search reagents (AH)"],
+					fn = function() ahSearch(rr) end }
+			end
 			if #items > 1 then ShowMenu(items, self) end
 			return
 		end
 		if IsModifiedClick and IsModifiedClick("CHATLINK") then
-			local link = D.RecipeLink(rr)
-			local insert = ChatFrameUtil and ChatFrameUtil.InsertLink or ChatEdit_InsertLink
-			if link and type(insert) == "function" then insert(link) end
+			insertLink(D.RecipeLink(rr))
 			return
 		end
 		Core.Pick(rr.id)
@@ -356,13 +393,14 @@ end
 -- ---------------------------------------------------------------------------
 
 local rIcon, rName, rDiff, rCD, rOut, matRows = nil, nil, nil, nil, nil, {}
+local ahBtn
 local footCreate, footAll, numBox, progRow, progBar, progText
 local listNote
 
 local function matRowAt(i)
 	local r = matRows[i]
 	if r then return r end
-	r = CreateFrame("Frame", nil, rOut:GetParent())
+	r = CreateFrame("Button", nil, rOut:GetParent())
 	r:SetHeight(20)
 	r.icon = r:CreateTexture(nil, "ARTWORK")
 	r.icon:SetSize(16, 16)
@@ -373,6 +411,23 @@ local function matRowAt(i)
 	r.name:SetJustifyH("LEFT")
 	r.have = S.Font(r, 10, C.textDim)
 	r.have:SetPoint("RIGHT", 0, 0)
+	-- same as the game's reagent rows: hover shows the item tooltip,
+	-- shift-click pastes the item link into the chat box
+	r:SetScript("OnEnter", function(self)
+		if self.itemID and GameTooltip then
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetItemByID(self.itemID)
+			GameTooltip:Show()
+		end
+	end)
+	r:SetScript("OnLeave", function(self)
+		if GameTooltip and GameTooltip:IsOwned(self) then GameTooltip:Hide() end
+	end)
+	r:SetScript("OnClick", function(self)
+		if self.itemID and IsModifiedClick and IsModifiedClick("CHATLINK") then
+			insertLink(D.ItemLink(self.itemID))
+		end
+	end)
 	matRows[i] = r
 	return r
 end
@@ -459,6 +514,7 @@ local function fillRecipe(r)
 		rDiff:SetText("")
 		rCD:SetText("")
 		rOut:Hide()
+		if ahBtn then ahBtn:Hide() end
 		for _, m in ipairs(matRows) do m:Hide() end
 		paintFooter(nil)
 		return
@@ -498,6 +554,7 @@ local function fillRecipe(r)
 	local above = rOut:IsShown() and rOut or rDiff
 	for i, m in ipairs(r.mats) do
 		local row = matRowAt(i)
+		row.itemID = m.itemID
 		row.icon:SetTexture(m.icon)
 		row.name:SetText(m.name or ("item:" .. m.itemID))
 		local short = m.have < m.need
@@ -511,6 +568,7 @@ local function fillRecipe(r)
 		above = row
 	end
 	for i = #r.mats + 1, #matRows do matRows[i]:Hide() end
+	if ahBtn then ahBtn:SetShown(ahAPI() ~= nil and #r.mats > 0) end
 	amount = 1
 	paintFooter(r)
 end
@@ -796,7 +854,21 @@ local function buildWindow()
 	rOut:SetScript("OnLeave", function(self)
 		if GameTooltip and GameTooltip:IsOwned(self) then GameTooltip:Hide() end
 	end)
+	rOut:SetScript("OnClick", function(self)
+		if self.itemID and IsModifiedClick and IsModifiedClick("CHATLINK") then
+			insertLink(D.ItemLink(self.itemID))
+		end
+	end)
 	rOut:Hide()
+
+	-- Auctionator's reagent search for the shown recipe (the addon can't
+	-- hook the parked Blizzard frame, so the button calls its API)
+	ahBtn = W.Button(rp, L["AH search"], 88, 20)
+	ahBtn:SetPoint("BOTTOMRIGHT", rp, "BOTTOMRIGHT", -10, 8)
+	ahBtn:SetScript("OnClick", function()
+		ahSearch(data and data.byID and picked and data.byID[picked])
+	end)
+	ahBtn:Hide()
 
 	-- footer: create / amount / create all / progress
 	local foot = CreateFrame("Frame", nil, f)
@@ -931,7 +1003,8 @@ local function refill()
 	if not (win and win:IsShown()) then return end
 	data = D.Read()
 	local prof = data.prof
-	if prof and prof.id ~= shownProf then
+	local profChanged = prof and prof.id ~= shownProf
+	if profChanged then
 		shownProf = prof.id
 		slotIndex, inSlot = nil, nil
 		slots = D.Slots()
@@ -951,7 +1024,9 @@ local function refill()
 			if picked then break end
 		end
 	end
-	Core.RenderList()
+	-- same profession: keep the scroll position - crafting/bag updates
+	-- refill the list mid-scroll, a jump to top loses the user's spot
+	Core.RenderList(not profChanged)
 	fillRecipe(picked and data.byID[picked])
 end
 

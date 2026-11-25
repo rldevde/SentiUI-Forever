@@ -1,5 +1,14 @@
 # SentiUI Action Bars
 
+## 0.3.70 - 2026-11-25
+
+- `/suibars` no longer depends on the optional FrameXML `strtrim` global; the command keeps working on clients where that utility is absent.
+- The parked-button mouse sweep now treats a secret `_sentiTwin` field read safely instead of letting the truthiness test abort the sweep, and action-count fallback reads check secrecy before type inspection.
+
+## 0.3.69 - 2026-11-25
+
+- Removed the addon's own "Open all" mail button: the client ships a native inbox "Open all" button, so ours was a duplicate.
+
 ## 0.3.68 - 2026-11-25
 
 - Communities/Guild window unskinned: the dialog skin fought DaylightUI's social pack over the same frame; the member card and invite pane ended up floating off the window edge. Both frames keep their own look.

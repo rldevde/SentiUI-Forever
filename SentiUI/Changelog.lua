@@ -25,6 +25,16 @@ function CL.List() return CL.list end
 
 CL.Register("SentiUI", {
 	{
+		version = "0.4.9",
+		date = "2026-11-25",
+		changes = {
+			"AFK overlay: while the AFK flag is up the screen dims and a card shows name (class-colored), level, class, guild and the elapsed AFK time - the dim swallows clicks so you notice. Toggle under SentiUI > General > Interface (AFK overlay, on by default).",
+		},
+		changesDE = {
+			"AFK-Overlay: Solange das AFK-Flag aktiv ist, dimmt sich der Bildschirm und eine Karte zeigt Name (Klassenfarbe), Level, Klasse, Gilde und die verstrichene AFK-Zeit - der Dim schluckt Klicks, damit man es merkt. Schalter unter SentiUI > Allgemein > Interface (AFK-Overlay, standardmaessig an).",
+		},
+	},
+	{
 		version = "0.4.8",
 		date = "2026-11-25",
 		changes = {

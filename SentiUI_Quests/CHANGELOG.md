@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.16 - 2026-11-25
+
+- Quest tracker combat integrity: secret or missing quest-log structure (row count, headers and watch membership) now keeps the last coherent row set instead of dropping or reshuffling quests mid-fight; objective cache entries keep their objective index, so partial secret reads no longer shift lines onto the wrong objective.
+- Switching the tracker to Questie/Blizzard during combat now queues the hide for regen instead of silently skipping it and leaving the SentiUI tracker stuck visible.
+- Hide in combat no longer leaves an invisible click wall: rows, filter buttons, scroll wheel and quest-item buttons stop taking input while hidden. Alpha-hidden quest-item buttons no longer swallow row clicks even outside combat.
+
 ## 0.4.15 - 2026-11-25
 
 - Completion toasts: a big card pops mid-screen when a quest is finished (and a matching card per finished objective) - fades in, holds ~3s, lifts out. Both are separate toggles (Completion toast / Objective toast under Quests) and share the progress-feed pipeline, so they ride on the progress lines being enabled.

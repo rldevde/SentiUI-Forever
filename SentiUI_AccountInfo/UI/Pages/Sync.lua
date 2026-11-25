@@ -9,6 +9,11 @@ local UI = ns.UI
 local W = ns.Widgets
 local Store = ns.Store
 
+-- strtrim is a FrameXML global and not guaranteed on this client.
+local strtrim = strtrim or function(s)
+	return (tostring(s or ""):match("^%s*(.-)%s*$"))
+end
+
 local PAD = 12
 
 StaticPopupDialogs["SAI_DELETE_IMPORTED"] = {

@@ -1,5 +1,9 @@
 # Changelog — SentiUI Outfitter
 
+## 1.1.1 - 2026-11-25
+
+- Minimap compatibility: when SentiUI_Minimap is loaded, the outfitter button opts into its "+" addon-button collector instead of floating as a separate ring button.
+
 ## 1.1.0 - 2026-11-25
 
 - SentiOutfitter is now a SentiUI module (SentiUI_Outfitter): it registers with the core, stores settings in `SentiUIDB.modules.Outfitter` and gets a page in `/sui`. Settings, saved sets and the bar position migrate from the standalone addon's saved variables on first load - nothing is lost.

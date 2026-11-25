@@ -17,6 +17,11 @@ ns.Store = Store
 
 local L = ns.L
 
+-- strtrim is a FrameXML global and not guaranteed on this client.
+local strtrim = strtrim or function(s)
+	return (tostring(s or ""):match("^%s*(.-)%s*$"))
+end
+
 local function IsSecret(v)
 	return issecretvalue ~= nil and issecretvalue(v)
 end

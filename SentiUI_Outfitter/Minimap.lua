@@ -87,6 +87,15 @@ function S:InitMinimap()
 	end)
 	btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+	-- when the minimap module is up its "+" collector swallows our button
+	-- like every other addon's - only float it as a ring button without it
+	local loaded = C_AddOns and C_AddOns.IsAddOnLoaded
+		and C_AddOns.IsAddOnLoaded("SentiUI_Minimap") or IsAddOnLoaded and IsAddOnLoaded("SentiUI_Minimap")
+	if loaded then
+		SentiUI.MinimapCollect = SentiUI.MinimapCollect or {}
+		SentiUI.MinimapCollect["SentiUI_OutfitterMinimapButton"] = true
+	end
+
 	UpdatePos()
 	btn:SetShown(not S.db.minimap.hide)
 end

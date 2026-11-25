@@ -2,6 +2,29 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.5.49",
+		date = "2026-11-25",
+		changes = {
+			"Fixed the AccountInfo panel plugin file: its icon path used unescaped single backslashes in a quoted Lua string, an invalid escape sequence that can keep the whole plugin file from loading on strict Lua runtimes.",
+			"Panel slash handling now carries the same strtrim fallback as the rest of the suite instead of relying on a FrameXML global that this client does not guarantee.",
+			"The plugin context menu no longer creates its screen-wide click catcher during combat lockdown; first use in combat is queued for regen.",
+		},
+		changesDE = {
+			"AccountInfo-Panelplugin gefixt: Der Icon-Pfad nutzte unmaskierte einzelne Backslashes in einem Lua-String, eine ungueltige Escape-Sequenz, die auf strengen Lua-Runtimes die ganze Plugin-Datei am Laden hindern kann.",
+			"Die Panel-Slash-Verarbeitung nutzt jetzt denselben strtrim-Fallback wie der Rest der Suite statt eines auf diesem Client nicht garantierten FrameXML-Globals.",
+			"Das Plugin-Kontextmenue erzeugt seinen bildschirmweiten Klick-Catcher nicht mehr im Kampf-Lockdown; die erste Nutzung im Kampf wird bis zum Kampfende eingereiht.",
+		},
+	},
+	{
+		version = "0.5.48",
+		changes = {
+			"Professions plugin combat fix: clicking a profession in the menu mid-fight fired ADDON_ACTION_BLOCKED - C_TradeSkillUI.OpenTradeSkill stays protected under lockdown even with the click's hardware event. The open now queues through S.RunOutOfCombat and pops the window when the fight ends (a toast notes the pending open).",
+		},
+		changesDE = {
+			"Berufe-Plugin-Kampffix: Ein Klick auf einen Beruf im Menue mitten im Kampf feuerte ADDON_ACTION_BLOCKED - C_TradeSkillUI.OpenTradeSkill bleibt unter Lockdown protected, trotz Hardware-Event. Der Aufruf laeuft jetzt ueber S.RunOutOfCombat und oeffnet das Fenster nach dem Kampf (ein Toast vermerkt das anstehende Oeffnen).",
+		},
+	},
+	{
 		version = "0.5.47",
 		changes = {
 			"FBL sync channel no longer sits on chat slot /1: a saved membership restored before the default channels join takes the lowest free number and pushes General/Trade down. The panel now leaves a restored membership at login and rejoins behind the default channels.",

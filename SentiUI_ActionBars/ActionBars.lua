@@ -16,6 +16,11 @@ local L = ns.L
 local format, ipairs, math = string.format, ipairs, math
 local CreateFrame, InCombatLockdown = CreateFrame, InCombatLockdown
 local CA = C_ActionBar or {}
+
+-- strtrim is a FrameXML global and not guaranteed on this client.
+local strtrim = strtrim or function(s)
+	return (tostring(s or ""):match("^%s*(.-)%s*$"))
+end
 local GetActionTexture = CA.GetActionTexture or GetActionTexture
 local GetActionText = CA.GetActionText or GetActionText
 local HasAction = CA.HasAction or HasAction
@@ -161,7 +166,7 @@ local function PaintCount(btn, slot)
 	end
 	if (c == nil or S.IsSecret(c)) and GetActionUseCount then
 		local n = GetActionUseCount(slot)
-		if type(n) == "number" and not S.IsSecret(n) and n > 1 then c = n end
+		if not S.IsSecret(n) and type(n) == "number" and n > 1 then c = n end
 	end
 	fs:SetText(c == nil and "" or c)
 end
@@ -1175,11 +1180,18 @@ end
 -- extra bar and swallowed every click except a thin rim. Kill the mouse
 -- through the whole parked subtree; twins keep theirs (secure click
 -- targets, parked at screen center anyway).
+local function IsTwin(f)
+	-- protected frame fields can answer secret on this client; even the
+	-- truthiness test in KillMouseDeep then throws and stops the sweep
+	local ok, v = pcall(function() return f._sentiTwin end)
+	return ok and not S.IsSecret(v) and v == true
+end
+
 local function KillMouseDeep(f)
 	-- EnableMouse on a protected child of a parked Blizzard bar is a
 	-- forbidden call during combat lockdown; never run this in combat
 	if InCombatLockdown() then return end
-	if type(f) ~= "table" or f._sentiTwin then return end
+	if type(f) ~= "table" or IsTwin(f) then return end
 	if type(f.EnableMouse) == "function" then pcall(f.EnableMouse, f, false) end
 	if type(f.GetChildren) == "function" then
 		for _, c in ipairs({ f:GetChildren() }) do KillMouseDeep(c) end

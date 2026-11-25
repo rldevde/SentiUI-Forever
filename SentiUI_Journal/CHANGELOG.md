@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.13 - 2026-11-25
+
+- Added the missing bundled portrait texture for the Lordaeron Captain rare in the Ruins of Lordaeron compendium entry; the boss card no longer points at a texture file that was never shipped.
+
 ## 0.1.12 - 2026-11-22
 
 - Close button replaced with the shared S.Widgets.Close — consistent Sentinel look instead of the raw hand-built "x" text button.

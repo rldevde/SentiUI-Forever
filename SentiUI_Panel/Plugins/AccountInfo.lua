@@ -29,7 +29,7 @@ end
 ns.RegisterPlugin({
 	id = "accountinfo",
 	label = "AccountInfo",
-	icon = "Interface\AddOns\SentiUI_AccountInfo\Media\Logo.tga",
+	icon = [[Interface\AddOns\SentiUI_AccountInfo\Media\Logo.tga]],
 	bar = "bottom", zone = "CENTER", order = 56,
 	events = { "PLAYER_MONEY", "BAG_UPDATE_DELAYED", "PLAYER_ENTERING_WORLD" },
 	update = function()

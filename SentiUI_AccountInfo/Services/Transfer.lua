@@ -8,6 +8,11 @@ local _, ns = ...
 local Transfer = {}
 ns.Transfer = Transfer
 
+-- strtrim is a FrameXML global and not guaranteed on this client.
+local strtrim = strtrim or function(s)
+	return (tostring(s or ""):match("^%s*(.-)%s*$"))
+end
+
 local PREFIX = "SAI1:"
 
 local function Lib()

@@ -306,7 +306,7 @@ end
 local hoverLinks = { item = true, spell = true, enchant = true, quest = true, achievement = true, talent = true, currency = true }
 
 local function AddMessageHook(frame, text, ...)
-	if type(text) == "string" and not IsSecret(text) then
+	if not IsSecret(text) and type(text) == "string" then
 		local ok, res = pcall(Core.FilterMessage, text)
 		if ok then text = res end
 		if frame == ChatFrame1 and not Core.replaying then Core.RecordHistory(text, ...) end
@@ -338,7 +338,7 @@ end
 local throttleCache = {}
 local function ThrottleFilter(_, _, msg, author)
 	local t = db and db.throttle or 0
-	if t <= 0 or type(msg) ~= "string" or IsSecret(msg) or IsSecret(author) then return false end
+	if t <= 0 or IsSecret(msg) or IsSecret(author) or type(msg) ~= "string" then return false end
 	local key = (author or "") .. "#" .. msg
 	local now = GetTime()
 	local last = throttleCache[key]
@@ -419,7 +419,7 @@ function Core.CopyChat(frame)
 	local lines = {}
 	for i = 1, frame:GetNumMessages() do
 		local msg = frame:GetMessageInfo(i)
-		if msg and not IsSecret(msg) then
+		if not IsSecret(msg) and msg then
 			msg = msg:gsub("|T.-|t", ""):gsub("|A.-|a", "")
 			lines[#lines + 1] = msg
 		end
@@ -893,7 +893,7 @@ local function FindLootWindow()
 		local tab = _G["ChatFrame" .. i .. "Tab"]
 		local text = tab and (tab.Text or _G[tab:GetName() .. "Text"])
 		local label = text and text:GetText()
-		if f and label and not IsSecret(label)
+		if f and not IsSecret(label) and label
 			and (label == LootChatLabel() or label == "Loot" or label == "Beute") then
 			return f
 		end
@@ -984,7 +984,7 @@ function Core.IsRightChat(frame)
 	local tab = _G[fname .. "Tab"]
 	local text = tab and (tab.Text or _G[tab:GetName() .. "Text"])
 	local label = text and text:GetText()
-	if not label or IsSecret(label) then return false end
+	if IsSecret(label) or not label then return false end
 	return label == LOOT or label == "Loot" or label == "Beute"
 		or label == "Plündern" or label == L["Right Chat"]
 end
@@ -1258,7 +1258,7 @@ local function ScanFriends()
 end
 
 local function ShortName(sender)
-	if type(sender) ~= "string" or IsSecret(sender) then return nil end
+	if IsSecret(sender) or type(sender) ~= "string" then return nil end
 	return (sender:gsub("%-.*", ""))
 end
 
@@ -1271,8 +1271,8 @@ local levelEvents = {
 }
 
 local function LevelFilter(_, _, msg, sender, ...)
-	if not db or not db.playerLevel or type(msg) ~= "string" or IsSecret(msg)
-		or IsSecret(sender) then return false end
+	if not db or not db.playerLevel or IsSecret(msg) or IsSecret(sender)
+		or type(msg) ~= "string" then return false end
 	local name = ShortName(sender)
 	local e = name and Core.levelCache[name]
 	if not e or not e.level or e.level <= 0 then return false end
@@ -1373,9 +1373,9 @@ function Core.Enable(mod)
 		-- created and docked once they exist
 		C_Timer.After(2, function() S.SafeCall("chat:lootwin", Core.EnsureLootChat) end)
 	end)
-	-- instant snap-back: whenever Blizzard's own positioning pass re-anchors
-	-- ChatFrame1 (dock updates, managed-frame pushes on level-up banners),
-	-- re-dock it inside the same Lua pass so the wrong spot never renders
+	-- snap-back fallback for any positioning path the layout opt-out below
+	-- does not cover (dock updates, chat-cache restores); the watchdog calls
+	-- this from its own dispatch so it cannot taint Blizzard input handlers
 	local function SnapChatFrame1()
 		if InCombatLockdown() or not (ChatFrame1 and Core.leftPanel) then return end
 		local ok, _, relTo = pcall(ChatFrame1.GetPoint, ChatFrame1, 1)
@@ -1383,10 +1383,36 @@ function Core.Enable(mod)
 		ChatFrame1:ClearAllPoints()
 		ChatFrame1:SetPoint("TOPLEFT", Core.leftPanel, "TOPLEFT", 6, -30)
 		ChatFrame1:SetPoint("BOTTOMRIGHT", Core.leftPanel, "BOTTOMRIGHT", -6, 6)
+		-- keep the client's chat-cache position in agreement too; otherwise
+		-- the next FCF restore can reapply the stale pre-panel rectangle
+		if FCF_SavePositionAndDimensions then pcall(FCF_SavePositionAndDimensions, ChatFrame1) end
 	end
 	if not Core._posHooks then
 		Core._posHooks = true
-		pcall(ChatFrame1.SetAttribute, ChatFrame1, "ignoreFramePositionManager", true)
+		-- Take ChatFrame1 out of Blizzard's automatic layout for real:
+		-- UIParent checks a plain frame field on this client, not a secure
+		-- attribute, so SetAttribute("ignoreFramePositionManager") was a
+		-- no-op and level-up/banner layout passes still shoved the chat out
+		-- before the watchdog pulled it back. Remove both the legacy string
+		-- entry and any already-registered managed-container membership;
+		-- the field alone does not help after the frame was added on show.
+		if ChatFrame1 then
+			ChatFrame1.ignoreFramePositionManager = true
+			if ChatFrame1.SetUserPlaced then pcall(ChatFrame1.SetUserPlaced, ChatFrame1, true) end
+			if ChatFrame1.SetDontSavePosition then pcall(ChatFrame1.SetDontSavePosition, ChatFrame1, true) end
+		end
+		if type(UIPARENT_MANAGED_FRAME_POSITIONS) == "table" then
+			UIPARENT_MANAGED_FRAME_POSITIONS["ChatFrame1"] = nil
+			if ChatFrame1 then UIPARENT_MANAGED_FRAME_POSITIONS[ChatFrame1] = nil end
+		end
+		for _, cname in ipairs({ "UIParentBottomManagedFrameContainer", "UIParentRightManagedFrameContainer" }) do
+			local c = _G[cname]
+			for _, container in ipairs({ c, c and c.BottomManagedLayoutContainer }) do
+				if container and type(container.showingFrames) == "table" and ChatFrame1 then
+					container.showingFrames[ChatFrame1] = nil
+				end
+			end
+		end
 		-- no hooksecurefunc on Blizzard layout/chat functions: the
 		-- post-call runs inside whatever dispatch triggered it - a
 		-- keybind click, a panel open, the Enter key before

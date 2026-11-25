@@ -1,5 +1,15 @@
 # SentiUI Panel
 
+## 0.5.49 - 2026-11-25
+
+- Fixed the AccountInfo panel plugin file: its icon path used unescaped single backslashes in a quoted Lua string, an invalid escape sequence that can keep the whole plugin file from loading on strict Lua runtimes.
+- Panel slash handling now carries the same `strtrim` fallback as the rest of the suite instead of relying on a FrameXML global that this client does not guarantee.
+- The plugin context menu no longer creates its screen-wide click catcher during combat lockdown; first use in combat is queued for regen so the protected catcher cannot interfere with the client's spell-cancel click path.
+
+## 0.5.48 - 2026-11-25
+
+- Professions plugin combat fix: clicking a profession in the menu mid-fight fired ADDON_ACTION_BLOCKED - C_TradeSkillUI.OpenTradeSkill stays protected under lockdown even with the click's hardware event. The open now queues through S.RunOutOfCombat and pops the window when the fight ends (a toast notes the pending open).
+
 ## 0.5.47 - 2026-11-24
 
 - FBL sync channel no longer sits on chat slot /1: a saved membership restored before the default channels join takes the lowest free number and pushes General/Trade down. The panel now leaves a restored membership at login and rejoins behind the default channels.

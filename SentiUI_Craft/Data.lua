@@ -220,9 +220,30 @@ local function category(id, cache)
 	return out
 end
 
+-- The client's GetRecipeLink displays the generic craft spell name
+-- ("Könnte 1 herstellen") in the |h part - SentiGuild proved the
+-- hand-built form works: enchant:<recipeID> carries the recipe spell,
+-- the bracket shows the real name.
 function Data.RecipeLink(recipe)
 	if type(recipe) ~= "table" then return nil end
+	if num(recipe.id) and type(recipe.name) == "string" and recipe.name ~= "" then
+		return "|cffffffff|Henchant:" .. recipe.id .. "|h[" .. recipe.name .. "]|h|r"
+	end
 	return str(call("GetRecipeLink", recipe.id)) or recipe.link
+end
+
+-- Item link for chat insertion; nil when the item data isn't cached yet.
+function Data.ItemLink(id)
+	if not num(id) then return nil end
+	if C_Item and C_Item.GetItemLinkByID then
+		local ok, link = pcall(C_Item.GetItemLinkByID, id)
+		if ok and str(link) then return str(link) end
+	end
+	if type(_G.GetItemInfo) == "function" then
+		local ok, _, link = pcall(_G.GetItemInfo, id)
+		if ok and str(link) then return str(link) end
+	end
+	return nil
 end
 
 -- The recipe's cooldown as the game's page reads it: seconds left (nil when

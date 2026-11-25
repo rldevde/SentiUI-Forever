@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "1.1.1",
+		date = "2026-11-25",
+		changes = {
+			"Minimap compatibility: when SentiUI_Minimap is loaded, the outfitter button opts into its '+' addon-button collector instead of floating as a separate ring button.",
+		},
+		changesDE = {
+			"Minimap-Kompatibilitaet: Wenn SentiUI_Minimap geladen ist, meldet sich der Outfitter-Knopf in dessen '+'-Addon-Button-Sammlung an, statt als eigener Ringknopf zu schweben.",
+		},
+	},
+	{
 		version = "1.1.0",
 		date = "2026-11-25",
 		changes = {

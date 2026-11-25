@@ -2,6 +2,20 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.40",
+		date = "2026-11-25",
+		changes = {
+			"Level-up chat jump fixed at the source: ChatFrame1 now gets the real ignoreFramePositionManager frame field instead of the ineffective secure attribute, its legacy managed-position entries are removed, and any already-registered managed-container membership is cleared.",
+			"Fallback snap-back now saves the corrected rectangle to the chat cache so a later FCF restore cannot reapply the stale pre-panel position.",
+			"Chat message/label guards now check secret values before type or truthiness tests, so protected chat text cannot throw inside the filter, throttle, loot-window detection or player-level rewrite paths.",
+		},
+		changesDE = {
+			"Level-Up-Chat-Sprung an der Quelle gefixt: ChatFrame1 bekommt jetzt das echte ignoreFramePositionManager-Frame-Feld statt des wirkungslosen Secure-Attributs, seine alten Managed-Position-Eintraege werden entfernt und eine bereits registrierte Managed-Container-Mitgliedschaft wird geleert.",
+			"Der Snap-back-Fallback speichert das korrigierte Rechteck jetzt auch im Chat-Cache, damit ein spaeteres FCF-Restore nicht wieder die veraltete Pre-Panel-Position anwendet.",
+			"Chat-Text-/Label-Guards pruefen geheime Werte jetzt vor Type- oder Truthiness-Tests, damit geschuetzte Chattexte nicht in Filter, Throttle, Loot-Fenster-Erkennung oder Level-Umschreibung werfen.",
+		},
+	},
+	{
 		version = "0.2.39",
 		date = "2026-11-23",
 		changes = {

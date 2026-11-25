@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4 - 2026-11-25
+
+- The recipe list no longer jumps to the top on every refresh: crafting an item, bag updates or a learned recipe refilled the list and the code always reset the scroll to zero. The scroll position is kept now - it only resets when the profession itself changes.
+- Reagents and links behave like the game's window: hovering a material row shows the item tooltip, shift-click on a material, the output item or a list row pastes its link into the chat box. Recipe links are built by hand (enchant:<id> + the real name) - the client's GetRecipeLink displays the generic craft spell name.
+- Auctionator reagent search: the addon plants its Search button on Blizzard's professions frame, which this window parks off screen. A new 'AH search' button on the recipe page (plus a 'Search reagents (AH)' entry in the list row's right-click menu) feeds the recipe's materials into Auctionator's API directly. Only visible while Auctionator runs.
+
 ## 0.1.3 - 2026-11-23
 
 - Fix the profession tabs, the Stop button and the Professions key still doing nothing: the secure `spell` attribute only fires when it carries the spell NAME on this client, never the ID (same lesson SentiUI_Pally learned). Tab overlays and the K-keybind button now resolve their spell ID to a name before the attribute is set, falling back to the tab's OpenTradeSkill click if the name can't be resolved.

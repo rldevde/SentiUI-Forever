@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "1.5.6",
+		date = "2026-11-25",
+		changes = {
+			"Missing strtrim fallbacks added across the store, export/import, sync and recipes paths. These modules no longer throw on this client when Blizzard's optional FrameXML trim utility is absent.",
+		},
+		changesDE = {
+			"Fehlende strtrim-Fallbacks in Store, Export/Import, Sync und Rezepten ergaenzt. Diese Module werfen auf diesem Client keine Fehler mehr, wenn Blizzards optionales FrameXML-Trim-Utility fehlt.",
+		},
+	},
+	{
 		version = "1.5.5",
 		date = "2026-11-24",
 		changes = {

@@ -14,6 +14,11 @@ local GameTooltip = GameTooltip
 
 local BLANK = "Interface\\Buttons\\WHITE8X8"
 
+-- strtrim is a FrameXML global and not guaranteed on this client.
+local strtrim = strtrim or function(v)
+	return (tostring(v or ""):match("^%s*(.-)%s*$"))
+end
+
 ns.version = "0.1.0"
 ns.accentHex = S.Hex(S.colors.accent)
 ns.blueHex = S.Hex(S.colors.accent2)
@@ -243,6 +248,14 @@ ns.CloseMenu = CloseMenu
 -- items may also be a function returning the list (regenerated per click
 -- so noClose toggles redraw their checkmarks)
 function ns.OpenMenu(anchor, items, above)
+	if not menuFrame and InCombatLockdown() then
+		-- frames created during lockdown are born protected on this client;
+		-- the propagating screen catcher would then sit in the same click
+		-- dispatch as the client's protected spell-cancel calls. Open the
+		-- first menu after regen instead of creating that path mid-fight.
+		S.RunOutOfCombat(function() ns.OpenMenu(anchor, items, above) end)
+		return
+	end
 	if not menuFrame then
 		menuCatcher = CreateFrame("Button", nil, UIParent)
 		menuCatcher:SetAllPoints(UIParent)

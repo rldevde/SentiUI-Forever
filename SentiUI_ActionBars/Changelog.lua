@@ -4,6 +4,28 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.70",
+		date = "2026-11-25",
+		changes = {
+			"/suibars no longer depends on the optional FrameXML strtrim global; the command keeps working on clients where that utility is absent.",
+			"The parked-button mouse sweep now treats a secret _sentiTwin field read safely instead of letting the truthiness test abort the sweep, and action-count fallback reads check secrecy before type inspection.",
+		},
+		changesDE = {
+			"/suibars haengt nicht mehr vom optionalen FrameXML-Global strtrim ab; der Befehl funktioniert auch auf Clients ohne dieses Utility.",
+			"Der Mouse-Sweep der geparkten Buttons behandelt einen geheimen _sentiTwin-Feldwert jetzt sicher, statt im Truthiness-Test abzubrechen, und Action-Count-Fallbacks pruefen Secretness vor dem Type-Check.",
+		},
+	},
+	{
+		version = "0.3.69",
+		date = "2026-11-25",
+		changes = {
+			"Dropped our own 'Open all' mail button: this client ships a native inbox 'Open all' button (bottom right of the mail frame), so the addon one was a duplicate sitting next to it.",
+		},
+		changesDE = {
+			"Der eigene 'Alle oeffnen'-Briefkasten-Knopf ist raus: Der Client bringt bereits einen nativen 'Alle oeffnen'-Knopf mit (unten rechts im Postfenster), unserer stand nur als Duplikat daneben.",
+		},
+	},
+	{
 		version = "0.3.68",
 		date = "2026-11-25",
 		changes = {

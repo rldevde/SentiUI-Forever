@@ -1,9 +1,10 @@
 -- Professions plugin: the bottom bar shows the first learned profession
 -- (icon + name + rank); a click opens the professions menu - every
 -- learned profession listed with its skill level, clicking one opens the
--- game's profession window via C_TradeSkillUI.OpenTradeSkill (that call
--- needs a hardware event, which a menu click provides - it also works in
--- combat).
+-- game's profession window via C_TradeSkillUI.OpenTradeSkill. That call
+-- needs a hardware event, which a menu click provides - but it is still
+-- protected under combat lockdown (ADDON_ACTION_BLOCKED), so a click mid
+-- fight queues the open for PLAYER_REGEN_ENABLED instead.
 local _, ns = ...
 local S = SentiUI
 local L = ns.L
@@ -45,9 +46,17 @@ end
 local function OpenProfession(p)
 	if not p.skillLine then return end
 	local open = C_TradeSkillUI and C_TradeSkillUI.OpenTradeSkill
-	if type(open) == "function" then
-		ns.HardAPI("OpenTradeSkill", open, p.skillLine)
+	if type(open) ~= "function" then return end
+	-- blocked under combat lockdown even with the click's hardware event:
+	-- hold the open for after the fight instead of tripping the flag
+	if InCombatLockdown and InCombatLockdown() then
+		ns.Toasts.Push(L["Opens after combat"] .. ": " .. p.name, p.icon)
+		S.RunOutOfCombat(function()
+			ns.HardAPI("OpenTradeSkill", open, p.skillLine)
+		end)
+		return
 	end
+	ns.HardAPI("OpenTradeSkill", open, p.skillLine)
 end
 
 ns.RegisterPlugin({

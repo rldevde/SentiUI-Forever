@@ -21,7 +21,7 @@ local function SetFont(fs, size, flags)
 	-- sizes (SetFont silently failed), so round first.
 	size = math.floor((size or 12) + 0.5)
 	for _, f in ipairs({ S.media.font, STANDARD_TEXT_FONT, "Fonts\\FRIZQT__.TTF" }) do
-		if f and not S.IsSecret(f) and pcall(fs.SetFont, fs, f, size, flags or "") then break end
+		if not S.IsSecret(f) and f and pcall(fs.SetFont, fs, f, size, flags or "") then break end
 	end
 	pcall(fs.SetShadowColor, fs, 0, 0, 0, 0)
 end
@@ -60,58 +60,92 @@ end
 local function NumEntries()
 	if C_QuestLog and C_QuestLog.GetNumQuestLogEntries then
 		local ok, n = pcall(C_QuestLog.GetNumQuestLogEntries)
-		if ok and type(n) == "number" then return n end
+		if ok and S.IsSecret(n) then return 0, true end
+		if ok and type(n) == "number" then return n, false end
+		return 0, true -- the API exists but did not answer: row membership is unsure
 	elseif GetNumQuestLogEntries then
 		local ok, n = pcall(GetNumQuestLogEntries)
-		if ok and type(n) == "number" then return n end
+		if ok and S.IsSecret(n) then return 0, true end
+		if ok and type(n) == "number" then return n, false end
+		return 0, true
 	end
-	return 0
+	return 0, false
 end
 
 local watchedSet -- questID -> true, built once per refresh
+local cleanWatchSet -- last fully readable watch list
+local watchFallback = {} -- per-quest answer when no list API exists
+
+-- second return: true when even the cached answer cannot tell row membership
 local function IsWatched(questID)
-	if watchedSet then return watchedSet[questID] == true end
+	if watchedSet then return watchedSet[questID] == true, false end
 	if C_QuestLog and C_QuestLog.GetQuestWatchType then
 		local ok, w = pcall(C_QuestLog.GetQuestWatchType, questID)
+		if not ok or S.IsSecret(w) then
+			return watchFallback[questID] == true, watchFallback[questID] == nil
+		end
 		-- secrets throw on any comparison, ~= nil included
-		return ok and not S.IsSecret(w) and w ~= nil
+		watchFallback[questID] = w ~= nil
+		return watchFallback[questID], false
 	end
-	return false
+	return false, false
 end
 
+-- returns true when the watch list stayed uncertain even after fallbacks
 local function BuildWatchSet()
 	watchedSet = nil
+	local built, secret = false, false
 	-- the client's own way: watch index -> questID
 	if C_QuestLog and C_QuestLog.GetNumQuestWatches and C_QuestLog.GetQuestIDForQuestWatchIndex then
 		local ok, n = pcall(C_QuestLog.GetNumQuestWatches)
-		if ok and type(n) == "number" and not S.IsSecret(n) then
+		if not ok or S.IsSecret(n) then
+			secret = true
+		elseif ok and type(n) == "number" then
+			built = true
 			watchedSet = {}
 			for i = 1, n do
 				local okI, id = pcall(C_QuestLog.GetQuestIDForQuestWatchIndex, i)
-				if okI and id and not S.IsSecret(id) then watchedSet[id] = true end
+				if okI and S.IsSecret(id) then
+					secret = true
+				elseif okI and id ~= nil then
+					watchedSet[id] = true
+				end
 			end
-			return
 		end
 	end
 	-- older global API
-	if GetNumQuestWatches and GetQuestIndexForWatch then
+	if not built and GetNumQuestWatches and GetQuestIndexForWatch then
 		local ok, n = pcall(GetNumQuestWatches)
-		if ok and type(n) == "number" then
+		if not ok or S.IsSecret(n) then
+			secret = true
+		elseif ok and type(n) == "number" then
+			built = true
 			watchedSet = {}
 			for i = 1, n do
 				local okI, idx = pcall(GetQuestIndexForWatch, i)
-				if okI and idx then
+				if okI and S.IsSecret(idx) then
+					secret = true
+				elseif okI and type(idx) == "number" then
 					local info = QuestInfo(idx)
-					if info and not S.IsSecretTable(info) and info.questID
-						and not S.IsSecret(info.questID) then
+					if not S.IsSecretTable(info) and info
+						and not S.IsSecret(info.questID) and info.questID ~= nil then
 						watchedSet[info.questID] = true
 					end
 				end
 			end
-			return
 		end
 	end
+	if built and not secret then
+		cleanWatchSet = watchedSet
+	elseif secret then
+		-- a partial secret read must not shrink the visible list; use the
+		-- last complete membership for row decisions, but still report the
+		-- pass as structurally uncertain so the row-set cache wins below
+		watchedSet = cleanWatchSet
+		return true
+	end
 	-- no list API: IsWatched falls back to per-quest GetQuestWatchType
+	return false
 end
 
 local function IsComplete(questID)
@@ -128,45 +162,59 @@ end
 local function Objectives(questID)
 	local list = {}
 	local secret = false
-	-- modern table API first
+	-- modern table API first. Entries keep their objective INDEX even when
+	-- one text is secret: compacting the array here shifted every later
+	-- objective onto the wrong cache slot mid-combat.
 	if C_QuestLog and C_QuestLog.GetQuestObjectives then
 		local ok, objs = pcall(C_QuestLog.GetQuestObjectives, questID)
-		if ok and type(objs) == "table" and not S.IsSecretTable(objs) then
-			for _, o in ipairs(objs) do
-				if type(o) == "table" and not S.IsSecretTable(o) then
+		if ok and not S.IsSecretTable(objs) and type(objs) == "table" then
+			for j, o in ipairs(objs) do
+				if not S.IsSecretTable(o) and type(o) == "table" then
+					local fin = o.finished
+					local nf, nr = o.numFulfilled, o.numRequired
+					local e = {
+						finished = (not S.IsSecret(fin)) and fin == true,
+						numF = (not S.IsSecret(nf)
+							and type(nf) == "number") and nf or nil,
+						numR = (not S.IsSecret(nr)
+							and type(nr) == "number") and nr or nil,
+					}
 					if S.IsSecret(o.text) then
 						secret = true
 					elseif type(o.text) == "string" then
-						local fin = o.finished
-						local nf, nr = o.numFulfilled, o.numRequired
-						list[#list + 1] = {
-							text = o.text,
-							finished = (not S.IsSecret(fin)) and fin == true,
-							numF = (type(nf) == "number"
-								and not S.IsSecret(nf)) and nf or nil,
-							numR = (type(nr) == "number"
-								and not S.IsSecret(nr)) and nr or nil,
-						}
+						e.text = o.text
 					end
+					list[j] = e
+				else
+					secret = true
+					list[j] = {}
 				end
 			end
 			return list, secret
-		elseif ok and type(objs) == "table" then
+		elseif ok and S.IsSecretTable(objs) then
 			secret = true -- secret table: unreadable mid-combat
+		elseif not ok then
+			secret = true
 		end
 	end
 	if not GetQuestObjectiveInfo then return list, secret end
 	local j = 1
 	while true do
 		local ok, text, _, finished, numF, numR = pcall(GetQuestObjectiveInfo, questID, j, false)
-		if not ok or not text then break end
-		if S.IsSecret(text) then secret = true break end
-		list[#list + 1] = {
-			text = text,
-			finished = (not S.IsSecret(finished)) and finished == true,
-			numF = (type(numF) == "number" and not S.IsSecret(numF)) and numF or nil,
-			numR = (type(numR) == "number" and not S.IsSecret(numR)) and numR or nil,
-		}
+		if not ok then secret = true break end
+		if S.IsSecret(text) then
+			secret = true
+			list[j] = {}
+		elseif not text then
+			break
+		else
+			list[j] = {
+				text = text,
+				finished = (not S.IsSecret(finished)) and finished == true,
+				numF = (not S.IsSecret(numF) and type(numF) == "number") and numF or nil,
+				numR = (not S.IsSecret(numR) and type(numR) == "number") and numR or nil,
+			}
+		end
 		j = j + 1
 		if j > 30 then break end
 	end
@@ -181,7 +229,7 @@ end
 -- is the native source; the fallback bands against the player level use
 -- the classic thresholds
 local function DiffColor(level)
-	if type(level) ~= "number" or level <= 0 or S.IsSecret(level) then return nil end
+	if S.IsSecret(level) or type(level) ~= "number" or level <= 0 then return nil end
 	if GetQuestDifficultyColor then
 		local ok, c = pcall(GetQuestDifficultyColor, level)
 		if ok and type(c) == "table" and type(c.r) == "number" then
@@ -231,9 +279,11 @@ local function QuestSpot(questID)
 		local okM, m = pcall(C_Map.GetBestMapForUnit, "player")
 		if okM and type(m) == "number" then
 			local okQ, list = pcall(C_QuestLog.GetQuestsOnMap, m)
-			if okQ and type(list) == "table" and not S.IsSecretTable(list) then
+			if okQ and not S.IsSecretTable(list) and type(list) == "table" then
 				for _, q in ipairs(list) do
-					if type(q) == "table" and q.questID == questID
+					if not S.IsSecretTable(q) and type(q) == "table"
+						and not S.IsSecret(q.questID)
+						and q.questID == questID
 						and type(q.x) == "number" and type(q.y) == "number" then
 						return m, q.x, q.y
 					end
@@ -379,6 +429,7 @@ local function GetRow(i)
 		end)
 		r.item:SetScript("OnLeave", function() GameTooltip:Hide() end)
 		r.item:SetAlpha(0)
+		r.item:EnableMouse(false) -- alpha-hidden secure buttons still hit-test
 		r:SetScript("OnEnter", function(self)
 			self.hl:Show()
 			if self.questID then
@@ -443,7 +494,7 @@ local SetScroll -- forward: Refresh clamps the offset, defined below
 local function HereSet(headerQuests)
 	local names = {}
 	local function add(v)
-		if type(v) == "string" and v ~= "" and not S.IsSecret(v) then names[v] = true end
+		if not S.IsSecret(v) and type(v) == "string" and v ~= "" then names[v] = true end
 	end
 	for _, fn in ipairs({ "GetRealZoneText", "GetZoneText", "GetSubZoneText", "GetMinimapZoneText" }) do
 		if type(_G[fn]) == "function" then
@@ -464,7 +515,7 @@ local function HereSet(headerQuests)
 		for _ = 1, 10 do
 			if type(id) ~= "number" then break end
 			local okM, info = pcall(C_Map.GetMapInfo, id)
-			if not okM or type(info) ~= "table" or S.IsSecretTable(info) then break end
+			if not okM or S.IsSecretTable(info) or type(info) ~= "table" then break end
 			add(info.name)
 			local t = info.mapType
 			if t == (UT.Zone or 3) and not zoneMap then zoneMap = id end
@@ -478,11 +529,11 @@ local function HereSet(headerQuests)
 	-- pinned on the player's zone map
 	if zoneMap and C_QuestLog and C_QuestLog.GetQuestsOnMap then
 		local okL, list = pcall(C_QuestLog.GetQuestsOnMap, zoneMap)
-		if okL and type(list) == "table" and not S.IsSecretTable(list) then
+		if okL and not S.IsSecretTable(list) and type(list) == "table" then
 			local onMap = {}
 			for _, q in ipairs(list) do
-				if type(q) == "table" and not S.IsSecretTable(q)
-					and type(q.questID) == "number" then
+				if not S.IsSecretTable(q) and type(q) == "table"
+					and not S.IsSecret(q.questID) and type(q.questID) == "number" then
 					onMap[q.questID] = true
 				end
 			end
@@ -514,7 +565,7 @@ local function MainHeader(headerQuests)
 	end
 	if C_Map and C_Map.GetBestMapForUnit and C_Map.GetMapInfo then
 		local okB, id = pcall(C_Map.GetBestMapForUnit, "player")
-		if okB and type(id) == "number" and not S.IsSecret(id) then
+		if okB and not S.IsSecret(id) and type(id) == "number" then
 			local okM, info = pcall(C_Map.GetMapInfo, id)
 			if okM and type(info) == "table" and has(info.name) then return info.name end
 		end
@@ -531,6 +582,15 @@ local objCache = {} -- questID -> { [index] = { text=, finished= } }
 local cleanCache    -- last items list (incl. headers) built w/o secrets
 local cleanCount = 0
 
+local function AppendCachedLines(lines, cache)
+	local idx = {}
+	for j in pairs(cache) do
+		if type(j) == "number" and cache[j] then idx[#idx + 1] = j end
+	end
+	table.sort(idx)
+	for _, j in ipairs(idx) do lines[#lines + 1] = cache[j] end
+end
+
 local function RenderObj(o)
 	local t = o.text
 	if S.IsSecret(t) or type(t) ~= "string" then return nil end
@@ -540,9 +600,37 @@ local function RenderObj(o)
 	return t
 end
 
+local function HideWhenInactive()
+	if not frame then return end
+	local function hide()
+		if frame and (not db or db.tracker ~= "sentiui") then frame:Hide() end
+	end
+	if InCombatLockdown() then S.RunOutOfCombat(hide) else hide() end
+end
+
+-- hideInCombat is alpha-only because Hide is protected once the secure
+-- quest-item buttons exist; while invisible the rows must also stop
+-- taking clicks/wheel input instead of leaving an invisible wall up
+local function SetCombatHidden(on)
+	if not frame then return end
+	frame:SetAlpha(on and 0 or 1)
+	local mouse = not on
+	if view then view:EnableMouseWheel(mouse) end
+	for _, b in ipairs({ zoneBtn, allBtn }) do
+		if b then b:EnableMouse(mouse) end
+	end
+	for _, r in ipairs(pool) do
+		r:EnableMouse(mouse)
+		if r.pin then r.pin:EnableMouse(mouse) end
+		-- the item button is alpha-hidden when a quest has no item; it only
+		-- gets its mouse back when the structural pass marked it active
+		if r.item then r.item:EnableMouse(mouse and r.item.suiActive == true) end
+	end
+end
+
 local function Refresh()
 	if not frame or not db or db.tracker ~= "sentiui" then
-		if frame and not InCombatLockdown() then frame:Hide() end
+		HideWhenInactive()
 		return
 	end
 	local C = S.colors
@@ -550,7 +638,7 @@ local function Refresh()
 	local gap = SC(db.spacing or 2)
 	local width = db.width or 260
 
-	BuildWatchSet()
+	local watchStructural = BuildWatchSet()
 	-- filter modes: "watched" = the game's quest watch list (default),
 	-- "zone" = every quest under a header that counts as "here",
 	-- "all" = the whole log
@@ -561,116 +649,125 @@ local function Refresh()
 	local count = 0
 	local curHeader
 	local headerQuests = {} -- header name -> quest ids under it (zone match)
-	local sawSecret = false
-	for i = 1, NumEntries() do
+	local numEntries, numSecret = NumEntries()
+	local structuralSecret = numSecret == true or watchStructural == true
+	for i = 1, numEntries do
 		local info = QuestInfo(i)
-		if info and S.IsSecretTable(info) then
-			sawSecret = true
-		elseif info then
+		if not info then
+			-- a nil/erroring row read is structural too: every later quest
+			-- index and header attachment is unknown
+			structuralSecret = true
+		elseif S.IsSecretTable(info) then
+			structuralSecret = true
+		else
 			-- a header first, title or not: a secret title must not let the
 			-- quests below file under the previous zone's header
 			if (not S.IsSecret(info.isHeader)) and info.isHeader == true then
-				if S.IsSecret(info.title) then sawSecret = true end
+				if S.IsSecret(info.title) then structuralSecret = true end
 				curHeader = (not S.IsSecret(info.title)) and info.title or nil
 				if curHeader then items[#items + 1] = { header = curHeader } end
 			elseif not S.IsSecret(info.title)
-				and info.questID and not S.IsSecret(info.questID)
-				and not S.IsSecret(info.isHidden) and not info.isHidden
-				and (showAll or zoneOnly or IsWatched(info.questID)) then
-				local complete = ((not S.IsSecret(info.isComplete)) and info.isComplete == true)
-					or IsComplete(info.questID)
-				local title = info.title or "?"
-				if db.questLevels and type(info.level) == "number"
-					and not S.IsSecret(info.level) and info.level > 0 then
-					title = format("[%d] %s", info.level, title)
+				and not S.IsSecret(info.questID) and info.questID ~= nil
+				and not S.IsSecret(info.isHidden) and not info.isHidden then
+				local include = showAll or zoneOnly
+				if not include then
+					local watched, uncertain = IsWatched(info.questID)
+					if uncertain then structuralSecret = true end
+					include = watched
 				end
-				local objs, objSecret = {}, false
-				if not complete then
-					objs, objSecret = Objectives(info.questID)
-				end
-				local it = {
-					quest = true, id = info.questID, logIndex = i,
-					title = title, rawTitle = info.title,
-					complete = complete,
-					color = DiffColor(info.level),
-					zoneHeader = type(curHeader) == "string" and curHeader or nil,
-				}
-				-- rendered objective lines; secret reads fall back per
-				-- index to the last readable line so the counter stays
-				local lines, cache = {}, objCache[it.id]
-				if objSecret and #objs == 0 and cache then
-					for j = 1, #cache do
-						lines[#lines + 1] = cache[j]
+				if include then
+					local complete = ((not S.IsSecret(info.isComplete)) and info.isComplete == true)
+						or IsComplete(info.questID)
+					local title = info.title or "?"
+					if db.questLevels and not S.IsSecret(info.level)
+						and type(info.level) == "number" and info.level > 0 then
+						title = format("[%d] %s", info.level, title)
 					end
-				else
-					for j, o in ipairs(objs) do
-						local t = RenderObj(o)
-						if t then
-							cache = cache or {}
-							cache[j] = { text = t,
-								finished = o.finished == true }
-						end
-						local e = cache and cache[j]
-						if e then lines[#lines + 1] = e end
+					local objs, objSecret = {}, false
+					if not complete then
+						objs, objSecret = Objectives(info.questID)
 					end
-				end
-				if cache then objCache[it.id] = cache end
-				it.lines = lines
-				if objSecret then sawSecret = true end
-				if it.zoneHeader then
-					local ids = headerQuests[it.zoneHeader]
-					if not ids then ids = {} headerQuests[it.zoneHeader] = ids end
-					ids[#ids + 1] = info.questID
-				end
-				-- usable quest item next to the row (click = /use item:id)
-				if GetQuestLogSpecialItemInfo then
-					local okQ, itemID, r2, r3 = pcall(GetQuestLogSpecialItemInfo, i)
-					if okQ and itemID and not S.IsSecret(itemID) then
-						it.itemID = itemID
-						-- return layout varies between builds
-						-- ((id, texture), (id, texture, usable) or
-						-- (id, link, texture)) - pick the value that is
-						-- actually a texture: fileIDs are large numbers,
-						-- paths contain backslashes; links start |H and
-						-- flags are tiny numbers
-						local function asIcon(v)
-							if S.IsSecret(v) then return nil end
-							if type(v) == "number" then
-								if v > 100 then return v end
-								return nil
+					local it = {
+						quest = true, id = info.questID, logIndex = i,
+						title = title, rawTitle = info.title,
+						complete = complete,
+						color = DiffColor(info.level),
+						zoneHeader = type(curHeader) == "string" and curHeader or nil,
+					}
+					-- rendered objective lines; secret reads fall back per
+					-- index to the last readable line so the counter stays
+					local lines, cache = {}, objCache[it.id]
+					if objSecret and #objs == 0 and cache then
+						AppendCachedLines(lines, cache)
+					else
+						for j, o in ipairs(objs) do
+							local t = RenderObj(o)
+							if t then
+								cache = cache or {}
+								cache[j] = { text = t,
+									finished = o.finished == true }
 							end
-							if type(v) == "string"
-								and v:find("\\") then
-								return v
-							end
-						end
-						it.itemIcon = asIcon(r2) or asIcon(r3)
-						if not it.itemIcon
-							and C_Item and C_Item.GetItemIconByID then
-							local okI, ic = pcall(C_Item.GetItemIconByID, itemID)
-							if okI and ic and not S.IsSecret(ic) then
-								it.itemIcon = ic
-							end
-						end
-						-- link either arrived as second return or comes
-						-- from the item API
-						if type(r2) == "string" and r2:find("|H") then
-							it.itemLink = r2
-						elseif C_Item and C_Item.GetItemLink then
-							local okL, link = pcall(C_Item.GetItemLink, itemID)
-							if okL and link and not S.IsSecret(link) then
-								it.itemLink = link
-							end
+							local e = cache and cache[j]
+							if e then lines[#lines + 1] = e end
 						end
 					end
+					if cache then objCache[it.id] = cache end
+					it.lines = lines
+					if it.zoneHeader then
+						local ids = headerQuests[it.zoneHeader]
+						if not ids then ids = {} headerQuests[it.zoneHeader] = ids end
+						ids[#ids + 1] = info.questID
+					end
+					-- usable quest item next to the row (click = /use item:id)
+					if GetQuestLogSpecialItemInfo then
+						local okQ, itemID, r2, r3 = pcall(GetQuestLogSpecialItemInfo, i)
+						if okQ and not S.IsSecret(itemID) and itemID then
+							it.itemID = itemID
+							-- return layout varies between builds
+							-- ((id, texture), (id, texture, usable) or
+							-- (id, link, texture)) - pick the value that is
+							-- actually a texture: fileIDs are large numbers,
+							-- paths contain backslashes; links start |H and
+							-- flags are tiny numbers
+							local function asIcon(v)
+								if S.IsSecret(v) then return nil end
+								if type(v) == "number" then
+									if v > 100 then return v end
+									return nil
+								end
+								if type(v) == "string"
+									and v:find("\\") then
+									return v
+								end
+							end
+							it.itemIcon = asIcon(r2) or asIcon(r3)
+							if not it.itemIcon
+								and C_Item and C_Item.GetItemIconByID then
+								local okI, ic = pcall(C_Item.GetItemIconByID, itemID)
+								if okI and not S.IsSecret(ic) and ic then
+									it.itemIcon = ic
+								end
+							end
+							-- link either arrived as second return or comes
+							-- from the item API
+							if type(r2) == "string" and r2:find("|H") then
+								it.itemLink = r2
+							elseif C_Item and C_Item.GetItemLink then
+								local okL, link = pcall(C_Item.GetItemLink, itemID)
+								if okL and not S.IsSecret(link) and link then
+									it.itemLink = link
+								end
+							end
+						end
+					end
+					items[#items + 1] = it
+					count = count + 1
 				end
-				items[#items + 1] = it
-				count = count + 1
 			elseif S.IsSecret(info.isHeader) or S.IsSecret(info.title)
 				or S.IsSecret(info.questID) or S.IsSecret(info.isHidden) then
 				-- gating fields secret (combat): the quest row would be
 				-- dropped silently - the collect falls back to cleanCache
-				sawSecret = true
+				structuralSecret = true
 			end
 		end
 	end
@@ -735,10 +832,10 @@ local function Refresh()
 	-- and a trailing header
 	if clean[#clean] and clean[#clean].header then clean[#clean] = nil end
 
-	-- a collect that ran into secret reads keeps the last full render
-	-- (mid-combat blind spots); the rows repainted live still count,
-	-- and PLAYER_REGEN_ENABLED rebuilds with readable data anyway
-	if sawSecret and cleanCache then
+	-- a structurally blind collect keeps the last full row set so a
+	-- secret/missing log row cannot shuffle quest items under the wrong
+	-- header. Pure objective-text secrets still repaint live rows.
+	if structuralSecret and cleanCache then
 		clean, count = cleanCache, cleanCount
 	else
 		cleanCache, cleanCount = clean, count
@@ -820,6 +917,8 @@ local function Refresh()
 				r:SetWidth(width - SC(16))
 				r.pin:Hide()
 				r.item:SetAlpha(0)
+				r.item.suiActive = false
+				r.item:EnableMouse(false)
 				r.item:SetAttribute("item", "")
 				if it.header then
 					r:SetHeight(r.title:GetHeight() + gap)
@@ -830,6 +929,8 @@ local function Refresh()
 					r.pin:Show()
 					if it.itemID then
 						r.item:SetAlpha(1)
+						r.item.suiActive = true
+						r.item:EnableMouse(true)
 						r.item:SetAttribute("item", it.itemID)
 					end
 				end
@@ -1043,11 +1144,11 @@ function Core.SetMode(mode)
 		Core.Refresh()
 	elseif mode == "questie" then
 		S.SafeCall("questie", function() ns.Questie.Run(false) end)
-		if frame and not InCombatLockdown() then frame:Hide() end
+		HideWhenInactive()
 		S.Options.AskReload()
 	elseif mode == "blizzard" then
 		S.SafeCall("questie", function() ns.Questie.Run(false) end)
-		if frame and not InCombatLockdown() then frame:Hide() end
+		HideWhenInactive()
 		S.Options.AskReload()
 	end
 end
@@ -1088,10 +1189,10 @@ function Core.Enable(mod)
 		S.RegisterEvent(ev, Schedule) -- unknown events are skipped inside
 	end
 	S.RegisterEvent("PLAYER_REGEN_DISABLED", function()
-		if db.hideInCombat and frame then frame:SetAlpha(0) end
+		if db.hideInCombat and frame then SetCombatHidden(true) end
 	end)
 	S.RegisterEvent("PLAYER_REGEN_ENABLED", function()
-		if frame then frame:SetAlpha(1) end
+		if frame then SetCombatHidden(false) end
 		if dirty then dirty = nil Core.Refresh() end
 	end)
 	C_Timer.NewTicker(2, Schedule)

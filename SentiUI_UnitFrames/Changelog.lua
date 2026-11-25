@@ -36,7 +36,7 @@ ns.CHANGELOG = {
 			"Removed the '!' markers: the own-buff reminder on the player frame and the missing-buff marker above group cells are gone - the nudge icons read as noise in practice.",
 		},
 		changesDE = {
-			"Die '!"-Marker sind raus: Die Eigen-Buff-Erinnerung am Spielerfenster und der Fehlender-Buff-Marker ueber Gruppenzellen wurden entfernt - die Mahn-Icons lasen sich in der Praxis als Rauschen.",
+			"Die '!'-Marker sind raus: Die Eigen-Buff-Erinnerung am Spielerfenster und der Fehlender-Buff-Marker ueber Gruppenzellen wurden entfernt - die Mahn-Icons lasen sich in der Praxis als Rauschen.",
 		},
 	},
 	{
