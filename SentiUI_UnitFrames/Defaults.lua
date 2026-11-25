@@ -35,7 +35,6 @@ ns.DEFAULTS = {
 		defensiveIcons = true,    -- external defensive icons on party cells
 		cooldownIcons = true,     -- interrupt/defensive cooldowns under the cell
 		cooldownMax = 4,          -- how many tracker icons show at once
-		missingBuff = true,       -- gold ! when a member lacks a buff you can give
 		portrait = "class",       -- class icon tile on the left edge
 	},
 	raidTools = { enable = true, collapsed = false }, -- top-edge foldable marker tray
@@ -46,7 +45,6 @@ ns.DEFAULTS = {
 	shotLevelUp = false,           -- screenshot on level up
 	shotAchieve = false,           -- screenshot on earned achievements
 	shotBoss = false,              -- screenshot on boss-kill (ENCOUNTER_END)
-	selfBuffWarn = true,           -- pulsing ! when your own buff/enchant is missing
 	durWarn = true,                -- gear icon when durability runs low
 	kickAnnounce = true,           -- party line when your interrupt lands
 	gradientFill = true,           -- top-light gradient on health fills
@@ -62,7 +60,6 @@ ns.DEFAULTS = {
 		defensiveIcons = true,    -- external defensive icons on raid cells
 		cooldownIcons = false,    -- opt-in: interrupt/defensive cooldowns (cramped cells)
 		cooldownMax = 4,          -- how many tracker icons show at once
-		missingBuff = true,       -- gold ! when a member lacks a buff you can give
 		portrait = "off",         -- opt-in: class icon/3D portrait on raid cells
 	},
 	boss = { enable = true, w = 160, h = 26, power = true },

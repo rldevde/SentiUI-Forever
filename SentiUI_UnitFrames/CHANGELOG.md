@@ -1,5 +1,9 @@
 # SentiUI Unit Frames
 
+## 0.2.53 - 2026-11-25
+
+- Removed the `!` markers: own-buff reminder on the player frame and missing-buff marker above group cells are gone.
+
 ## 0.2.52 - 2026-11-25
 
 - Party cast strips: a slim 4px gold bar under each party/raid cell shows the member's live cast or channel progress (unit spellcast events, pooled at build time).

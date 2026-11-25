@@ -918,114 +918,6 @@ local function OnCastInterrupted(f, event, unit, castGUID, spellID)
 end
 
 -- ===========================================================================
--- Missing raid buff: a small gold "!" above a cell's left corner when a
--- buff your own class hands out is absent on that member. Ids resolve to
--- localized names once, auras match by name - so every rank of a buff
--- counts, and a secret name or missing API just never marks.
--- ===========================================================================
-local BUFF_IDS = {
-	PRIEST  = { 21562, 48168, 14752, 48074 }, -- Fortitude / Prayer / Spirit(s)
-	MAGE    = { 1459, 23028, 27127 },         -- Intellect / Brilliance(s)
-	DRUID   = { 1126, 21849, 988 },           -- Mark / Gift / Thorns
-	WARRIOR = { 6673, 469 },                  -- Battle / Commanding Shout
-	PALADIN = { 19740, 19742, 20217, 25782 }, -- Might / Wisdom / Kings / G.Kings
-	SHAMAN  = { 131 },                        -- Water Breathing (thin, but it is ours)
-}
-
-local ownBuffs  -- false = "this class gives nothing", nil = not resolved yet
-local function OwnBuffNames()
-	if ownBuffs ~= nil then return ownBuffs end
-	local ok, _, cls = pcall(UnitClass, "player")
-	if not ok or type(cls) ~= "string" then return nil end
-	local ids = BUFF_IDS[cls]
-	if not ids then ownBuffs = false return ownBuffs end
-	local names = {}
-	for _, id in ipairs(ids) do
-		local n
-		if C_Spell and C_Spell.GetSpellName then
-			local okN, v = pcall(C_Spell.GetSpellName, id)
-			if okN then n = v end
-		end
-		if type(n) ~= "string" and GetSpellInfo then
-			local okN, v = pcall(GetSpellInfo, id)
-			if okN then n = v end
-		end
-		if type(n) == "string" and n ~= "" then names[n] = true end
-	end
-	ownBuffs = next(names) and names or false
-	return ownBuffs
-end
-
-function X.UpdateMissingBuff(f)
-	local mk = f.MissingBuff
-	if not mk then return end
-	local names = OwnBuffNames()
-	if not names or not f.unit then mk:Hide() return end
-	local now = GetTime()
-	if f._mbT and now - f._mbT < 1 then return end -- aura scans walk 40 indexes
-	f._mbT = now
-	local dead = pcall(UnitIsDeadOrGhost, f.unit) and UnitIsDeadOrGhost(f.unit)
-	if dead == true or not (C_UnitAuras and C_UnitAuras.GetAuraDataByIndex) then
-		mk:Hide()
-		return
-	end
-	local have = {}
-	for i = 1, 40 do
-		local ok, a = pcall(C_UnitAuras.GetAuraDataByIndex, f.unit, i, "HELPFUL")
-		if not ok or not a then break end
-		local okN, nm = pcall(function() return a.name end)
-		if okN and type(nm) == "string" then have[nm] = true end
-	end
-	local missing = false
-	for n in pairs(names) do
-		if not have[n] then missing = true break end
-	end
-	mk:SetShown(missing)
-end
-
--- ===========================================================================
--- Own-buff reminder: pulsing gold "!" on the player frame while a buff
--- your own class hands out is absent on yourself - plus a weapon-enchant
--- check for rogue/shaman (temporary enchants never fire UNIT_AURA on
--- their own here, so the check rides the missing-buff scan).
--- ===========================================================================
-local WEAPON_BUFF = { ROGUE = true, SHAMAN = true }
-
-function X.UpdateSelfBuff(f)
-	local mk = f.SelfBuff
-	if not mk then return end
-	if ns.db.selfBuffWarn == false then mk:Hide() return end
-	local names = OwnBuffNames()
-	local okC, _, cls = pcall(UnitClass, "player")
-	local wantWeapon = okC and type(cls) == "string" and WEAPON_BUFF[cls]
-	if not names and not wantWeapon then mk:Hide() return end
-	local now = GetTime()
-	if f._sbT and now - f._sbT < 1 then return end
-	f._sbT = now
-	local have = {}
-	if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
-		for i = 1, 40 do
-			local ok, a = pcall(C_UnitAuras.GetAuraDataByIndex,
-				"player", i, "HELPFUL")
-			if not ok or not a then break end
-			local okN, nm = pcall(function() return a.name end)
-			if okN and type(nm) == "string" then have[nm] = true end
-		end
-	end
-	local missing = false
-	if names then
-		for n in pairs(names) do
-			if not have[n] then missing = true break end
-		end
-	end
-	if not missing and wantWeapon and GetWeaponEnchantInfo then
-		local okW, mh, _, _, oh = pcall(GetWeaponEnchantInfo)
-		if okW and (mh == false or oh == false) then missing = true end
-	end
-	mk:SetShown(missing)
-end
-
--- ===========================================================================
 -- Durability warning: small gear icon at the player frame's bottom corner,
 -- yellow once the worst piece drops under half, red under a quarter.
 -- UPDATE_INVENTORY_DURABILITY is a global event - bus-registered, since
@@ -1095,19 +987,6 @@ function X.Attach(f)
 		BuildCombatText(f)
 		BuildScreenFX()
 		playerFrame = f
-		local sb = f:CreateFontString(nil, "OVERLAY")
-		sb:SetFont(S.media.font, 13, "OUTLINE")
-		sb:SetPoint("TOPLEFT", f, "TOPLEFT", 1, -1)
-		sb:SetText("!")
-		sb:SetTextColor(0.92, 0.68, 0.20)
-		sb:Hide()
-		local pul = CreateFrame("Frame", nil, f)
-		pul:SetScript("OnUpdate", function(self, dt)
-			if not sb:IsShown() then return end
-			self.t = (self.t or 0) + (dt or 0.016)
-			sb:SetAlpha(0.45 + 0.45 * math.abs(math.sin(self.t * 4)))
-		end)
-		f.SelfBuff = sb
 		local di = f:CreateTexture(nil, "OVERLAY")
 		di:SetSize(12, 12)
 		di:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
@@ -1136,16 +1015,6 @@ function X.Attach(f)
 		and f.db.cooldownIcons ~= false then
 		BuildCDRow(f)
 	end
-	if (f.key == "party" or f.key == "raid") and f.db
-		and f.db.missingBuff then
-		local mk = f:CreateFontString(nil, "OVERLAY")
-		mk:SetFont(S.media.font, 11, "OUTLINE")
-		mk:SetPoint("BOTTOMLEFT", f, "TOPLEFT", 1, -2)
-		mk:SetText("!")
-		mk:SetTextColor(0.92, 0.68, 0.20)
-		mk:Hide()
-		f.MissingBuff = mk
-	end
 end
 
 function X.Refresh(f)
@@ -1155,10 +1024,9 @@ function X.Refresh(f)
 	if f.key == "player" then
 		X.UpdateClassPower(f)
 		X.UpdateLowHP(f)
-		X.UpdateSelfBuff(f)
 		X.UpdateDurability(f)
 	end
-	if f.MissingBuff then X.UpdateMissingBuff(f) end
+
 end
 
 local function OnHealth(f)
@@ -1191,10 +1059,6 @@ local EXTRA_EVENTS = {
 	UNIT_SPELLCAST_STOP = OnCastStop,
 	UNIT_SPELLCAST_CHANNEL_STOP = OnCastStop,
 	UNIT_SPELLCAST_FAILED = OnCastStop,
-	UNIT_AURA = function(f)
-		X.UpdateMissingBuff(f)
-		if f.unit == "player" then X.UpdateSelfBuff(f) end
-	end,
 }
 
 function X.OnFrameEvent(f, event, ...)

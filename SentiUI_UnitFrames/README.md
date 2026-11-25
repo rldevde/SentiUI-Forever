@@ -54,10 +54,8 @@ class-colored health). Standalone module - requires the SentiUI core.
   member's live cast or channel progress (toggle under Extras).
 - **Gradient fill** - health bars shade darker toward the bottom
   (toggle restores the flat paint).
-- **Warnings** - a pulsing gold `!` on the player frame while a buff
-  your class can give is missing on yourself (rogues/shamans also flag
-  a missing weapon enchant), and a small gear icon that goes yellow
-  under 50% worst-piece durability, red under 25%.
+- **Durability warning** - a small gear icon on the player frame goes
+  yellow under 50% worst-piece durability, red under 25%.
 - **Interrupt announce** - posts `Interrupted: <spell>` to the party
   when your kick lands (the target's cast breaks within 0.6s of your
   interrupt cast); the chat send is combat-deferred.
