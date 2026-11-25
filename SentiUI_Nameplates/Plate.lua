@@ -380,9 +380,11 @@ function Plate.Create(parent)
 	p.quest:SetText("!")
 	p.quest:Hide()
 
+	-- raid target icon: classic overhead spot - centered above the name,
+	-- not beside it (beside-the-name was unreadable on this plate scale)
 	p.raidIcon = p:CreateTexture(nil, "OVERLAY")
-	p.raidIcon:SetSize(14, 14)
-	p.raidIcon:SetPoint("RIGHT", p.name, "LEFT", -2, 0)
+	p.raidIcon:SetSize(18, 18)
+	p.raidIcon:SetPoint("BOTTOM", box, "TOP", 0, 16)
 
 	-- skull glyph for "??"-level bosses (media replaces the ?? text)
 	local skull = S.Tex and S.Tex("BossSkull")

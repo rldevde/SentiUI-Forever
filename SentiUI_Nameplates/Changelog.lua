@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.27",
+		date = "2026-11-25",
+		changes = {
+			"Raid target icon moved to the classic spot: centered above the plate's name at 18px instead of a 14px icon squeezed left of the name text - marks are readable at a glance again.",
+		},
+		changesDE = {
+			"Raid-Marker an die klassische Stelle versetzt: zentriert ueber dem Namen der Plakette bei 18px statt als 14px-Symbol links neben dem Namen - Markierungen sind wieder auf einen Blick lesbar.",
+		},
+	},
+	{
 		version = "0.1.26",
 		date = "2026-11-25",
 		changes = {

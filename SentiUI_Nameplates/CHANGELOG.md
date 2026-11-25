@@ -1,4 +1,8 @@
 # SentiUI Nameplates
+
+## 0.1.27 - 2026-11-25
+
+- Raid target icon repositioned: centered above the plate's name at 18px (classic overhead spot) instead of 14px beside the name text.
 ## 0.1.25 - 2026-11-24
 
 - Smooth health bars: plate fills now ease to the new value via the client's status-bar interpolation instead of snapping, same as the unit frames (option: Smooth bars, on by default).
