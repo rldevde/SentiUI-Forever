@@ -1,5 +1,9 @@
 # SentiUI Unit Frames
 
+## 0.2.55 - 2026-11-25
+
+- Fix: member-targets sweep crashed on raid cells (`f.unit` nil on SecureGroupHeader buttons). The sweep resolves units through the `unit` attribute; cast strips use the event arg.
+
 ## 0.2.54 - 2026-11-25
 
 - Member targets: class-colored short name of each group member's target on their cell.

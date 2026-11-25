@@ -2,6 +2,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.55",
+		date = "2026-11-25",
+		changes = {
+			"Fix: the member-targets sweep crashed on raid cells - SecureGroupHeader buttons keep their unit in a secure attribute, not on an f.unit field. The sweep resolves the unit through the attribute now, and cast strips read the event's unit arg instead.",
+		},
+		changesDE = {
+			"Fix: Der Mitglieder-Ziele-Sweep knallte auf Raidzellen - SecureGroupHeader-Buttons fuehren ihre Unit in einem Secure-Attribut, nicht in einem f.unit-Feld. Der Sweep loest die Unit jetzt ueber das Attribut auf, und Zauberleisten lesen das Unit-Arg des Events.",
+		},
+	},
+	{
 		version = "0.2.54",
 		date = "2026-11-25",
 		changes = {

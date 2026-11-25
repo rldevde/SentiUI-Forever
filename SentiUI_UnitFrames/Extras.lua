@@ -960,12 +960,12 @@ local function StripTick(self)
 	self:SetValue(self.rev and (1 - frac) or frac)
 end
 
-local function OnCastStart(f, event)
+local function OnCastStart(f, event, unit)
 	local cs = f.CastStrip
 	if not cs then return end
 	local chan = event == "UNIT_SPELLCAST_CHANNEL_START"
 	local ok, _, _, _, st, en = pcall(
-		chan and UnitChannelInfo or UnitCastingInfo, f.unit)
+		chan and UnitChannelInfo or UnitCastingInfo, unit or f.unit)
 	st, en = ok and st, ok and en
 	if not ok or type(en) ~= "number" or S.IsSecret(en)
 		or S.IsSecret(st) then
@@ -993,17 +993,28 @@ local function Shorten(s, n)
 	return s
 end
 
+-- raid cells are SecureGroupHeader buttons: their unit lives in the
+-- "unit" attribute, not on an f.unit field (single frames have both)
+local function FrameUnit(f)
+	if type(f.unit) == "string" then return f.unit end
+	if f.GetAttribute then
+		local ok, u = pcall(f.GetAttribute, f, "unit")
+		if ok and type(u) == "string" and u ~= "" then return u end
+	end
+end
+
 local function Sweep()
 	for _, f in ipairs(sweepFrames) do
 		-- party/raid cell: member's current target name (class colored)
 		if f.PTText then
-			if ns.db.partyTargets == false then f.PTText:Hide()
+			local unit = FrameUnit(f)
+			if ns.db.partyTargets == false or not unit then f.PTText:Hide()
 			else
-				local ok, nm = pcall(GetUnitName, f.unit .. "target")
+				local ok, nm = pcall(GetUnitName, unit .. "target")
 				nm = ok and Shorten(nm, 8)
 				if nm then
 					f.PTText:SetText(nm)
-					local okC, _, cls = pcall(UnitClass, f.unit .. "target")
+					local okC, _, cls = pcall(UnitClass, unit .. "target")
 					local cc = okC and cls and RAID_CLASS_COLORS
 						and RAID_CLASS_COLORS[cls]
 					if cc then
