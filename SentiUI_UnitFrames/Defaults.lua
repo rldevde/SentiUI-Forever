@@ -49,6 +49,8 @@ ns.DEFAULTS = {
 	selfBuffWarn = true,           -- pulsing ! when your own buff/enchant is missing
 	durWarn = true,                -- gear icon when durability runs low
 	kickAnnounce = true,           -- party line when your interrupt lands
+	gradientFill = true,           -- top-light gradient on health fills
+	partyCastbar = true,           -- slim cast strip under party cells
 	raid = {
 		enable = true, w = 74, h = 26, spacing = 3, power = false,
 		growth = "RIGHT",         -- columns grow to the right, members stack upward

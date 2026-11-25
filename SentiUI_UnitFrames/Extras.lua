@@ -896,6 +896,7 @@ local function SendKick(msg)
 end
 
 local function OnCastInterrupted(f, event, unit, castGUID, spellID)
+	if f.CastStrip then f.CastStrip:Hide() end
 	if f.unit ~= "target" then return end
 	if not ns.db or ns.db.kickAnnounce == false then return end
 	if GetTime() - lastKick > 0.6 then return end
@@ -1054,6 +1055,38 @@ ns.RegisterBusEvent("UPDATE_INVENTORY_DURABILITY", function()
 	if playerFrame then X.UpdateDurability(playerFrame) end
 end)
 
+-- ===========================================================================
+-- Cast strip: a 4px cast/channel bar under each group cell, driven by the
+-- unit spellcast events that already reach every frame. Pooled at build
+-- time like the CD slots - runtime only reads UnitCastingInfo and slides
+-- the fill, so mid-combat creation never happens.
+-- ===========================================================================
+local function StripTick(self)
+	local now = GetTime()
+	local frac = (now - self.start) / math.max(self.ends - self.start, 0.01)
+	if frac >= 1 or frac < 0 then self:Hide() return end
+	self:SetValue(self.rev and (1 - frac) or frac)
+end
+
+local function OnCastStart(f, event)
+	local cs = f.CastStrip
+	if not cs then return end
+	local chan = event == "UNIT_SPELLCAST_CHANNEL_START"
+	local ok, _, _, _, st, en = pcall(
+		chan and UnitChannelInfo or UnitCastingInfo, f.unit)
+	st, en = ok and st, ok and en
+	if not ok or type(en) ~= "number" or S.IsSecret(en)
+		or S.IsSecret(st) then
+		cs:Hide() return
+	end
+	cs.start, cs.ends, cs.rev = (st or 0) / 1000, en / 1000, chan
+	cs:Show()
+end
+
+local function OnCastStop(f)
+	if f.CastStrip then f.CastStrip:Hide() end
+end
+
 function X.Attach(f)
 	-- called from UF.Build: extra bars/icons for frames that want them
 	BuildPredOverlays(f)
@@ -1081,6 +1114,23 @@ function X.Attach(f)
 		di:SetTexture("Interface\\Icons\\Trade_BlackSmithing")
 		di:Hide()
 		f.DurIcon = di
+	end
+	if (f.key == "party" or f.key == "raid") and ns.db.partyCastbar ~= false then
+		local cs = CreateFrame("StatusBar", nil, f)
+		cs:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 1, -1)
+		cs:SetPoint("TOPRIGHT", f, "BOTTOMRIGHT", -1, -1)
+		cs:SetHeight(4)
+		cs:SetStatusBarTexture(BLANK)
+		cs:SetStatusBarColor(0.92, 0.68, 0.20)
+		cs:SetMinMaxValues(0, 1)
+		cs:SetValue(0)
+		cs:SetFrameLevel(f:GetFrameLevel() + 6)
+		local bg = cs:CreateTexture(nil, "BACKGROUND")
+		bg:SetAllPoints()
+		bg:SetColorTexture(0, 0, 0, 0.6)
+		cs:SetScript("OnUpdate", StripTick)
+		cs:Hide()
+		f.CastStrip = cs
 	end
 	if (f.key == "party" or f.key == "raid") and f.db
 		and f.db.cooldownIcons ~= false then
@@ -1136,6 +1186,11 @@ local EXTRA_EVENTS = {
 	UNIT_THREAT_LIST_UPDATE = X.UpdateThreatPct,
 	UNIT_SPELLCAST_SUCCEEDED = OnCastSucceeded,
 	UNIT_SPELLCAST_INTERRUPTED = OnCastInterrupted,
+	UNIT_SPELLCAST_START = OnCastStart,
+	UNIT_SPELLCAST_CHANNEL_START = OnCastStart,
+	UNIT_SPELLCAST_STOP = OnCastStop,
+	UNIT_SPELLCAST_CHANNEL_STOP = OnCastStop,
+	UNIT_SPELLCAST_FAILED = OnCastStop,
 	UNIT_AURA = function(f)
 		X.UpdateMissingBuff(f)
 		if f.unit == "player" then X.UpdateSelfBuff(f) end

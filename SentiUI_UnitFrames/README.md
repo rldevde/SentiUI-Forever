@@ -50,6 +50,10 @@ class-colored health). Standalone module - requires the SentiUI core.
   the chosen threshold (Low health pulse), a gold flash marks level
   ups and won boss encounters, and optional screenshots fire on level
   ups, achievements and boss kills.
+- **Cast strips** - a slim gold bar under each party/raid cell shows the
+  member's live cast or channel progress (toggle under Extras).
+- **Gradient fill** - health bars shade darker toward the bottom
+  (toggle restores the flat paint).
 - **Warnings** - a pulsing gold `!` on the player frame while a buff
   your class can give is missing on yourself (rogues/shamans also flag
   a missing weapon enchant), and a small gear icon that goes yellow

@@ -107,6 +107,19 @@ function UF.UpdateHealth(f)
 	-- r/g/b can be secret numbers for hidden classes: the setters resolve
 	-- them, but the calls go through pcall in case the client refuses
 	pcall(f.Health.SetStatusBarColor, f.Health, r, g, b)
+	-- top-light gradient over the fill: shades darker toward the bottom
+	-- (SetGradient tints the texture's vertices - run after the color)
+	if ns.db.gradientFill ~= false
+		and type(r) == "number" and not S.IsSecret(r) then
+		local okG, tex = pcall(f.Health.GetStatusBarTexture, f.Health)
+		if okG and tex and tex.SetGradient and CreateColor then
+			pcall(tex.SetGradient, tex, "VERTICAL",
+				CreateColor(math.min(r * 1.3 + 0.05, 1),
+					math.min(g * 1.3 + 0.05, 1),
+					math.min(b * 1.3 + 0.05, 1), 1),
+				CreateColor(r * 0.68, g * 0.68, b * 0.68, 1))
+		end
+	end
 	if f.Edge then pcall(f.Edge.SetVertexColor, f.Edge, r, g, b, 1) end
 	-- ambient tint: a whisper of the health color inside the bar's dark
 	-- backdrop, secret-safe (arithmetic on a secret rgb would throw)

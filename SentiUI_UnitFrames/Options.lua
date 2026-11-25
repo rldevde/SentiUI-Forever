@@ -236,6 +236,8 @@ ns.OPTIONS = { pages = {
 					{ type = "toggle", key = "selfBuffWarn", label = L["Own buff reminder"] },
 					{ type = "toggle", key = "durWarn", label = L["Durability warning"] },
 					{ type = "toggle", key = "kickAnnounce", label = L["Announce interrupts"] },
+					{ type = "toggle", key = "gradientFill", label = L["Gradient fill"] },
+					{ type = "toggle", key = "partyCastbar", label = L["Party cast strips"], reload = true },
 				},
 			},
 		},

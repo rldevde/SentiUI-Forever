@@ -1,5 +1,10 @@
 # SentiUI Unit Frames
 
+## 0.2.52 - 2026-11-25
+
+- Party cast strips: a slim 4px gold bar under each party/raid cell shows the member's live cast or channel progress (unit spellcast events, pooled at build time).
+- Gradient fill: health bars shade darker toward the bottom; toggle restores the flat paint. Secret colors skip the gradient.
+
 ## 0.2.51 - 2026-11-25
 
 - Own buff reminder: a pulsing gold `!` on the player frame while a buff your class can give is missing on yourself; rogues and shamans also flag a missing weapon enchant.

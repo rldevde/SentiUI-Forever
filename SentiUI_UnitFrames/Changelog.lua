@@ -2,6 +2,18 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.2.52",
+		date = "2026-11-25",
+		changes = {
+			"Party cast strips: a slim 4px gold bar under each party and raid cell shows the member's cast or channel progress live - driven by the unit spellcast events on each cell, pooled at build time so nothing is created mid-fight.",
+			"Gradient fill: health bars shade darker toward the bottom (off = old flat paint). Secret colours (hidden classes) skip the gradient and keep the engine-resolved fill.",
+		},
+		changesDE = {
+			"Zauberleisten an Gruppenzellen: Eine schmale 4px goldene Leiste unter jeder Gruppen- und Raidzelle zeigt live den Zauber-/Kanalisierungsfortschritt des Mitglieds - ueber die Unit-Spellcast-Events der Zelle getrieben, beim Bau gepoolt, sodass mitten im Kampf nichts entsteht.",
+			"Verlaufsfuellung: Lebensleisten werden nach unten dunkler (aus = alter flacher Anstrich). Secret-Farben (verborgene Klassen) ueberspringen den Verlauf und behalten die engine-seitige Fuellung.",
+		},
+	},
+	{
 		version = "0.2.51",
 		date = "2026-11-25",
 		changes = {
