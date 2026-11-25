@@ -4,6 +4,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.3.68",
+		date = "2026-11-25",
+		changes = {
+			"Communities/Guild window unskinned: the dialog skin fought DaylightUI's social pack over the same frame - re-anchored, re-hidden and re-styled in conflicting passes - and the member card and invite pane ended up floating off the window edge. Both frames now keep their own look.",
+		},
+		changesDE = {
+			"Gilden-/Communities-Fenster ohne Skin: der Dialog-Skin und DaylightUIs Social-Pack sind sich am selben Fenster in die Quere gekommen - Anker, Verstecken und Restyling in einander widersprechenden Durchlaeufen - und Mitgliedskarte sowie Einladungsbereich schwebten neben dem Fensterrand. Beide Fenster behalten jetzt ihr eigenes Aussehen.",
+		},
+	},
+	{
 		version = "0.3.67",
 		date = "2026-11-25",
 		changes = {

@@ -1,5 +1,9 @@
 # SentiUI Action Bars
 
+## 0.3.68 - 2026-11-25
+
+- Communities/Guild window unskinned: the dialog skin fought DaylightUI's social pack over the same frame; the member card and invite pane ended up floating off the window edge. Both frames keep their own look.
+
 ## 0.3.67 - 2026-11-25
 
 - "Open all" button on the mail window: drains the inbox one letter per tick until empty.

@@ -968,8 +968,11 @@ function Skins.Enable(mod)
 		{ "EncounterJournal", DialogSkin },
 		{ "AchievementFrame", DialogSkin },
 		{ "CalendarFrame", DialogSkin },
-		{ "CommunitiesFrame", DialogSkin },
-		{ "GuildFrame", DialogSkin },
+		-- Communities/Guild stay unskinned: two skin engines on the same
+		-- frame (ours + DaylightUI's social pack) re-anchor and re-hide in
+		-- conflicting ways and the member card/invite pane escapes the
+		-- window edge. The window keeps its own look.
+		{ "PVEFrame", DialogSkin },
 		{ "PVEFrame", DialogSkin },
 		{ "LFGListFrame", DialogSkin },
 		{ "GroupFinderFrame", DialogSkin },
