@@ -1,0 +1,40 @@
+## Interface: 16001
+## Interface-Camelot: 16001
+## Title: |cffebad33SentiUI|r Outfitter
+## Notes: Outfit and gear-set manager for SentiUI: quick-swap bar, sell protection and a styled sets window.
+## Notes-deDE: Outfit- und Ausruestungssets-Verwaltung fuer SentiUI: Schnellwechsel-Leiste, Verkaufsschutz und Sets-Fenster.
+## Category: Sentinel
+## IconTexture: Interface\AddOns\SentiUI_Outfitter\Media\Logo.tga
+## Author: xRL-Dev.de
+## Version: 1.1.0
+## Dependencies: SentiUI
+## SavedVariablesPerCharacter: SentiOutfitterDB
+## X-Flavor: camelot
+## X-Website: https://xrl-dev.de
+
+Core.lua
+Data.lua
+
+Locales\deDE.lua
+Locales\frFR.lua
+Locales\esES.lua
+Locales\esMX.lua
+Locales\itIT.lua
+Locales\ptBR.lua
+Locales\ruRU.lua
+Locales\koKR.lua
+Locales\zhCN.lua
+Locales\zhTW.lua
+
+Outfits.lua
+UI.lua
+Bar.lua
+Tooltip.lua
+Protect.lua
+Badges.lua
+Minimap.lua
+Options.lua
+
+SuiOptions.lua
+Changelog.lua
+Module.lua
