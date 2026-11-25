@@ -258,6 +258,41 @@ local AGGRO_EDGE = {
 	warn = { 0.98, 0.60, 0.15 },
 }
 
+-- fill color + a vertical top-light gradient over it (off = flat paint).
+-- SetGradient tints the texture's vertices, so it must run AFTER
+-- SetStatusBarColor or the flat color wins.
+local function PaintFill(p, r, g, b)
+	pcall(p.hp.SetStatusBarColor, p.hp, r, g, b)
+	local db = ns.Cfg()
+	if db.gradientFill == false then return end
+	local ok, tex = pcall(p.hp.GetStatusBarTexture, p.hp)
+	if not (ok and tex and tex.SetGradient and CreateColor) then return end
+	pcall(tex.SetGradient, tex, "VERTICAL",
+		CreateColor(math.min(r * 1.3 + 0.05, 1), math.min(g * 1.3 + 0.05, 1),
+			math.min(b * 1.3 + 0.05, 1), 1),
+		CreateColor(r * 0.68, g * 0.68, b * 0.68, 1))
+end
+
+-- the target/volatile effects slice: glow ring + execute spark + the
+-- non-target fade. Health percent may be secret mid-fight - the spark
+-- just skips those passes rather than erroring.
+local function ApplyTargetFX(p, unit, db, isTarget)
+	local glowOn = db.targetGlow ~= false and isTarget
+	if p.tglow then p.tglow:SetShown(glowOn) end
+	local ex = false
+	if p.exec and db.executeGlow ~= false then
+		local okP, pct = pcall(UnitHealthPercent, unit)
+		local pc = okP and plain(pct)
+		if type(pc) == "number" then
+			local frac = pc > 1 and pc / 100 or pc
+			ex = frac <= (db.executePct or 20) / 100
+		end
+	end
+	if p.exec then p.exec:SetShown(ex) end
+	if p.fx then p.fx:SetShown((glowOn or ex) == true) end
+	p:SetAlpha(isTarget and 1 or (db.dimOthers and 0.7 or 1))
+end
+
 local function UpdateAggro(p)
 	local g = p.aggro
 	if not g then return end
@@ -385,6 +420,39 @@ function Plate.Create(parent)
 	p.raidIcon = p:CreateTexture(nil, "OVERLAY")
 	p.raidIcon:SetSize(18, 18)
 	p.raidIcon:SetPoint("BOTTOM", box, "TOP", 0, 16)
+
+	-- target glow: a soft light spreading past the bar silhouette, drawn
+	-- on the shared glow texture the suite ships; the anim frame sleeps
+	-- while hidden so the pulse costs nothing on non-target plates
+	p.tglow = p:CreateTexture(nil, "BACKGROUND", nil, 2)
+	local glowTex = S.Tex("ThreatGlow") or S.Tex("GlowEdge")
+	if glowTex then p.tglow:SetTexture(glowTex) end
+	p.tglow:SetBlendMode("ADD")
+	p.tglow:SetVertexColor(ACC.r, ACC.g, ACC.b, 1)
+	p.tglow:SetPoint("TOPLEFT", box, "TOPLEFT", -14, 14)
+	p.tglow:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", 14, -14)
+	p.tglow:Hide()
+	-- execute spark: a lit sliver riding the fill's right edge under the
+	-- execute threshold - same shape the plate castbar uses for its spark
+	p.exec = p:CreateTexture(nil, "OVERLAY", nil, 3)
+	local sparkTex = S.Tex("BarSpark")
+	if sparkTex then p.exec:SetTexture(sparkTex) end
+	p.exec:SetSize(10, 14)
+	p.exec:SetBlendMode("ADD")
+	p.exec:SetVertexColor(1, 0.30, 0.12, 1)
+	p.exec:SetPoint("CENTER", p.hp:GetStatusBarTexture(), "RIGHT", 0, 0)
+	p.exec:Hide()
+	p.fx = CreateFrame("Frame", nil, p)
+	p.fx:Hide()
+	p.fx:SetScript("OnUpdate", function(self, dt)
+		self._t = (self._t or 0) + (dt or 0.016)
+		if p.tglow:IsShown() then
+			p.tglow:SetAlpha(0.45 + 0.28 * math.abs(math.sin(self._t * 2.2)))
+		end
+		if p.exec:IsShown() then
+			p.exec:SetAlpha(0.5 + 0.5 * math.abs(math.sin(self._t * 9)))
+		end
+	end)
 
 	-- skull glyph for "??"-level bosses (media replaces the ?? text)
 	local skull = S.Tex and S.Tex("BossSkull")
@@ -530,6 +598,11 @@ local ELITE_LABELS = {
 function Plate.Update(p)
 	local db = ns.Cfg()
 	local unit = p.unit
+	-- full reset on (re)use: recycled plates never keep a dim/glow state
+	p:SetAlpha(1)
+	if p.tglow then p.tglow:Hide() end
+	if p.exec then p.exec:Hide() end
+	if p.fx then p.fx:Hide() end
 	if not unit or plain(UnitExists(unit)) ~= true then p:Hide() return end
 	p:Show()
 
@@ -623,9 +696,9 @@ function Plate.Update(p)
 
 	if db.healthText then hp_text(p, unit) end
 
-	-- fill color
+	-- fill color (+ optional top-light gradient over it)
 	local fr, fg, fb = FillColor(p, unit)
-	if fr ~= nil then pcall(p.hp.SetStatusBarColor, p.hp, fr, fg, fb) end
+	if fr ~= nil then PaintFill(p, fr, fg, fb) end
 
 	-- target accent border: square edge goes Sentinel gold
 	if isTarget then
@@ -633,6 +706,7 @@ function Plate.Update(p)
 	else
 		p.hpBox:SetEdgeColor(EDGE_C.r, EDGE_C.g, EDGE_C.b, 1)
 	end
+	ApplyTargetFX(p, unit, db, isTarget)
 
 	-- raid target icon
 	if db.raidIcon then
@@ -655,12 +729,13 @@ function Plate.RefreshColors(p)
 	hp_apply(p, p.unit)
 	if db.healthText then hp_text(p, p.unit) end
 	local fr, fg, fb = FillColor(p, p.unit)
-	if fr ~= nil then pcall(p.hp.SetStatusBarColor, p.hp, fr, fg, fb) end
+	if fr ~= nil then PaintFill(p, fr, fg, fb) end
 	local isTarget = db.targetHighlight and TargetFlag(p)
 	if isTarget then
 		p.hpBox:SetEdgeColor(ACC.r, ACC.g, ACC.b, 1)
 	else
 		p.hpBox:SetEdgeColor(EDGE_C.r, EDGE_C.g, EDGE_C.b, 1)
 	end
+	ApplyTargetFX(p, p.unit, db, isTarget)
 	UpdateAggro(p)
 end

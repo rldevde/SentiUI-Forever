@@ -27,4 +27,9 @@ ns.DEFAULTS = {
 	smoothBars = true,       -- health fills ease to their new value
 	absorbBar = true,        -- thin shield sliver across the top of the fill
 	questMark = true,        -- gold "!" on plates whose mob a quest needs
+	targetGlow = true,       -- soft light ring around the current target
+	executeGlow = true,      -- spark on the fill edge under executePct
+	executePct = 20,         -- percent
+	gradientFill = true,     -- top-light gradient on the health fill
+	dimOthers = false,       -- fade non-target plates to 70%
 }

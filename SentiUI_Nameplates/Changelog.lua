@@ -2,6 +2,22 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "0.1.28",
+		date = "2026-11-25",
+		changes = {
+			"Target glow: the plate you are targeting carries a soft gold light spreading past the bar edges (gently pulsing, on the suite's own glow texture) instead of only a border color.",
+			"Execute spark: under 20% health a lit sliver rides the fill's right edge and pulses - threshold configurable 10-40%.",
+			"Gradient fill: health fills shade darker toward the bottom instead of one flat color (off = old flat look).",
+			"Dim non-target plates: optional 70% fade on every hostile plate that is not your target (off by default - pick it in Extras).",
+		},
+		changesDE = {
+			"Ziel-Glow: Die Plakette deines Ziels traegt ein weiches goldenes Licht, das ueber die Leistenraender hinausreicht (sanft pulsierend, eigene Glow-Textur) statt nur einer Randfarbe.",
+			"Execute-Funke: Unter 20% Leben laeuft ein leuchtender Splitter an der Fuellkante und pulsiert - Schwelle 10-40% einstellbar.",
+			"Verlaufsfuellung: Lebensleisten werden nach unten dunkler statt einfarbig (aus = alter flacher Look).",
+			"Nicht-Ziel-Plaketten abdimmen: Optional 70% Transparenz auf jeder feindlichen Plakette, die nicht dein Ziel ist (standardmaessig aus - in Extras aktivierbar).",
+		},
+	},
+	{
 		version = "0.1.27",
 		date = "2026-11-25",
 		changes = {

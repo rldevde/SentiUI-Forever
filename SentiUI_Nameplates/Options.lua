@@ -63,6 +63,12 @@ ns.OPTIONS = {
 			{ type = "toggle", key = "eliteMarker", label = L["Elite/rare marker"] },
 			{ type = "toggle", key = "questMark", label = L["Quest mob marker"],
 				desc = L["Gold ! beside a plate when the mob is needed for one of your quests."] },
+			{ type = "toggle", key = "targetGlow", label = L["Target glow"] },
+			{ type = "toggle", key = "executeGlow", label = L["Execute spark"] },
+			{ type = "slider", key = "executePct", label = L["Execute threshold"], min = 10, max = 40, step = 5, unit = "%",
+				disabled = function(get) return get("executeGlow") == false end },
+			{ type = "toggle", key = "gradientFill", label = L["Gradient fill"] },
+			{ type = "toggle", key = "dimOthers", label = L["Dim non-target plates"] },
 		},
 	},
 }

@@ -1,5 +1,12 @@
 # SentiUI Nameplates
 
+## 0.1.28 - 2026-11-25
+
+- Target glow: soft pulsing gold light around the targeted plate (suite glow texture, ADD blend).
+- Execute spark: lit sliver on the fill's right edge under 20% HP (threshold slider 10-40%).
+- Gradient fill: health bar shades darker toward the bottom; toggle restores the flat look.
+- Dim non-target plates: optional 70% fade on hostile plates that are not your target (off by default).
+
 ## 0.1.27 - 2026-11-25
 
 - Raid target icon repositioned: centered above the plate's name at 18px (classic overhead spot) instead of 14px beside the name text.
